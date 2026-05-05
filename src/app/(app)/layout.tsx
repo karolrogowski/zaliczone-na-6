@@ -14,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <form action={logout}>
               <button
                 type="submit"
-                className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+                className="cursor-pointer text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
               >
                 Wyloguj
               </button>

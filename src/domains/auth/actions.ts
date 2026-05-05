@@ -113,5 +113,6 @@ export async function updatePassword(
     return { message: 'Nie udało się zmienić hasła. Link mógł wygasnąć — spróbuj ponownie.' }
   }
 
-  redirect('/dashboard')
+  await supabase.auth.signOut()
+  redirect('/login')
 }
