@@ -157,3 +157,5 @@ nb-configuration.xml
 *.log
 /.claude/settings.local.json
 /wezterm/.claude/settings.local.json
+
+prompts.adoc
