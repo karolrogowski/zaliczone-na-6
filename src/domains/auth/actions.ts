@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/shared/supabase/server'
 import type { LoginFormState, RegisterFormState, UserRole } from './types'
+import { validateLoginForm, validateRegisterForm } from './validation'
 
 export async function register(
   _state: RegisterFormState,
@@ -13,18 +14,8 @@ export async function register(
   const password = (formData.get('password') as string | null) ?? ''
   const role = (formData.get('role') as UserRole | null) ?? ('' as UserRole)
 
-  const errors: NonNullable<RegisterFormState>['errors'] = {}
-
-  if (full_name.length < 2)
-    errors.full_name = ['Imię i nazwisko musi mieć co najmniej 2 znaki']
-  if (!email)
-    errors.email = ['Email jest wymagany']
-  if (password.length < 8)
-    errors.password = ['Hasło musi mieć co najmniej 8 znaków']
-  if (!['student', 'tutor'].includes(role))
-    errors.role = ['Wybierz rolę']
-
-  if (Object.keys(errors).length > 0) return { errors }
+  const validationError = validateRegisterForm({ full_name, email, password, role })
+  if (validationError) return validationError
 
   const supabase = await createClient()
 
@@ -53,12 +44,8 @@ export async function login(
   const email = (formData.get('email') as string | null)?.trim() ?? ''
   const password = (formData.get('password') as string | null) ?? ''
 
-  const errors: NonNullable<LoginFormState>['errors'] = {}
-
-  if (!email) errors.email = ['Email jest wymagany']
-  if (!password) errors.password = ['Hasło jest wymagane']
-
-  if (Object.keys(errors).length > 0) return { errors }
+  const validationError = validateLoginForm({ email, password })
+  if (validationError) return validationError
 
   const supabase = await createClient()
 
