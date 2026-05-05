@@ -17,9 +17,14 @@ export async function submitMatchingRequest(
 
   const supabase = await createClient()
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { message: 'Nie jesteś zalogowany.' }
+
   const { error } = await supabase
     .from('matching_requests')
-    .insert({ subject_id, description })
+    .insert({ subject_id, description, student_id: user.id })
 
   if (error) {
     return { message: 'Nie udało się wysłać zlecenia. Spróbuj ponownie.' }
@@ -46,9 +51,14 @@ export async function acceptMatchingRequest(
 ): Promise<AcceptRequestResult> {
   const supabase = await createClient()
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { success: false, message: 'Nie jesteś zalogowany.' }
+
   const { data } = await supabase
     .from('matching_requests')
-    .update({ status: 'accepted' })
+    .update({ status: 'accepted', tutor_id: user.id })
     .eq('id', requestId)
     .eq('status', 'pending')
     .is('tutor_id', null)

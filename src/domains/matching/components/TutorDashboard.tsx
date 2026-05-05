@@ -1,9 +1,22 @@
 'use client'
 
-import { useOptimistic, useTransition } from 'react'
+import { useEffect, useOptimistic, useState, useTransition } from 'react'
 import { acceptMatchingRequest, toggleTutorAvailability } from '../actions'
 import { useTutorRequests } from '../hooks/useTutorRequests'
 import type { MatchingRequestWithSubject, TutorProfileDetails } from '../types'
+
+function useMinutesLeft(expiresAt: string) {
+  const calc = () =>
+    Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 60000))
+  const [minutes, setMinutes] = useState(calc)
+
+  useEffect(() => {
+    const id = setInterval(() => setMinutes(calc()), 60_000)
+    return () => clearInterval(id)
+  }, [expiresAt])
+
+  return minutes
+}
 
 export function TutorDashboard({
   initialRequests,
@@ -46,7 +59,8 @@ export function TutorDashboard({
         <div className="mb-2 text-2xl">✅</div>
         <h2 className="mb-1 text-lg font-semibold text-zinc-900">Zaakceptowałeś zlecenie!</h2>
         <p className="text-sm text-zinc-600">
-          Przedmiot: <strong>{acceptedRequest.subjects?.label ?? acceptedRequest.subject_id}</strong>.
+          Przedmiot:{' '}
+          <strong>{acceptedRequest.subjects?.label ?? acceptedRequest.subject_id}</strong>.
           Sesja wkrótce się rozpocznie.
         </p>
       </div>
@@ -68,6 +82,9 @@ export function TutorDashboard({
           <button
             onClick={handleToggle}
             disabled={isPending}
+            role="switch"
+            aria-checked={optimisticAvailable}
+            data-testid="availability-toggle"
             className={`cursor-pointer relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
               optimisticAvailable ? 'bg-green-500' : 'bg-zinc-300'
             }`}
@@ -91,9 +108,7 @@ export function TutorDashboard({
               Brak zleceń w Twoich przedmiotach. Czekamy na uczniów...
             </div>
           ) : (
-            requests.map((req) => (
-              <RequestCard key={req.id} request={req} />
-            ))
+            requests.map((req) => <RequestCard key={req.id} request={req} />)
           )}
         </div>
       )}
@@ -103,20 +118,15 @@ export function TutorDashboard({
 
 function RequestCard({ request }: { request: MatchingRequestWithSubject }) {
   const [isPending, startTransition] = useTransition()
-  const [result, setResult] = useOptimistic<string | null>(null)
+  const [errorMsg, setErrorMsg] = useOptimistic<string | null>(null)
+  const minutesLeft = useMinutesLeft(request.expires_at)
 
   function handleAccept() {
     startTransition(async () => {
       const res = await acceptMatchingRequest(request.id)
-      if (!res.success) setResult(res.message)
+      if (!res.success) setErrorMsg(res.message)
     })
   }
-
-  const expiresAt = new Date(request.expires_at)
-  const minutesLeft = Math.max(
-    0,
-    Math.floor((expiresAt.getTime() - Date.now()) / 60000)
-  )
 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white p-4">
@@ -134,9 +144,7 @@ function RequestCard({ request }: { request: MatchingRequestWithSubject }) {
         </span>
       </div>
 
-      {result && (
-        <p className="mb-2 text-sm text-red-600">{result}</p>
-      )}
+      {errorMsg && <p className="mb-2 text-sm text-red-600">{errorMsg}</p>}
 
       <button
         onClick={handleAccept}
