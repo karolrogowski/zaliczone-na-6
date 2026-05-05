@@ -2,8 +2,19 @@
 
 import { redirect } from 'next/navigation'
 import { createClient } from '@/shared/supabase/server'
-import type { LoginFormState, RegisterFormState, UserRole } from './types'
-import { validateLoginForm, validateRegisterForm } from './validation'
+import type {
+  LoginFormState,
+  RegisterFormState,
+  ForgotPasswordFormState,
+  ResetPasswordFormState,
+  UserRole,
+} from './types'
+import {
+  validateLoginForm,
+  validateRegisterForm,
+  validateForgotPasswordForm,
+  validateResetPasswordForm,
+} from './validation'
 
 export async function register(
   _state: RegisterFormState,
@@ -34,7 +45,7 @@ export async function register(
     return { message: 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie.' }
   }
 
-  redirect('/dashboard')
+  redirect('/check-email')
 }
 
 export async function login(
@@ -52,6 +63,9 @@ export async function login(
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
+    if (error.code === 'email_not_confirmed') {
+      return { message: 'Najpierw potwierdź swój adres email. Sprawdź skrzynkę mailową.' }
+    }
     return { message: 'Nieprawidłowy email lub hasło' }
   }
 
@@ -62,4 +76,42 @@ export async function logout() {
   const supabase = await createClient()
   await supabase.auth.signOut()
   redirect('/login')
+}
+
+export async function requestPasswordReset(
+  _state: ForgotPasswordFormState,
+  formData: FormData
+): Promise<ForgotPasswordFormState> {
+  const email = (formData.get('email') as string | null)?.trim() ?? ''
+
+  const validationError = validateForgotPasswordForm({ email })
+  if (validationError) return validationError
+
+  const supabase = await createClient()
+
+  await supabase.auth.resetPasswordForEmail(email)
+
+  // Zawsze zwracamy sukces — nie ujawniamy czy email istnieje w bazie
+  return { success: true }
+}
+
+export async function updatePassword(
+  _state: ResetPasswordFormState,
+  formData: FormData
+): Promise<ResetPasswordFormState> {
+  const password = (formData.get('password') as string | null) ?? ''
+  const confirmPassword = (formData.get('confirmPassword') as string | null) ?? ''
+
+  const validationError = validateResetPasswordForm({ password, confirmPassword })
+  if (validationError) return validationError
+
+  const supabase = await createClient()
+
+  const { error } = await supabase.auth.updateUser({ password })
+
+  if (error) {
+    return { message: 'Nie udało się zmienić hasła. Link mógł wygasnąć — spróbuj ponownie.' }
+  }
+
+  redirect('/dashboard')
 }

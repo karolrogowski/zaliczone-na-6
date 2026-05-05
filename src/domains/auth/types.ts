@@ -29,3 +29,21 @@ export type LoginFormState =
       message?: string
     }
   | undefined
+
+export type ForgotPasswordFormState =
+  | {
+      errors?: { email?: string[] }
+      message?: string
+      success?: boolean
+    }
+  | undefined
+
+export type ResetPasswordFormState =
+  | {
+      errors?: {
+        password?: string[]
+        confirmPassword?: string[]
+      }
+      message?: string
+    }
+  | undefined

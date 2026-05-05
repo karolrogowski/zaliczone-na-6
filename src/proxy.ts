@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
 const PROTECTED_PREFIXES = ['/dashboard', '/matching', '/session']
-const AUTH_ROUTES = ['/login', '/register']
+// Przekieruj zalogowanych z tych tras → /dashboard (ale nie z /reset-password)
+const AUTH_ONLY_ROUTES = ['/login', '/register', '/forgot-password', '/check-email']
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -36,13 +37,13 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p))
-  const isAuthRoute = AUTH_ROUTES.some((p) => pathname.startsWith(p))
+  const isAuthOnly = AUTH_ONLY_ROUTES.some((p) => pathname.startsWith(p))
 
   if (!user && isProtected) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  if (user && isAuthRoute) {
+  if (user && isAuthOnly) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 

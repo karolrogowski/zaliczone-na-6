@@ -37,3 +37,26 @@ export function validateLoginForm(fields: {
 }
 
 export const VALID_ROLES: UserRole[] = ['student', 'tutor']
+
+export function validateForgotPasswordForm(fields: {
+  email: string
+}): import('./types').ForgotPasswordFormState {
+  if (!fields.email.trim())
+    return { errors: { email: ['Email jest wymagany'] } }
+  return undefined
+}
+
+export function validateResetPasswordForm(fields: {
+  password: string
+  confirmPassword: string
+}): import('./types').ResetPasswordFormState {
+  const errors: NonNullable<import('./types').ResetPasswordFormState>['errors'] = {}
+
+  if (fields.password.length < 8)
+    errors.password = ['Hasło musi mieć co najmniej 8 znaków']
+  if (fields.password !== fields.confirmPassword)
+    errors.confirmPassword = ['Hasła nie są identyczne']
+
+  if (Object.keys(errors).length > 0) return { errors }
+  return undefined
+}
