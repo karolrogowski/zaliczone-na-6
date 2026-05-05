@@ -1,21 +1,46 @@
 import { getCurrentProfile } from '@/domains/auth/queries'
+import { RequestForm } from '@/domains/matching/components/RequestForm'
+import { StudentRequestStatus } from '@/domains/matching/components/StudentRequestStatus'
+import { TutorDashboard } from '@/domains/matching/components/TutorDashboard'
+import {
+  getStudentActiveRequest,
+  getSubjects,
+  getTutorAcceptedRequest,
+  getTutorPendingRequests,
+  getTutorProfileDetails,
+} from '@/domains/matching/queries'
 
 export default async function DashboardPage() {
   const profile = await getCurrentProfile()
 
-  return (
-    <div>
-      <h1 className="text-2xl font-bold text-zinc-900">
-        Cześć, {profile?.full_name}!
-      </h1>
-      <p className="mt-2 text-zinc-500">
-        Rola: {profile?.role === 'student' ? 'Uczeń' : 'Korepetytor'}
-      </p>
-      <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-6">
-        <p className="text-sm text-zinc-500">
-          Dashboard w budowie — tutaj pojawi się główny widok aplikacji.
-        </p>
-      </div>
-    </div>
-  )
+  if (profile?.role === 'student') {
+    const [activeRequest, subjects] = await Promise.all([
+      getStudentActiveRequest(),
+      getSubjects(),
+    ])
+
+    return activeRequest ? (
+      <StudentRequestStatus initialRequest={activeRequest} />
+    ) : (
+      <RequestForm subjects={subjects} />
+    )
+  }
+
+  if (profile?.role === 'tutor') {
+    const [pendingRequests, tutorProfile, acceptedRequest] = await Promise.all([
+      getTutorPendingRequests(),
+      getTutorProfileDetails(),
+      getTutorAcceptedRequest(),
+    ])
+
+    return (
+      <TutorDashboard
+        initialRequests={pendingRequests}
+        tutorProfile={tutorProfile}
+        acceptedRequest={acceptedRequest}
+      />
+    )
+  }
+
+  return null
 }
