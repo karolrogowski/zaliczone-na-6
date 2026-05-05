@@ -1,0 +1,53 @@
+W tym repozytorium będę pracował nad konkretnym projektem.
+
+Chcę stworzyć platformę dla korepetytorów i uczniów, która będzie działała trochę na zasadzie tak, jak działa Uber.
+
+Wyobraź sobie, że jest godzina 21:40, uczeń ma jutro klasówkę i dochodzi do wniosku, że on jednak tego nie ogarnie i potrzebuje korepetycji na już. To jest główna ścieżka działania tej platformy z perspektywy ucznia.
+
+To znaczy, uczeń, no oczywiście za opłatą, może znaleźć korepetytora online na już.
+
+Z drugiej strony użytkownik systemu to nauczyciel, czyli korepetytor. Nauczyciel deklaruje swoją dostępność, to znaczy otwiera platformę i czeka, aż zgłosi się jakiś uczeń z potrzebą. W momencie, w którym zostaną oni sparowani, następuje połączenie i mogą prowadzić ze sobą lekcje, która też jest ograniczona czasowo. Na przykład 30 minut, 60 minut.
+
+Na pierwszy rzut będę budował MVP tego projektu, czyli zależy mi na tym, żeby ilość funkcjonalności w tej platformie była z jednej strony minimalna, a z drugiej strony, żeby pokazała case biznesowy, dla którego warto dalej inwestować czas i pieniądze w tę platformę.
+
+Czyli głównie zależy mi na tym, jeszcze raz, gdybyśmy mieli sobie opowiedzieć ścieżki.
+
+Z perspektywy ucznia, uczeń dochodzi do wniosku, że potrzebuje korepetytora na już. Loguje się do platformy, ma na przykład prepaid albo cokolwiek, co pozwoli na zapłatę korepetytorowi. Oczywiście korepetytor nie dostanie całej kwoty, tylko zostanie z tego zabrana prowizja, i to będzie zarobek właścicieli platformy.
+
+Następnie uczeń opisuje, z jakiego przedmiotu potrzebuje korepetycji, jaki jest mniej więcej temat. Musi opisać temat, w jakim korepetycje są mu potrzebne.
+
+I tak samo jak w przypadku Ubera, wpisujemy lokalizację, żeby kierowca mógł zaakceptować przejazd i jechał w tym kierunku. Tak samo tutaj uczeń musi opisać informacje, które będą konieczne po to, żeby nauczyciel mógł zaakceptować daną lekcję.
+
+I to jest w zasadzie tyle z perspektywy ucznia. Potem oczywiście dojdziemy do technikaliów. Dlatego, że pojawi się tutaj masa problemów w pokroju takiego, jak zabezpieczyć się przed tym, że nauczyciel ma niecne zamiary w stosunku do osoby niepełnoletniej.
+
+Na razie te tematy zostawimy, dlatego że to jest tylko MVP. Więc, z perspektywy ucznia, uczony loguje się, płaci, określa, co chce, i platforma łączy go z jakimś nauczycielem, który zgodził się na podjęcie korepetycji w danym temacie w danej chwili.
+
+Następnie, z perspektywy nauczyciela:
+
+Nauczyciel loguje się na platformie. Musi również stworzyć swój profil. To znaczy, że jeżeli jest nauczycielem matematyki, to nie powinny mu wpadać korepetycje z chemii.
+
+Nauczyciel musi określić, jakiego rodzaju zagadnienia ogarnia, aby platforma mogła dobrze dopasować ucznia do nauczyciela.
+
+Nauczyciel powinien mieć także sposób na otrzymywanie środków z platformy. Tak jak wspomniałem wcześniej, uczeń płaci, a nauczyciel otrzymuje tę kwotę pomniejszoną o prowizję dla właścicieli platformy.
+
+Wydaje mi się, że to, co jest istotne, to to, że powinni oni być w stanie połączyć się na czas określony z góry, czyli albo 30, albo 60 minut. Te 30 albo 60 minut będzie określał uczeń, ile czasu jego zdaniem jest potrzebne.
+
+A z perspektywy nauczyciela, nauczyciel musi mieć możliwość pisania jakoś na kartce, czyli najprawdopodobniej musi mieć kamerę skierowaną na ręce, po to, żeby móc pokazywać na ekranie to, co właśnie pisał.
+
+Ważne też tutaj są kryteria oceniania, dlatego że jeżeli nauczyciel jest słaby, to chcielibyśmy, żeby uczniowie mogli oceniać nauczycieli, po to żeby na platformie zostali dobrzy nauczyciele, którzy faktycznie pomagają uczniom.
+
+Z drugiej strony, fajnie by też było wprowadzić jakiś rozsądny mechanizm, żeby uczeń nie mógł ocenić nauczyciela źle, bo tak i ma humor w danym momencie. Trzeba będzie to jakoś rozsądnie rozwiązać.
+
+
+
+Co istotne, ten projekt jest pisany w formie demonstracyjnej, żeby pokazać możliwości programowania i tworzenia aplikacji z wykorzystaniem AI.
+
+Więc, dlaczego to mówię?
+
+Ja jestem osobą techniczną. Ja, jako autor, jestem javowcem, doświadczonym seniorem, senior inżynierem. Natomiast będę pisał ten projekt tak, jakbym nie umiał programować.
+
+Zależy mi dlatego na tym, żeby były wybierane tutaj technologie i rozwiązania, które są potem łatwe we wdrożeniu i tanie we wdrożeniu. To znaczy, jako MVP technologia nie ma znaczenia.
+
+Zależy mi tylko na tym, żebym mógł łatwo skonfigurować to, żeby ta aplikacja była faktycznie dostępna publicznie, tak żeby użytkownicy mogli z niej korzystać.
+
+Zacznnij od stworzenia pliku CLAUDE.md, poźniej stworzymy dedykowanych agentów.
