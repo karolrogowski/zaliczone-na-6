@@ -3,16 +3,24 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/shared/supabase/server'
 import { validateSubmitRequest } from './validation'
+import { LEVEL_OPTIONS, SCOPE_OPTIONS, resolveOption } from './options'
 import type { AcceptRequestResult, SubmitRequestFormState } from './types'
 
 export async function submitMatchingRequest(
   _state: SubmitRequestFormState,
   formData: FormData
 ): Promise<SubmitRequestFormState> {
-  const subject_id = (formData.get('subject_id') as string | null)?.trim() ?? ''
-  const description = (formData.get('description') as string | null)?.trim() || null
+  const subject_id   = (formData.get('subject_id')    as string | null)?.trim() ?? ''
+  const levelCode    = (formData.get('level')          as string | null)?.trim() ?? ''
+  const levelOther   = (formData.get('level_other')    as string | null)?.trim() ?? ''
+  const scopeCode    = (formData.get('scope')          as string | null)?.trim() ?? ''
+  const scopeOther   = (formData.get('scope_other')    as string | null)?.trim() ?? ''
+  const description  = (formData.get('description')   as string | null)?.trim() ?? ''
 
-  const validationError = validateSubmitRequest({ subject_id })
+  const level = resolveOption(LEVEL_OPTIONS, levelCode, levelOther)
+  const scope = resolveOption(SCOPE_OPTIONS, scopeCode, scopeOther)
+
+  const validationError = validateSubmitRequest({ subject_id, level, scope, description })
   if (validationError) return validationError
 
   const supabase = await createClient()
@@ -24,7 +32,7 @@ export async function submitMatchingRequest(
 
   const { error } = await supabase
     .from('matching_requests')
-    .insert({ subject_id, description, student_id: user.id })
+    .insert({ subject_id, level, scope, description, student_id: user.id })
 
   if (error) {
     return { message: 'Nie udało się wysłać zlecenia. Spróbuj ponownie.' }

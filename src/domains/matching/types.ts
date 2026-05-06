@@ -5,6 +5,8 @@ export type MatchingRequest = {
   student_id: string
   tutor_id: string | null
   subject_id: string
+  level: string | null
+  scope: string | null
   description: string | null
   status: RequestStatus
   expires_at: string
@@ -28,7 +30,15 @@ export type TutorProfileDetails = {
 }
 
 export type SubmitRequestFormState =
-  | { errors?: { subject_id?: string[] }; message?: string }
+  | {
+      errors?: {
+        subject_id?: string[]
+        level?: string[]
+        scope?: string[]
+        description?: string[]
+      }
+      message?: string
+    }
   | undefined
 
 export type AcceptRequestResult =

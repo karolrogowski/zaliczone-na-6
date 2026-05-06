@@ -135,9 +135,11 @@ function RequestCard({ request }: { request: MatchingRequestWithSubject }) {
           <p className="font-medium text-zinc-900">
             {request.subjects?.label ?? request.subject_id}
           </p>
-          {request.description && (
-            <p className="mt-1 text-sm text-zinc-500">{request.description}</p>
-          )}
+          <div className="mt-1 flex flex-col gap-0.5 text-xs text-zinc-500">
+            {request.level && <span>{request.level}</span>}
+            {request.scope && <span>{request.scope}</span>}
+            {request.description && <span className="mt-1 text-zinc-400">{request.description}</span>}
+          </div>
         </div>
         <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500">
           {minutesLeft} min

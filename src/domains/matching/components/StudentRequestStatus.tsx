@@ -74,12 +74,12 @@ export function StudentRequestStatus({
           {minutes}:{String(seconds).padStart(2, '0')}
         </span>
       </div>
-      <p className="mb-1 text-sm text-zinc-600">
-        Przedmiot: <strong>{request.subjects?.label ?? request.subject_id}</strong>
-      </p>
-      {request.description && (
-        <p className="mb-4 text-sm text-zinc-500">{request.description}</p>
-      )}
+      <div className="mb-4 flex flex-col gap-1 text-sm text-zinc-600">
+        <p>Przedmiot: <strong>{request.subjects?.label ?? request.subject_id}</strong></p>
+        {request.level && <p>Poziom: <strong>{request.level}</strong></p>}
+        {request.scope && <p>Zakres: <strong>{request.scope}</strong></p>}
+        {request.description && <p className="text-zinc-500 mt-1">{request.description}</p>}
+      </div>
       <button
         onClick={() => startTransition(() => cancelMatchingRequest(request.id))}
         disabled={isPending}

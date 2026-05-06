@@ -18,12 +18,12 @@ export function MfaEnrollForm() {
     async function enroll() {
       const supabase = createClient()
 
-      // Usuń niezweryfikowane faktory z poprzednich prób enrollmentu
+      // Jeśli użytkownik ma już zweryfikowany czynnik → powinien być na /verify, nie /enroll
+      // (zabezpieczenie na wypadek bezpośredniego wejścia w URL)
       const { data: existing } = await supabase.auth.mfa.listFactors()
-      for (const factor of existing?.totp ?? []) {
-        if (factor.status === 'unverified') {
-          await supabase.auth.mfa.unenroll({ factorId: factor.id })
-        }
+      if ((existing?.totp?.length ?? 0) > 0) {
+        router.replace('/admin/mfa/verify')
+        return
       }
 
       const { data, error } = await supabase.auth.mfa.enroll({
@@ -31,7 +31,7 @@ export function MfaEnrollForm() {
         issuer: 'Zaliczone na 6',
       })
       if (error || !data) {
-        setError(`Błąd: ${error?.message ?? 'nieznany'}. Wyloguj się i zaloguj ponownie.`)
+        setError(`Błąd: ${error?.message ?? 'nieznany błąd'}. Wyloguj się i zaloguj ponownie.`)
         return
       }
 
