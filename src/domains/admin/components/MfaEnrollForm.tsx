@@ -25,7 +25,7 @@ export function MfaEnrollForm() {
         return
       }
       setFactorId(data.id)
-      setQrCode(data.totp.qr_code)
+      setQrCode(`data:image/svg+xml;base64,${btoa(data.totp.qr_code)}`)
       setSecret(data.totp.secret)
     }
     enroll()
@@ -56,15 +56,10 @@ export function MfaEnrollForm() {
 
       {qrCode ? (
         <div className="flex justify-center">
-          <img
-            src={`data:image/svg+xml;utf-8,${encodeURIComponent(qrCode)}`}
-            alt="Kod QR do Google Authenticator"
-            width={180}
-            height={180}
-          />
+          <img src={qrCode} alt="Kod QR do Google Authenticator" width={200} height={200} />
         </div>
       ) : (
-        <div className="flex h-[180px] items-center justify-center text-sm text-zinc-400">
+        <div className="flex h-[200px] items-center justify-center text-sm text-zinc-400">
           Ładowanie kodu QR...
         </div>
       )}
