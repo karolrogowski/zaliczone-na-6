@@ -47,3 +47,19 @@ export type ResetPasswordFormState =
       message?: string
     }
   | undefined
+
+export type TutorOwnProfile = {
+  hourly_rate_grosz: number | null
+  bio: string | null
+  tutor_subjects: { subject_id: string }[]
+}
+
+export type TutorProfileFormState =
+  | {
+      errors?: {
+        subjects?: string[]
+        hourly_rate?: string[]
+      }
+      message?: string
+    }
+  | undefined

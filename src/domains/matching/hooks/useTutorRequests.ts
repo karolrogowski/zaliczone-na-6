@@ -1,11 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/shared/supabase/client'
 import type { MatchingRequestWithSubject } from '../types'
 
+async function fetchPendingRequests(): Promise<MatchingRequestWithSubject[]> {
+  const supabase = createClient()
+  const now = new Date().toISOString()
+  const { data } = await supabase
+    .from('matching_requests')
+    .select('*, subjects(label)')
+    .eq('status', 'pending')
+    .gt('expires_at', now)
+    .order('created_at', { ascending: true })
+  return (data ?? []) as MatchingRequestWithSubject[]
+}
+
 export function useTutorRequests(initial: MatchingRequestWithSubject[]) {
   const [requests, setRequests] = useState(initial)
+
+  const refetch = useCallback(async () => {
+    const fresh = await fetchPendingRequests()
+    setRequests(fresh)
+  }, [])
 
   useEffect(() => {
     const supabase = createClient()
@@ -15,13 +32,7 @@ export function useTutorRequests(initial: MatchingRequestWithSubject[]) {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'matching_requests' },
-        (payload) => {
-          const incoming = payload.new as MatchingRequestWithSubject
-          setRequests((prev) => {
-            if (prev.find((r) => r.id === incoming.id)) return prev
-            return [incoming, ...prev]
-          })
-        }
+        () => refetch()
       )
       .on(
         'postgres_changes',
@@ -35,10 +46,14 @@ export function useTutorRequests(initial: MatchingRequestWithSubject[]) {
       )
       .subscribe()
 
+    // Fallback polling — odpala co 15 sekund gdy Realtime zawiedzie
+    const pollId = setInterval(refetch, 15_000)
+
     return () => {
       supabase.removeChannel(channel)
+      clearInterval(pollId)
     }
-  }, [])
+  }, [refetch])
 
   return requests
 }

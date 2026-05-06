@@ -53,9 +53,16 @@ export function StudentRequestStatus({
     return (
       <div className="rounded-2xl border border-zinc-200 bg-white p-6">
         <h2 className="mb-1 text-lg font-semibold text-zinc-900">Zlecenie wygasło</h2>
-        <p className="text-sm text-zinc-500">
-          Nie udało się znaleźć korepetytora w czasie. Spróbuj ponownie.
+        <p className="mb-4 text-sm text-zinc-500">
+          Nie udało się znaleźć korepetytora w czasie.
         </p>
+        <button
+          onClick={() => startTransition(() => cancelMatchingRequest(request.id))}
+          disabled={isPending}
+          className="cursor-pointer rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 transition-colors"
+        >
+          {isPending ? 'Ładowanie...' : 'Złóż nowe zlecenie'}
+        </button>
       </div>
     )
   }

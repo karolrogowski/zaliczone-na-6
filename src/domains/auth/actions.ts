@@ -7,6 +7,7 @@ import type {
   RegisterFormState,
   ForgotPasswordFormState,
   ResetPasswordFormState,
+  TutorProfileFormState,
   UserRole,
 } from './types'
 import {
@@ -14,6 +15,7 @@ import {
   validateRegisterForm,
   validateForgotPasswordForm,
   validateResetPasswordForm,
+  validateTutorProfile,
 } from './validation'
 
 export async function register(
@@ -115,4 +117,42 @@ export async function updatePassword(
 
   await supabase.auth.signOut()
   redirect('/login')
+}
+
+export async function saveTutorProfile(
+  _state: TutorProfileFormState,
+  formData: FormData
+): Promise<TutorProfileFormState> {
+  const subject_ids = formData.getAll('subject_ids') as string[]
+  const hourly_rate_pln = (formData.get('hourly_rate_pln') as string | null)?.trim() ?? ''
+  const bio = (formData.get('bio') as string | null)?.trim() ?? ''
+
+  const validationError = validateTutorProfile({ subject_ids, hourly_rate_pln })
+  if (validationError) return validationError
+
+  const supabase = await createClient()
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return { message: 'Nie jesteś zalogowany.' }
+
+  const hourly_rate_grosz = Math.round(parseFloat(hourly_rate_pln.replace(',', '.')) * 100)
+
+  const { error: profileError } = await supabase
+    .from('tutor_profiles')
+    .update({ hourly_rate_grosz, bio: bio || null })
+    .eq('id', user.id)
+
+  if (profileError) return { message: 'Nie udało się zapisać profilu. Spróbuj ponownie.' }
+
+  await supabase.from('tutor_subjects').delete().eq('tutor_id', user.id)
+
+  const { error: subjectsError } = await supabase
+    .from('tutor_subjects')
+    .insert(subject_ids.map((subject_id) => ({ tutor_id: user.id, subject_id })))
+
+  if (subjectsError) return { message: 'Nie udało się zapisać przedmiotów. Spróbuj ponownie.' }
+
+  redirect('/dashboard')
 }

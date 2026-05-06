@@ -4,6 +4,7 @@ import {
   validateLoginForm,
   validateForgotPasswordForm,
   validateResetPasswordForm,
+  validateTutorProfile,
 } from '../validation'
 
 const validRegister = {
@@ -140,5 +141,55 @@ describe('validateResetPasswordForm', () => {
     const result = validateResetPasswordForm({ password: 'abc', confirmPassword: 'abc' })
     expect(result?.errors?.password).toBeDefined()
     expect(result?.errors?.confirmPassword).toBeUndefined()
+  })
+})
+
+describe('validateTutorProfile', () => {
+  const valid = { subject_ids: ['matematyka'], hourly_rate_pln: '80' }
+
+  it('zwraca undefined dla poprawnych danych', () => {
+    expect(validateTutorProfile(valid)).toBeUndefined()
+  })
+
+  it('akceptuje stawkę z przecinkiem', () => {
+    expect(validateTutorProfile({ ...valid, hourly_rate_pln: '79,99' })).toBeUndefined()
+  })
+
+  it('akceptuje stawkę z kropką', () => {
+    expect(validateTutorProfile({ ...valid, hourly_rate_pln: '79.50' })).toBeUndefined()
+  })
+
+  it('akceptuje wiele przedmiotów', () => {
+    expect(validateTutorProfile({ ...valid, subject_ids: ['matematyka', 'fizyka'] })).toBeUndefined()
+  })
+
+  it('błąd gdy brak przedmiotów', () => {
+    expect(validateTutorProfile({ ...valid, subject_ids: [] })?.errors?.subjects).toBeDefined()
+  })
+
+  it('błąd gdy stawka jest pusta', () => {
+    expect(validateTutorProfile({ ...valid, hourly_rate_pln: '' })?.errors?.hourly_rate).toBeDefined()
+  })
+
+  it('błąd gdy stawka to same spacje', () => {
+    expect(validateTutorProfile({ ...valid, hourly_rate_pln: '   ' })?.errors?.hourly_rate).toBeDefined()
+  })
+
+  it('błąd gdy stawka wynosi 0', () => {
+    expect(validateTutorProfile({ ...valid, hourly_rate_pln: '0' })?.errors?.hourly_rate).toBeDefined()
+  })
+
+  it('błąd gdy stawka jest ujemna', () => {
+    expect(validateTutorProfile({ ...valid, hourly_rate_pln: '-10' })?.errors?.hourly_rate).toBeDefined()
+  })
+
+  it('błąd gdy stawka nie jest liczbą', () => {
+    expect(validateTutorProfile({ ...valid, hourly_rate_pln: 'abc' })?.errors?.hourly_rate).toBeDefined()
+  })
+
+  it('zwraca oba błędy naraz', () => {
+    const result = validateTutorProfile({ subject_ids: [], hourly_rate_pln: '' })
+    expect(result?.errors?.subjects).toBeDefined()
+    expect(result?.errors?.hourly_rate).toBeDefined()
   })
 })

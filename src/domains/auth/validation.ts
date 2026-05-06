@@ -1,4 +1,4 @@
-import type { RegisterFormState, LoginFormState, UserRole } from './types'
+import type { RegisterFormState, LoginFormState, UserRole, TutorProfileFormState } from './types'
 
 export function validateRegisterForm(fields: {
   full_name: string
@@ -56,6 +56,23 @@ export function validateResetPasswordForm(fields: {
     errors.password = ['Hasło musi mieć co najmniej 8 znaków']
   if (fields.password !== fields.confirmPassword)
     errors.confirmPassword = ['Hasła nie są identyczne']
+
+  if (Object.keys(errors).length > 0) return { errors }
+  return undefined
+}
+
+export function validateTutorProfile(fields: {
+  subject_ids: string[]
+  hourly_rate_pln: string
+}): TutorProfileFormState {
+  const errors: NonNullable<TutorProfileFormState>['errors'] = {}
+
+  if (fields.subject_ids.length === 0)
+    errors.subjects = ['Wybierz co najmniej jeden przedmiot']
+
+  const rate = parseFloat(fields.hourly_rate_pln.replace(',', '.'))
+  if (!fields.hourly_rate_pln.trim() || isNaN(rate) || rate <= 0)
+    errors.hourly_rate = ['Podaj stawkę godzinową większą od zera']
 
   if (Object.keys(errors).length > 0) return { errors }
   return undefined

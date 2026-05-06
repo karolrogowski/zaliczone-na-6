@@ -11,6 +11,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <span className="font-bold text-zinc-900">Zaliczone na 6</span>
           <div className="flex items-center gap-4">
             <span className="text-sm text-zinc-600">{profile?.full_name}</span>
+            {profile?.role === 'tutor' && (
+              <a
+                href="/profile"
+                className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+              >
+                Profil
+              </a>
+            )}
             <form action={logout}>
               <button
                 type="submit"

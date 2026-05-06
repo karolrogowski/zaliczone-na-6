@@ -1,5 +1,6 @@
 'use server'
 
+import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/shared/supabase/server'
 import { validateSubmitRequest } from './validation'
@@ -38,8 +39,7 @@ export async function submitMatchingRequest(
     return { message: 'Nie udało się wysłać zlecenia. Spróbuj ponownie.' }
   }
 
-  revalidatePath('/dashboard')
-  return undefined
+  redirect('/dashboard')
 }
 
 export async function cancelMatchingRequest(requestId: string): Promise<void> {
