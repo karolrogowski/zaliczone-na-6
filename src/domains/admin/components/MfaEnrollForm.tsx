@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import QRCode from 'qrcode'
 import { createClient } from '@/shared/supabase/client'
 
 export function MfaEnrollForm() {
@@ -16,16 +17,29 @@ export function MfaEnrollForm() {
   useEffect(() => {
     async function enroll() {
       const supabase = createClient()
+
+      // Usuń niezweryfikowane faktory z poprzednich prób enrollmentu
+      const { data: existing } = await supabase.auth.mfa.listFactors()
+      for (const factor of existing?.totp ?? []) {
+        if (factor.status === 'unverified') {
+          await supabase.auth.mfa.unenroll({ factorId: factor.id })
+        }
+      }
+
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
         issuer: 'Zaliczone na 6',
       })
       if (error || !data) {
-        setError('Nie udało się wygenerować kodu QR. Odśwież stronę.')
+        setError(`Błąd: ${error?.message ?? 'nieznany'}. Wyloguj się i zaloguj ponownie.`)
         return
       }
+
+      // Generuj QR code jako PNG z TOTP URI — niezawodne w każdej przeglądarce
+      const pngDataUrl = await QRCode.toDataURL(data.totp.uri, { width: 200, margin: 2 })
+
       setFactorId(data.id)
-      setQrCode(`data:image/svg+xml;base64,${btoa(data.totp.qr_code)}`)
+      setQrCode(pngDataUrl)
       setSecret(data.totp.secret)
     }
     enroll()
@@ -47,7 +61,9 @@ export function MfaEnrollForm() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="mb-1 text-lg font-semibold text-zinc-900">Konfiguracja weryfikacji dwuetapowej</h2>
+        <h2 className="mb-1 text-lg font-semibold text-zinc-900">
+          Konfiguracja weryfikacji dwuetapowej
+        </h2>
         <p className="text-sm text-zinc-500">
           Zeskanuj kod QR w Google Authenticator lub Authy, a następnie wpisz
           wygenerowany 6-cyfrowy kod.
@@ -58,7 +74,7 @@ export function MfaEnrollForm() {
         <div className="flex justify-center">
           <img src={qrCode} alt="Kod QR do Google Authenticator" width={200} height={200} />
         </div>
-      ) : (
+      ) : error ? null : (
         <div className="flex h-[200px] items-center justify-center text-sm text-zinc-400">
           Ładowanie kodu QR...
         </div>
