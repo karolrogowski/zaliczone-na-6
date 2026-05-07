@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zaliczone na 6 — Wariant 4: Noir</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #F8FAFC; color: #0F172A; display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar { width: 220px; background: #111827; min-height: 100vh; display: flex; flex-direction: column; flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sidebar-logo { padding: 24px 20px 20px; font-size: 14px; font-weight: 800; color: #F8FAFC; letter-spacing: -.4px; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .sidebar-nav { padding: 16px 10px; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+    .nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: #6B7280; text-decoration: none; cursor: pointer; transition: all .15s; border: none; background: none; width: 100%; text-align: left; }
+    .nav-item:hover { background: rgba(255,255,255,.05); color: #E5E7EB; }
+    .nav-item.active { background: #1F2937; color: #F9FAFB; }
+    .nav-item.active::before { content: ''; display: block; width: 3px; height: 16px; background: #F9FAFB; border-radius: 2px; position: absolute; left: 10px; }
+    .nav-item { position: relative; }
+    .nav-icon { font-size: 14px; width: 18px; flex-shrink: 0; opacity: .7; }
+    .nav-divider { height: 1px; background: rgba(255,255,255,.05); margin: 8px 12px; }
+    .sidebar-bottom { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,.06); }
+    .user-name { font-size: 13px; font-weight: 600; color: #F9FAFB; }
+    .user-role { font-size: 11px; color: #4B5563; margin-top: 2px; }
+    .logout-btn { margin-top: 10px; font-size: 12px; color: #374151; background: none; border: none; cursor: pointer; display: block; }
+    .logout-btn:hover { color: #6B7280; }
+
+    /* Content */
+    .content { flex: 1; padding: 40px 44px; }
+    .page-title { font-size: 20px; font-weight: 800; color: #0F172A; letter-spacing: -.5px; margin-bottom: 30px; }
+
+    /* Active request */
+    .active-card { background: white; border: 1px solid #E2E8F0; border-radius: 14px; padding: 18px 22px; margin-bottom: 28px; }
+    .active-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .pulse-row { display: flex; align-items: center; gap: 7px; }
+    .pulse-dot { width: 7px; height: 7px; background: #22C55E; border-radius: 50%; animation: pulse 1.5s infinite; flex-shrink: 0; }
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.4} }
+    .pulse-label { font-size: 13px; font-weight: 500; color: #374151; }
+    .countdown { font-family: 'Courier New', monospace; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 7px; padding: 4px 11px; font-size: 14px; font-weight: 700; color: #0F172A; }
+    .active-details { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; color: #64748B; margin-bottom: 14px; }
+    .active-details strong { color: #0F172A; }
+    .cancel-btn { font-size: 12px; color: #EF4444; background: none; border: none; cursor: pointer; }
+
+    /* Stats */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+    .stat-card { background: white; border: 1px solid #E2E8F0; border-radius: 14px; padding: 20px; }
+    .stat-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .07em; color: #94A3B8; margin-bottom: 6px; }
+    .stat-num { font-size: 42px; font-weight: 800; color: #0F172A; letter-spacing: -2px; line-height: 1; }
+
+    /* Subjects bar card */
+    .bar-card { background: white; border: 1px solid #E2E8F0; border-radius: 14px; padding: 20px 22px; margin-bottom: 20px; }
+    .bar-title { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .07em; color: #94A3B8; margin-bottom: 14px; }
+    .bar-rows { display: flex; flex-direction: column; gap: 10px; }
+    .bar-row { display: flex; align-items: center; gap: 12px; }
+    .bar-label { font-size: 13px; color: #475569; width: 96px; flex-shrink: 0; }
+    .bar-track { flex: 1; height: 6px; background: #F1F5F9; border-radius: 99px; overflow: hidden; }
+    .bar-fill { height: 100%; background: #0F172A; border-radius: 99px; }
+    .bar-count { font-size: 12px; color: #94A3B8; width: 52px; text-align: right; flex-shrink: 0; }
+
+    /* CTA */
+    .cta { display: flex; align-items: center; justify-content: center; gap: 8px; background: #0F172A; color: white; border-radius: 12px; padding: 14px 24px; font-size: 14px; font-weight: 600; text-decoration: none; transition: background .15s; margin-bottom: 28px; }
+    .cta:hover { background: #1E293B; }
+
+    /* History */
+    .section-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .07em; color: #94A3B8; margin-bottom: 10px; }
+    .hist-list { display: flex; flex-direction: column; gap: 6px; }
+    .hist-row { background: white; border: 1px solid #E2E8F0; border-radius: 12px; padding: 13px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .hist-subject { font-size: 14px; font-weight: 500; color: #0F172A; }
+    .hist-meta { font-size: 12px; color: #94A3B8; margin-top: 1px; }
+    .hist-date { font-size: 12px; color: #CBD5E1; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">Zaliczone na 6</div>
+  <nav class="sidebar-nav">
+    <a class="nav-item active" href="#">
+      <span class="nav-icon">⌂</span> Dashboard
+    </a>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">+</span> Nowe zlecenie
+    </a>
+    <div class="nav-divider"></div>
+    <a class="nav-item" href="#">
+      <span class="nav-icon">⚙</span> Ustawienia
+    </a>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="user-name">Anna Kowalska</div>
+    <div class="user-role">uczeń</div>
+    <button class="logout-btn">Wyloguj</button>
+  </div>
+</aside>
+
+<div class="content">
+  <h1 class="page-title">Dashboard</h1>
+
+  <div class="active-card">
+    <div class="active-top">
+      <div class="pulse-row">
+        <span class="pulse-dot"></span>
+        <span class="pulse-label">Szukamy korepetytora…</span>
+      </div>
+      <span class="countdown">4:23</span>
+    </div>
+    <div class="active-details">
+      <span>Przedmiot: <strong>Matematyka</strong></span>
+      <span>Poziom: <strong>I klasa liceum</strong></span>
+      <span>Zakres: <strong>Sprawdzian</strong></span>
+    </div>
+    <button class="cancel-btn">Anuluj zlecenie</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Sesje</div>
+      <div class="stat-num">7</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Korepetytorzy</div>
+      <div class="stat-num">3</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Przedmioty</div>
+      <div class="stat-num">3</div>
+    </div>
+  </div>
+
+  <div class="bar-card">
+    <div class="bar-title">Sesje według przedmiotu</div>
+    <div class="bar-rows">
+      <div class="bar-row">
+        <span class="bar-label">Matematyka</span>
+        <div class="bar-track"><div class="bar-fill" style="width:71%"></div></div>
+        <span class="bar-count">5 sesji</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">Fizyka</span>
+        <div class="bar-track"><div class="bar-fill" style="width:29%"></div></div>
+        <span class="bar-count">2 sesje</span>
+      </div>
+      <div class="bar-row">
+        <span class="bar-label">J. angielski</span>
+        <div class="bar-track"><div class="bar-fill" style="width:14%"></div></div>
+        <span class="bar-count">1 sesja</span>
+      </div>
+    </div>
+  </div>
+
+  <a href="#" class="cta">Złóż nowe zlecenie →</a>
+
+  <div class="section-label">Ostatnie konsultacje</div>
+  <div class="hist-list">
+    <div class="hist-row">
+      <div><div class="hist-subject">Matematyka</div><div class="hist-meta">I klasa liceum · Jan Wiśniewski</div></div>
+      <span class="hist-date">6 maja 2026</span>
+    </div>
+    <div class="hist-row">
+      <div><div class="hist-subject">Fizyka</div><div class="hist-meta">Matura · Jan Wiśniewski</div></div>
+      <span class="hist-date">4 maja 2026</span>
+    </div>
+    <div class="hist-row">
+      <div><div class="hist-subject">Matematyka</div><div class="hist-meta">I klasa liceum · Maria Zielińska</div></div>
+      <span class="hist-date">1 maja 2026</span>
+    </div>
+    <div class="hist-row">
+      <div><div class="hist-subject">J. angielski</div><div class="hist-meta">Studia · Tomasz Wójcik</div></div>
+      <span class="hist-date">28 kwi 2026</span>
+    </div>
+    <div class="hist-row">
+      <div><div class="hist-subject">Matematyka</div><div class="hist-meta">I klasa liceum · Jan Wiśniewski</div></div>
+      <span class="hist-date">25 kwi 2026</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
