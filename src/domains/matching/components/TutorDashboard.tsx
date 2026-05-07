@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useOptimistic, useState, useTransition } from 'react'
+import { useEffect, useOptimistic, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { acceptMatchingRequest, completeMatchingRequest, toggleTutorAvailability } from '../actions'
 import { useTutorRequests } from '../hooks/useTutorRequests'
@@ -34,6 +34,15 @@ export function TutorDashboard({
   const requests = useTutorRequests(initialRequests)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
+  const [raceError, setRaceError] = useState<string | null>(null)
+  const raceErrorTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function showRaceError(msg: string) {
+    setRaceError(msg)
+    if (raceErrorTimer.current) clearTimeout(raceErrorTimer.current)
+    raceErrorTimer.current = setTimeout(() => setRaceError(null), 8000)
+  }
+
   const [optimisticAvailable, setOptimisticAvailable] = useOptimistic(
     tutorProfile?.is_available ?? false
   )
@@ -134,12 +143,21 @@ export function TutorDashboard({
           <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">
             Oczekujące zlecenia
           </h3>
+
+          {raceError && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              {raceError}
+            </div>
+          )}
+
           {requests.length === 0 ? (
             <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-400">
               Brak zleceń w Twoich przedmiotach. Czekamy na uczniów...
             </div>
           ) : (
-            requests.map((req) => <RequestCard key={req.id} request={req} />)
+            requests.map((req) => (
+              <RequestCard key={req.id} request={req} onRaceError={showRaceError} />
+            ))
           )}
         </div>
       )}
@@ -149,9 +167,14 @@ export function TutorDashboard({
   )
 }
 
-function RequestCard({ request }: { request: MatchingRequestWithSubject }) {
+function RequestCard({
+  request,
+  onRaceError,
+}: {
+  request: MatchingRequestWithSubject
+  onRaceError: (msg: string) => void
+}) {
   const [isPending, startTransition] = useTransition()
-  const [errorMsg, setErrorMsg] = useOptimistic<string | null>(null)
   const secondsLeft = useCountdown(request.expires_at)
   const minutes = Math.floor(secondsLeft / 60)
   const seconds = secondsLeft % 60
@@ -159,7 +182,11 @@ function RequestCard({ request }: { request: MatchingRequestWithSubject }) {
   function handleAccept() {
     startTransition(async () => {
       const res = await acceptMatchingRequest(request.id)
-      if (!res.success) setErrorMsg(res.message)
+      if (!res.success) {
+        onRaceError(
+          'Inny korepetytor był szybszy i przyjął to zlecenie — dlatego zniknęło z listy. Poczekaj na kolejne zgłoszenie.'
+        )
+      }
     })
   }
 
@@ -173,15 +200,15 @@ function RequestCard({ request }: { request: MatchingRequestWithSubject }) {
           <div className="mt-1 flex flex-col gap-0.5 text-xs text-zinc-500">
             {request.level && <span>{request.level}</span>}
             {request.scope && <span>{request.scope}</span>}
-            {request.description && <span className="mt-1 text-zinc-400">{request.description}</span>}
+            {request.description && (
+              <span className="mt-1 text-zinc-400">{request.description}</span>
+            )}
           </div>
         </div>
         <span className="shrink-0 rounded-full bg-zinc-100 px-3 py-1 text-sm font-mono text-zinc-600">
           {minutes}:{String(seconds).padStart(2, '0')}
         </span>
       </div>
-
-      {errorMsg && <p className="mb-2 text-sm text-red-600">{errorMsg}</p>}
 
       <button
         onClick={handleAccept}
