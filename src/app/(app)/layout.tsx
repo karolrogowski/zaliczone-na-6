@@ -12,7 +12,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             Zaliczone na 6
           </a>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-zinc-600">{profile?.full_name}</span>
+            <span className="text-sm text-zinc-600">
+              {profile?.full_name}
+              {profile?.role && (
+                <span className="ml-1.5 text-xs text-zinc-400">
+                  ({profile.role === 'student' ? 'uczeń' : profile.role === 'tutor' ? 'korepetytor' : 'admin'})
+                </span>
+              )}
+            </span>
             {profile?.role === 'tutor' && (
               <a href="/profile" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
                 Profil
