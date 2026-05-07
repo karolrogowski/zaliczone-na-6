@@ -7,17 +7,17 @@ import { useTutorRequests } from '../hooks/useTutorRequests'
 import { TutorRequestHistory } from './TutorRequestHistory'
 import type { MatchingRequestWithSubject, TutorProfileDetails } from '../types'
 
-function useMinutesLeft(expiresAt: string) {
+function useCountdown(expiresAt: string) {
   const calc = () =>
-    Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 60000))
-  const [minutes, setMinutes] = useState(calc)
+    Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000))
+  const [secs, setSecs] = useState(calc)
 
   useEffect(() => {
-    const id = setInterval(() => setMinutes(calc()), 60_000)
+    const id = setInterval(() => setSecs(calc()), 1000)
     return () => clearInterval(id)
   }, [expiresAt])
 
-  return minutes
+  return secs
 }
 
 export function TutorDashboard({
@@ -152,7 +152,9 @@ export function TutorDashboard({
 function RequestCard({ request }: { request: MatchingRequestWithSubject }) {
   const [isPending, startTransition] = useTransition()
   const [errorMsg, setErrorMsg] = useOptimistic<string | null>(null)
-  const minutesLeft = useMinutesLeft(request.expires_at)
+  const secondsLeft = useCountdown(request.expires_at)
+  const minutes = Math.floor(secondsLeft / 60)
+  const seconds = secondsLeft % 60
 
   function handleAccept() {
     startTransition(async () => {
@@ -174,8 +176,8 @@ function RequestCard({ request }: { request: MatchingRequestWithSubject }) {
             {request.description && <span className="mt-1 text-zinc-400">{request.description}</span>}
           </div>
         </div>
-        <span className="shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-500">
-          {minutesLeft} min
+        <span className="shrink-0 rounded-full bg-zinc-100 px-3 py-1 text-sm font-mono text-zinc-600">
+          {minutes}:{String(seconds).padStart(2, '0')}
         </span>
       </div>
 

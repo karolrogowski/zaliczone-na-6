@@ -1,6 +1,6 @@
 import { cache } from 'react'
 import { createClient } from '@/shared/supabase/server'
-import type { MatchingRequestWithSubject, Subject, TutorProfileDetails } from './types'
+import type { MatchingRequestWithSubject, Subject, StudentStats, TutorProfileDetails } from './types'
 
 export const getSubjects = cache(async (): Promise<Subject[]> => {
   const supabase = await createClient()
@@ -35,6 +35,46 @@ export const getStudentRecentRequests = cache(
       .from('matching_requests')
       .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name)')
       .order('created_at', { ascending: false })
+      .limit(5)
+    return (data ?? []) as MatchingRequestWithSubject[]
+  }
+)
+
+export const getStudentStats = cache(async (): Promise<StudentStats> => {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('matching_requests')
+    .select('subject_id, tutor_id, subjects(label)')
+    .eq('status', 'completed')
+
+  if (!data?.length) return { totalCompleted: 0, subjectsBreakdown: [], uniqueTutors: 0 }
+
+  const totalCompleted = data.length
+  const uniqueTutors = new Set(data.filter((r) => r.tutor_id).map((r) => r.tutor_id)).size
+
+  const subjectMap = new Map<string, { label: string; count: number }>()
+  for (const req of data) {
+    const label = (req.subjects as unknown as { label: string } | null)?.label ?? req.subject_id
+    const existing = subjectMap.get(req.subject_id)
+    if (existing) existing.count++
+    else subjectMap.set(req.subject_id, { label, count: 1 })
+  }
+
+  const subjectsBreakdown = [...subjectMap.entries()]
+    .map(([subject_id, { label, count }]) => ({ subject_id, label, count }))
+    .sort((a, b) => b.count - a.count)
+
+  return { totalCompleted, subjectsBreakdown, uniqueTutors }
+})
+
+export const getStudentRecentConsultations = cache(
+  async (): Promise<MatchingRequestWithSubject[]> => {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('matching_requests')
+      .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name)')
+      .eq('status', 'completed')
+      .order('updated_at', { ascending: false })
       .limit(5)
     return (data ?? []) as MatchingRequestWithSubject[]
   }

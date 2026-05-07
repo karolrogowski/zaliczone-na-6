@@ -46,8 +46,8 @@ export function useTutorRequests(initial: MatchingRequestWithSubject[]) {
       )
       .subscribe()
 
-    // Fallback polling — odpala co 15 sekund gdy Realtime zawiedzie
-    const pollId = setInterval(refetch, 15_000)
+    // Fallback polling — odpala co 8 sekund gdy Realtime zawiedzie
+    const pollId = setInterval(refetch, 8_000)
 
     return () => {
       supabase.removeChannel(channel)

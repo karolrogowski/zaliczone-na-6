@@ -46,3 +46,9 @@ export type SubmitRequestFormState =
 export type AcceptRequestResult =
   | { success: true }
   | { success: false; message: string }
+
+export type StudentStats = {
+  totalCompleted: number
+  subjectsBreakdown: { subject_id: string; label: string; count: number }[]
+  uniqueTutors: number
+}
