@@ -17,17 +17,17 @@ To jest **Zaliczone na 6** — Uber dla korepetycji.
 ### Z perspektywy ucznia
 
 1. Rejestrujesz się i logujesz
-2. Tworzysz zlecenie: wybierasz przedmiot, opisujesz temat, wybierasz czas (30 lub 60 minut)
-3. Platforma rozsyła zlecenie do dostępnych korepetytorów pasujących do przedmiotu
+2. Tworzysz zlecenie: wybierasz przedmiot, poziom, zakres i opisujesz temat
+3. Platforma rozsyła zlecenie do dostępnych korepetytorów pasujących do przedmiotu — masz 5 minut
 4. Pierwszy korepetytor, który zaakceptuje — wygrywa zlecenie
 5. Dołączasz do sesji wideo i uczysz się
-6. Po sesji oceniasz korepetytora
+6. Po sesji oceniasz korepetytora (1–5 gwiazdek)
 
 ### Z perspektywy korepetytora
 
-1. Rejestrujesz się i tworzysz profil: wybierasz przedmioty, które uczysz, piszesz krótkie bio
-2. Przechodzisz w tryb "dostępny" i czekasz na zlecenia
-3. Widzisz przychodzące zlecenia pasujące do Twoich przedmiotów w czasie rzeczywistym
+1. Rejestrujesz się i tworzysz profil: wybierasz przedmioty i poziomy nauczania, ustawiasz stawkę godzinową, opcjonalnie piszesz bio
+2. Przechodzisz w tryb „dostępny" i czekasz na zlecenia
+3. Widzisz przychodzące zlecenia w czasie rzeczywistym z licznikiem czasu
 4. Akceptujesz zlecenie i dołączasz do sesji wideo
 5. Po sesji system zapisuje Twoje zarobki — wypłata następuje poza aplikacją
 
@@ -48,37 +48,44 @@ Korepetytor dostaje: 72 zł → Platforma zarabia: 18 zł (20% prowizji)
 
 | Warstwa | Technologia |
 |---|---|
-| Frontend + Backend | Next.js (App Router) |
+| Frontend + Backend | Next.js 16 (App Router) |
 | Baza danych, autoryzacja, real-time | Supabase |
-| Sesje wideo | Daily.co |
+| Sesje wideo | Daily.co (w trakcie integracji) |
 | Hosting | Vercel |
 | Stylowanie | Tailwind CSS |
-
-Wybory podyktowane jednym kryterium: **darmowe plany + łatwe wdrożenie**. To MVP, a nie produkcja na milion użytkowników.
+| Testy | Vitest |
 
 ---
 
 ## Status projektu
 
-Projekt jest w trakcie budowania MVP. Celem MVP jest pokazanie kompletnej ścieżki biznesowej — od zlecenia ucznia do wypłaty dla korepetytora — a nie wdrożenie każdej możliwej funkcji.
+### Zaimplementowane
 
-### W zakresie MVP
-- [x] Specyfikacja i architektura
-- [x] Inicjalizacja projektu
-- [ ] Autentykacja (logowanie / rejestracja)
-- [ ] Profile korepetytorów
-- [ ] Tworzenie i rozsyłanie zleceń w czasie rzeczywistym
-- [ ] Sesja wideo (30 / 60 minut)
-- [ ] Ewidencja finansowa (kwoty, prowizja)
-- [ ] System oceniania
+- [x] Autentykacja — rejestracja, logowanie, potwierdzenie email, reset hasła
+- [x] Profile korepetytorów — przedmioty, poziomy nauczania, stawka godzinowa, bio
+- [x] Zlecenia — składanie, real-time matching (polling + Supabase Realtime), wyścig między korepetytorami
+- [x] Licznik czasu (5 minut) po obu stronach — uczeń i korepetytor
+- [x] Auto-expiry — wygasłe zlecenia oznaczane automatycznie
+- [x] Tworzenie sesji przy akceptacji — rekord w `sessions` gotowy pod integrację wideo
+- [x] System oceniania — gwiazdki (1–5) + komentarz po zakończeniu sesji
+- [x] Ekran startowy ucznia — statystyki, historia konsultacji, wykres aktywności
+- [x] Dashboard korepetytora — toggle dostępności, zlecenia w czasie rzeczywistym, historia
+- [x] Publiczny profil korepetytora — oceny, przedmioty, poziomy, stawka
+- [x] Ustawienia konta — zmiana imienia i hasła
+- [x] Panel administracyjny — MFA (TOTP), zarządzanie użytkownikami i konfiguracją platformy
+
+### Do zrobienia
+
+- [ ] Sesja wideo (Daily.co) — tabela `sessions` gotowa, brakuje integracji API
+- [ ] Powiadomienia email — alert dla ucznia gdy korepetytor zaakceptuje, gdy minie czas zlecenia
+- [ ] Płatności (Stripe) — ewidencja kwot w bazie istnieje, brak integracji bramki
 
 ### Poza zakresem MVP
-- Integracja bramki płatności — płatności obsługiwane ręcznie przez administratora
+
 - Automatyczne wypłaty dla korepetytorów
 - Sesje zaplanowane na konkretny termin (tylko on-demand)
 - Wiadomości między użytkownikami poza sesjami
 - Weryfikacja korepetytorów / sprawdzanie tła
-- Panel administracyjny
 - Aplikacje mobilne
 
 ---
@@ -86,6 +93,7 @@ Projekt jest w trakcie budowania MVP. Celem MVP jest pokazanie kompletnej ście�
 ## Uruchomienie lokalnie
 
 ### Wymagania
+
 - Node.js 18+
 - Docker (dla lokalnej instancji Supabase)
 
@@ -100,7 +108,10 @@ npx supabase start
 
 # Skopiuj zmienne środowiskowe
 cp .env.local.example .env.local
-# Uzupełnij wartości w .env.local
+# Uzupełnij wartości z wyjścia `supabase start`
+
+# Załaduj schemat bazy i dane testowe
+npm run db:reset
 
 # Uruchom serwer developerski
 npm run dev
@@ -108,14 +119,20 @@ npm run dev
 
 Aplikacja dostępna pod adresem [http://localhost:3000](http://localhost:3000).
 
----
+### Konta testowe
 
-## Decyzje architektoniczne
+| Email | Rola | Hasło |
+|---|---|---|
+| uczen1@test.pl | uczeń | testtest1 |
+| uczen2@test.pl | uczeń | testtest1 |
+| korepetytor1@test.pl | korepetytor (Matematyka, Fizyka) | testtest1 |
+| korepetytor2@test.pl | korepetytor (Chemia, Biologia) | testtest1 |
+| korepetytor3@test.pl | korepetytor (Angielski, Informatyka) | testtest1 |
 
-Dokumentacja decyzji architektonicznych znajduje się w [`docs/adr/`](docs/adr/).
+Dane konta admina ustawiane przez zmienne `ADMIN_EMAIL` / `ADMIN_PASSWORD` w `.env.local`.
 
 ---
 
 ## Kontekst
 
-Projekt jest tworzony demonstracyjnie — pokazuje, jak można zbudować kompletną aplikację webową z pomocą AI, nawet bez wcześniejszego doświadczenia w danej technologii.
+Projekt jest tworzony demonstracyjnie — pokazuje, jak można zbudować kompletną aplikację webową z pomocą AI, nawet bez wcześniejszego doświadczenia w programowaniu.
