@@ -52,3 +52,21 @@ export type StudentStats = {
   subjectsBreakdown: { subject_id: string; label: string; count: number }[]
   uniqueTutors: number
 }
+
+export type TutorPublicProfile = {
+  hourly_rate_grosz: number | null
+  bio: string | null
+  is_available: boolean
+  rating_avg: number | null
+  rating_count: number
+  levels: string[]
+  profiles: { full_name: string } | null
+  tutor_subjects: { subject_id: string; subjects: { label: string } | null }[]
+}
+
+export type RatingFormState =
+  | {
+      errors?: { score?: string[] }
+      message?: string
+    }
+  | undefined

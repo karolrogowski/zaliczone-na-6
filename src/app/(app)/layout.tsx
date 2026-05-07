@@ -14,13 +14,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-4">
             <span className="text-sm text-zinc-600">{profile?.full_name}</span>
             {profile?.role === 'tutor' && (
-              <a
-                href="/profile"
-                className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
-              >
+              <a href="/profile" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
                 Profil
               </a>
             )}
+            <a href="/settings" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
+              Ustawienia
+            </a>
             <form action={logout}>
               <button
                 type="submit"

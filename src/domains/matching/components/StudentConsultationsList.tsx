@@ -34,10 +34,13 @@ export function StudentConsultationsList({
                 {c.level && (
                   <span className="text-xs text-zinc-500">{c.level}</span>
                 )}
-                {c.tutor_profile?.full_name && (
-                  <span className="text-xs text-zinc-400">
+                {c.tutor_profile?.full_name && c.tutor_id && (
+                  <a
+                    href={`/tutor/${c.tutor_id}`}
+                    className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
+                  >
                     Korepetytor: {c.tutor_profile.full_name}
-                  </span>
+                  </a>
                 )}
               </div>
               <span className="shrink-0 pt-0.5 text-xs text-zinc-400">

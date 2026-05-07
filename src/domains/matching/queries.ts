@@ -1,6 +1,6 @@
 import { cache } from 'react'
 import { createClient } from '@/shared/supabase/server'
-import type { MatchingRequestWithSubject, Subject, StudentStats, TutorProfileDetails } from './types'
+import type { MatchingRequestWithSubject, Subject, StudentStats, TutorProfileDetails, TutorPublicProfile } from './types'
 
 export const getSubjects = cache(async (): Promise<Subject[]> => {
   const supabase = await createClient()
@@ -83,6 +83,8 @@ export const getStudentRecentConsultations = cache(
 export const getTutorPendingRequests = cache(
   async (): Promise<MatchingRequestWithSubject[]> => {
     const supabase = await createClient()
+    // Lazy expiry: oznacza przeterminowane zlecenia przed pobraniem listy
+    await supabase.rpc('expire_pending_requests')
     const now = new Date().toISOString()
     const { data } = await supabase
       .from('matching_requests')
@@ -118,6 +120,42 @@ export const getTutorRecentRequests = cache(
       .order('updated_at', { ascending: false })
       .limit(5)
     return (data ?? []) as MatchingRequestWithSubject[]
+  }
+)
+
+export const getTutorPublicProfile = cache(
+  async (id: string): Promise<TutorPublicProfile | null> => {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('tutor_profiles')
+      .select('hourly_rate_grosz, bio, is_available, rating_avg, rating_count, levels, profiles!id(full_name), tutor_subjects(subject_id, subjects(label))')
+      .eq('id', id)
+      .single()
+    return data as TutorPublicProfile | null
+  }
+)
+
+export const getSessionForRating = cache(
+  async (requestId: string): Promise<{ id: string; tutor_id: string; status: string } | null> => {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('sessions')
+      .select('id, tutor_id, status')
+      .eq('matching_request_id', requestId)
+      .maybeSingle()
+    return data
+  }
+)
+
+export const hasRatingForSession = cache(
+  async (sessionId: string): Promise<boolean> => {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('ratings')
+      .select('id')
+      .eq('session_id', sessionId)
+      .maybeSingle()
+    return data !== null
   }
 )
 

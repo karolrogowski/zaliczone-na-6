@@ -40,7 +40,7 @@ export function StudentRequestStatus({
   function handleComplete() {
     startTransition(async () => {
       await completeMatchingRequest(request!.id)
-      router.refresh()
+      router.push(`/rate/${request!.id}`)
     })
   }
 

@@ -55,6 +55,18 @@ export type TutorOwnProfile = {
   tutor_subjects: { subject_id: string }[]
 }
 
+export type SettingsFormState =
+  | {
+      errors?: {
+        full_name?: string[]
+        password?: string[]
+        confirmPassword?: string[]
+      }
+      message?: string
+      success?: boolean
+    }
+  | undefined
+
 export type TutorProfileFormState =
   | {
       errors?: {
