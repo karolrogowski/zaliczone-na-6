@@ -2,8 +2,11 @@
 
 import { useActionState } from 'react'
 import { saveTutorProfile } from '../actions'
+import { LEVEL_OPTIONS } from '@/domains/matching/options'
 import type { Subject } from '@/domains/matching/types'
 import type { TutorOwnProfile } from '../types'
+
+const TUTOR_LEVEL_OPTIONS = LEVEL_OPTIONS.filter((o) => o.value !== 'inne')
 
 export function TutorProfileForm({
   subjects,
@@ -14,7 +17,8 @@ export function TutorProfileForm({
 }) {
   const [state, formAction, isPending] = useActionState(saveTutorProfile, undefined)
 
-  const checkedIds = new Set(profile?.tutor_subjects.map((ts) => ts.subject_id) ?? [])
+  const checkedSubjectIds = new Set(profile?.tutor_subjects.map((ts) => ts.subject_id) ?? [])
+  const checkedLevels = new Set(profile?.levels ?? [])
   const initialRate =
     profile?.hourly_rate_grosz != null
       ? (profile.hourly_rate_grosz / 100).toFixed(2).replace('.', ',')
@@ -25,7 +29,7 @@ export function TutorProfileForm({
       <div>
         <h2 className="mb-1 text-lg font-semibold text-zinc-900">Profil korepetytora</h2>
         <p className="text-sm text-zinc-500">
-          Wybierz przedmioty, których uczysz, i ustaw swoją stawkę godzinową.
+          Wybierz przedmioty i poziomy, których uczysz, oraz ustaw swoją stawkę godzinową.
         </p>
       </div>
 
@@ -41,7 +45,7 @@ export function TutorProfileForm({
                 type="checkbox"
                 name="subject_ids"
                 value={subject.id}
-                defaultChecked={checkedIds.has(subject.id)}
+                defaultChecked={checkedSubjectIds.has(subject.id)}
                 className="accent-zinc-900"
               />
               {subject.label}
@@ -50,6 +54,30 @@ export function TutorProfileForm({
         </div>
         {state?.errors?.subjects && (
           <p className="text-sm text-red-600">{state.errors.subjects[0]}</p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium text-zinc-700">Poziomy nauczania</p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {TUTOR_LEVEL_OPTIONS.map((level) => (
+            <label
+              key={level.value}
+              className="flex cursor-pointer items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 hover:border-zinc-400 has-[:checked]:border-zinc-900 has-[:checked]:bg-zinc-50 transition-colors"
+            >
+              <input
+                type="checkbox"
+                name="levels"
+                value={level.value}
+                defaultChecked={checkedLevels.has(level.value)}
+                className="accent-zinc-900"
+              />
+              {level.label}
+            </label>
+          ))}
+        </div>
+        {state?.errors?.levels && (
+          <p className="text-sm text-red-600">{state.errors.levels[0]}</p>
         )}
       </div>
 

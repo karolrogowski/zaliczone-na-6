@@ -8,7 +8,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-zinc-50">
       <header className="border-b border-zinc-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <span className="font-bold text-zinc-900">Zaliczone na 6</span>
+          <a href="/dashboard" className="font-bold text-zinc-900 hover:text-zinc-600 transition-colors">
+            Zaliczone na 6
+          </a>
           <div className="flex items-center gap-4">
             <span className="text-sm text-zinc-600">{profile?.full_name}</span>
             {profile?.role === 'tutor' && (

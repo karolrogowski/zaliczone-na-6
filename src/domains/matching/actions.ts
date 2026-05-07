@@ -81,6 +81,18 @@ export async function acceptMatchingRequest(
   return { success: true }
 }
 
+export async function completeMatchingRequest(requestId: string): Promise<void> {
+  const supabase = await createClient()
+
+  await supabase
+    .from('matching_requests')
+    .update({ status: 'completed' })
+    .eq('id', requestId)
+    .eq('status', 'accepted')
+
+  revalidatePath('/dashboard')
+}
+
 export async function toggleTutorAvailability(isAvailable: boolean): Promise<void> {
   const supabase = await createClient()
 

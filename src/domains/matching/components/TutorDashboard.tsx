@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useOptimistic, useState, useTransition } from 'react'
-import { acceptMatchingRequest, toggleTutorAvailability } from '../actions'
+import { useRouter } from 'next/navigation'
+import { acceptMatchingRequest, completeMatchingRequest, toggleTutorAvailability } from '../actions'
 import { useTutorRequests } from '../hooks/useTutorRequests'
+import { TutorRequestHistory } from './TutorRequestHistory'
 import type { MatchingRequestWithSubject, TutorProfileDetails } from '../types'
 
 function useMinutesLeft(expiresAt: string) {
@@ -22,13 +24,16 @@ export function TutorDashboard({
   initialRequests,
   tutorProfile,
   acceptedRequest,
+  recentRequests,
 }: {
   initialRequests: MatchingRequestWithSubject[]
   tutorProfile: TutorProfileDetails | null
   acceptedRequest: MatchingRequestWithSubject | null
+  recentRequests: MatchingRequestWithSubject[]
 }) {
   const requests = useTutorRequests(initialRequests)
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
   const [optimisticAvailable, setOptimisticAvailable] = useOptimistic(
     tutorProfile?.is_available ?? false
   )
@@ -42,15 +47,17 @@ export function TutorDashboard({
   }
 
   const profileIncomplete =
-    !tutorProfile?.hourly_rate_grosz || tutorProfile.tutor_subjects.length === 0
+    !tutorProfile?.hourly_rate_grosz ||
+    (tutorProfile.tutor_subjects?.length ?? 0) === 0 ||
+    (tutorProfile.levels?.length ?? 0) === 0
 
   if (profileIncomplete) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
         <h2 className="mb-1 font-semibold text-zinc-900">Uzupełnij profil</h2>
         <p className="mb-4 text-sm text-zinc-600">
-          Zanim zaczniesz przyjmować zlecenia, ustaw swoją stawkę godzinową i przedmioty,
-          których uczysz.
+          Zanim zaczniesz przyjmować zlecenia, ustaw swoją stawkę godzinową, przedmioty
+          i poziomy, których uczysz.
         </p>
         <a
           href="/profile"
@@ -64,14 +71,29 @@ export function TutorDashboard({
 
   if (acceptedRequest) {
     return (
-      <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
-        <div className="mb-2 text-2xl">✅</div>
-        <h2 className="mb-1 text-lg font-semibold text-zinc-900">Zaakceptowałeś zlecenie!</h2>
-        <p className="text-sm text-zinc-600">
-          Przedmiot:{' '}
-          <strong>{acceptedRequest.subjects?.label ?? acceptedRequest.subject_id}</strong>.
-          Sesja wkrótce się rozpocznie.
-        </p>
+      <div className="flex flex-col gap-6">
+        <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
+          <div className="mb-2 text-2xl">✅</div>
+          <h2 className="mb-1 text-lg font-semibold text-zinc-900">Zaakceptowałeś zlecenie!</h2>
+          <p className="text-sm text-zinc-600">
+            Przedmiot:{' '}
+            <strong>{acceptedRequest.subjects?.label ?? acceptedRequest.subject_id}</strong>.
+            Sesja wkrótce się rozpocznie.
+          </p>
+          <button
+            onClick={() =>
+              startTransition(async () => {
+                await completeMatchingRequest(acceptedRequest.id)
+                router.refresh()
+              })
+            }
+            disabled={isPending}
+            className="cursor-pointer mt-4 text-sm text-zinc-500 hover:text-zinc-700 disabled:opacity-50 transition-colors"
+          >
+            {isPending ? 'Ładowanie...' : 'Zakończ sesję'}
+          </button>
+        </div>
+        <TutorRequestHistory requests={recentRequests} />
       </div>
     )
   }
@@ -121,6 +143,8 @@ export function TutorDashboard({
           )}
         </div>
       )}
+
+      <TutorRequestHistory requests={recentRequests} />
     </div>
   )
 }

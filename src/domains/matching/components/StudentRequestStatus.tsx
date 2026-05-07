@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
-import { cancelMatchingRequest } from '../actions'
+import { useRouter } from 'next/navigation'
+import { cancelMatchingRequest, completeMatchingRequest } from '../actions'
 import { useStudentRequest } from '../hooks/useStudentRequest'
 import type { MatchingRequestWithSubject } from '../types'
 
@@ -25,6 +26,7 @@ export function StudentRequestStatus({
 }) {
   const request = useStudentRequest(initialRequest)
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
 
   const secondsLeft = useCountdown(request?.expires_at ?? initialRequest.expires_at)
   const minutes = Math.floor(secondsLeft / 60)
@@ -35,16 +37,41 @@ export function StudentRequestStatus({
   const isExpired =
     request.status === 'pending' && new Date(request.expires_at) < new Date()
 
+  function handleComplete() {
+    startTransition(async () => {
+      await completeMatchingRequest(request!.id)
+      router.refresh()
+    })
+  }
+
+  function handleCancel() {
+    startTransition(async () => {
+      await cancelMatchingRequest(request!.id)
+      router.refresh()
+    })
+  }
+
+  if (request.status === 'completed') return null
+
   if (request.status === 'accepted') {
     return (
       <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
         <div className="mb-2 text-2xl">🎉</div>
         <h2 className="mb-1 text-lg font-semibold text-zinc-900">Znaleziono korepetytora!</h2>
         <p className="text-sm text-zinc-600">
-          Korepetytor zaakceptował Twoje zlecenie z{' '}
+          {request.tutor_profile?.full_name && (
+            <><strong>{request.tutor_profile.full_name}</strong> zaakceptował Twoje zlecenie z{' '}</>
+          )}
           <strong>{request.subjects?.label ?? request.subject_id}</strong>.
           Sesja wkrótce się rozpocznie.
         </p>
+        <button
+          onClick={handleComplete}
+          disabled={isPending}
+          className="cursor-pointer mt-4 text-sm text-zinc-500 hover:text-zinc-700 disabled:opacity-50 transition-colors"
+        >
+          {isPending ? 'Ładowanie...' : 'Zakończ sesję'}
+        </button>
       </div>
     )
   }
@@ -57,7 +84,7 @@ export function StudentRequestStatus({
           Nie udało się znaleźć korepetytora w czasie.
         </p>
         <button
-          onClick={() => startTransition(() => cancelMatchingRequest(request.id))}
+          onClick={handleCancel}
           disabled={isPending}
           className="cursor-pointer rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 transition-colors"
         >
@@ -88,7 +115,7 @@ export function StudentRequestStatus({
         {request.description && <p className="text-zinc-500 mt-1">{request.description}</p>}
       </div>
       <button
-        onClick={() => startTransition(() => cancelMatchingRequest(request.id))}
+        onClick={handleCancel}
         disabled={isPending}
         className="cursor-pointer text-sm text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors"
       >

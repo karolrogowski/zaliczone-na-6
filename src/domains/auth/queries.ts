@@ -29,7 +29,7 @@ export const getTutorOwnProfile = cache(async (): Promise<TutorOwnProfile | null
 
   const { data } = await supabase
     .from('tutor_profiles')
-    .select('hourly_rate_grosz, bio, tutor_subjects(subject_id)')
+    .select('hourly_rate_grosz, bio, levels, tutor_subjects(subject_id)')
     .eq('id', user.id)
     .single()
   return data as TutorOwnProfile | null

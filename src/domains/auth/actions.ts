@@ -124,10 +124,11 @@ export async function saveTutorProfile(
   formData: FormData
 ): Promise<TutorProfileFormState> {
   const subject_ids = formData.getAll('subject_ids') as string[]
+  const levels = formData.getAll('levels') as string[]
   const hourly_rate_pln = (formData.get('hourly_rate_pln') as string | null)?.trim() ?? ''
   const bio = (formData.get('bio') as string | null)?.trim() ?? ''
 
-  const validationError = validateTutorProfile({ subject_ids, hourly_rate_pln })
+  const validationError = validateTutorProfile({ subject_ids, levels, hourly_rate_pln })
   if (validationError) return validationError
 
   const supabase = await createClient()
@@ -141,7 +142,7 @@ export async function saveTutorProfile(
 
   const { error: profileError } = await supabase
     .from('tutor_profiles')
-    .update({ hourly_rate_grosz, bio: bio || null })
+    .update({ hourly_rate_grosz, bio: bio || null, levels })
     .eq('id', user.id)
 
   if (profileError) return { message: 'Nie udało się zapisać profilu. Spróbuj ponownie.' }

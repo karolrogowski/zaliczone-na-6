@@ -63,12 +63,16 @@ export function validateResetPasswordForm(fields: {
 
 export function validateTutorProfile(fields: {
   subject_ids: string[]
+  levels: string[]
   hourly_rate_pln: string
 }): TutorProfileFormState {
   const errors: NonNullable<TutorProfileFormState>['errors'] = {}
 
   if (fields.subject_ids.length === 0)
     errors.subjects = ['Wybierz co najmniej jeden przedmiot']
+
+  if (fields.levels.length === 0)
+    errors.levels = ['Wybierz co najmniej jeden poziom nauczania']
 
   const rate = parseFloat(fields.hourly_rate_pln.replace(',', '.'))
   if (!fields.hourly_rate_pln.trim() || isNaN(rate) || rate <= 0)

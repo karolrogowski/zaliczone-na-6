@@ -145,7 +145,7 @@ describe('validateResetPasswordForm', () => {
 })
 
 describe('validateTutorProfile', () => {
-  const valid = { subject_ids: ['matematyka'], hourly_rate_pln: '80' }
+  const valid = { subject_ids: ['matematyka'], levels: ['liceum_1'], hourly_rate_pln: '80' }
 
   it('zwraca undefined dla poprawnych danych', () => {
     expect(validateTutorProfile(valid)).toBeUndefined()
@@ -159,12 +159,16 @@ describe('validateTutorProfile', () => {
     expect(validateTutorProfile({ ...valid, hourly_rate_pln: '79.50' })).toBeUndefined()
   })
 
-  it('akceptuje wiele przedmiotów', () => {
-    expect(validateTutorProfile({ ...valid, subject_ids: ['matematyka', 'fizyka'] })).toBeUndefined()
+  it('akceptuje wiele przedmiotów i poziomów', () => {
+    expect(validateTutorProfile({ ...valid, subject_ids: ['matematyka', 'fizyka'], levels: ['liceum_1', 'matura'] })).toBeUndefined()
   })
 
   it('błąd gdy brak przedmiotów', () => {
     expect(validateTutorProfile({ ...valid, subject_ids: [] })?.errors?.subjects).toBeDefined()
+  })
+
+  it('błąd gdy brak poziomów', () => {
+    expect(validateTutorProfile({ ...valid, levels: [] })?.errors?.levels).toBeDefined()
   })
 
   it('błąd gdy stawka jest pusta', () => {
@@ -187,9 +191,10 @@ describe('validateTutorProfile', () => {
     expect(validateTutorProfile({ ...valid, hourly_rate_pln: 'abc' })?.errors?.hourly_rate).toBeDefined()
   })
 
-  it('zwraca oba błędy naraz', () => {
-    const result = validateTutorProfile({ subject_ids: [], hourly_rate_pln: '' })
+  it('zwraca wszystkie błędy naraz', () => {
+    const result = validateTutorProfile({ subject_ids: [], levels: [], hourly_rate_pln: '' })
     expect(result?.errors?.subjects).toBeDefined()
+    expect(result?.errors?.levels).toBeDefined()
     expect(result?.errors?.hourly_rate).toBeDefined()
   })
 })

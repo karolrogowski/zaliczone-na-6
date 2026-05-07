@@ -36,18 +36,21 @@ const TUTORS = [
     full_name: 'Jan Wiśniewski',
     hourly_rate_grosz: 8000,
     subjects: ['matematyka', 'fizyka'],
+    levels: ['liceum_1', 'liceum_2', 'liceum_3', 'matura'],
   },
   {
     email: 'korepetytor2@test.pl',
     full_name: 'Maria Zielińska',
     hourly_rate_grosz: 9000,
     subjects: ['chemia', 'biologia'],
+    levels: ['sp_7_8', 'liceum_1', 'liceum_2'],
   },
   {
     email: 'korepetytor3@test.pl',
     full_name: 'Tomasz Wójcik',
     hourly_rate_grosz: 7500,
     subjects: ['jezyk_angielski', 'informatyka'],
+    levels: ['liceum_1', 'liceum_2', 'liceum_3', 'matura', 'studia'],
   },
 ]
 
@@ -80,7 +83,7 @@ for (const t of TUTORS) {
   if (user) {
     await supabase
       .from('tutor_profiles')
-      .upsert({ id: user.id, hourly_rate_grosz: t.hourly_rate_grosz, is_available: false }, { onConflict: 'id' })
+      .upsert({ id: user.id, hourly_rate_grosz: t.hourly_rate_grosz, levels: t.levels, is_available: false }, { onConflict: 'id' })
 
     for (const subject of t.subjects) {
       await supabase

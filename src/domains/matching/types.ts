@@ -1,4 +1,4 @@
-export type RequestStatus = 'pending' | 'accepted' | 'cancelled' | 'expired'
+export type RequestStatus = 'pending' | 'accepted' | 'cancelled' | 'expired' | 'completed'
 
 export type MatchingRequest = {
   id: string
@@ -16,6 +16,7 @@ export type MatchingRequest = {
 
 export type MatchingRequestWithSubject = MatchingRequest & {
   subjects: { label: string }
+  tutor_profile: { full_name: string } | null
 }
 
 export type Subject = {
@@ -26,6 +27,7 @@ export type Subject = {
 export type TutorProfileDetails = {
   is_available: boolean
   hourly_rate_grosz: number | null
+  levels: string[]
   tutor_subjects: { subject_id: string }[]
 }
 

@@ -51,6 +51,7 @@ export type ResetPasswordFormState =
 export type TutorOwnProfile = {
   hourly_rate_grosz: number | null
   bio: string | null
+  levels: string[]
   tutor_subjects: { subject_id: string }[]
 }
 
@@ -58,6 +59,7 @@ export type TutorProfileFormState =
   | {
       errors?: {
         subjects?: string[]
+        levels?: string[]
         hourly_rate?: string[]
       }
       message?: string
