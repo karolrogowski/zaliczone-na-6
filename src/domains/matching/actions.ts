@@ -7,6 +7,42 @@ import { validateSubmitRequest } from './validation'
 import { LEVEL_OPTIONS, SCOPE_OPTIONS, resolveOption } from './options'
 import type { AcceptRequestResult, RatingFormState, SubmitRequestFormState } from './types'
 
+async function createDailyRoom(): Promise<{ name: string; url: string } | null> {
+  const apiKey = process.env.DAILY_API_KEY
+
+  if (!apiKey) {
+    const mockName = `test-room-${Date.now()}`
+    return { name: mockName, url: `https://test.daily.co/${mockName}` }
+  }
+
+  const exp = Math.floor(Date.now() / 1000) + 3600 * 2
+
+  try {
+    const res = await fetch('https://api.daily.co/v1/rooms', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        properties: {
+          exp,
+          max_participants: 2,
+          enable_chat: false,
+          start_video_off: false,
+          start_audio_off: false,
+        },
+      }),
+    })
+
+    if (!res.ok) return null
+    const room = await res.json()
+    return { name: room.name, url: room.url }
+  } catch {
+    return null
+  }
+}
+
 export async function submitMatchingRequest(
   _state: SubmitRequestFormState,
   formData: FormData
@@ -77,12 +113,32 @@ export async function acceptMatchingRequest(
     return { success: false, message: 'Ktoś inny przyjął to zlecenie.' }
   }
 
-  // Tworzy sesję — będzie punktem wejścia do połączenia wideo
-  await supabase.from('sessions').insert({
-    matching_request_id: requestId,
-    student_id: data.student_id,
-    tutor_id: user.id,
-  })
+  // Tworzy sesję — punkt wejścia do połączenia wideo
+  const { data: session } = await supabase
+    .from('sessions')
+    .insert({
+      matching_request_id: requestId,
+      student_id: data.student_id,
+      tutor_id: user.id,
+    })
+    .select('id')
+    .single()
+
+  // Tworzy pokój Daily.co i aktualizuje sesję
+  if (session) {
+    const dailyRoom = await createDailyRoom()
+    if (dailyRoom) {
+      await supabase
+        .from('sessions')
+        .update({
+          daily_room_name: dailyRoom.name,
+          daily_room_url: dailyRoom.url,
+          status: 'in_progress',
+          started_at: new Date().toISOString(),
+        })
+        .eq('id', session.id)
+    }
+  }
 
   revalidatePath('/dashboard')
   return { success: true }

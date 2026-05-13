@@ -1,27 +1,56 @@
 = Zaliczone na 6 - wymagania
 
+== Status implementacji
+
+Legenda statusów: `DONE` | `WIP` | `MVP` | `AFTER_MVP` | `SKIP`
+
+Priorytety: `P0` blokuje launch · `P1` ważne · `P2` nice to have · `P3` świadoma decyzja "nie teraz"
+
+[cols="3,1,1,1", options="header"]
+|===
+| Funkcjonalność | Faza | Priorytet | Status
+
+| Rejestracja/logowanie (email+hasło)        | 1 | P0 | DONE
+| Kreator zlecenia ucznia                    | 1 | P0 | DONE
+| Matching "kto pierwszy" + feed korepetytora | 1 | P0 | DONE
+| Popup powiadomienia dla korepetytora       | 1 | P0 | DONE
+| Sesja wideo 1:1 (Daily.co)                | 2 | P0 | DONE
+| Timer sesji + automatyczne zakończenie     | 2 | P0 | DONE
+| Przerwanie i powrót do sesji               | 2 | P0 | DONE
+| Dwustronny system ocen (po sesji)          | 3 | P1 | MVP
+| Współdzielenie ekranu + czat + załączniki  | 2 | P1 | DONE
+| Preautoryzacja płatności (Stripe)          | 1 | P1 | AFTER_MVP
+| Logowanie Google/Apple                     | 1 | P1 | AFTER_MVP
+| Weryfikacja korepetytora (skan legitymacji) | 1 | P1 | AFTER_MVP
+| Algorytm VIP (opóźnione powiadomienia)     | 3 | P2 | AFTER_MVP
+| Mechanizm przedłużania sesji (upselling)   | 2 | P2 | AFTER_MVP
+| Wirtualny portfel i wypłaty (Stripe Connect) | 3 | P2 | AFTER_MVP
+| Wirtualna tablica (whiteboard)             | 2 | P2 | AFTER_MVP
+| Aplikacja desktopowa dla korepetytorów     | 2 | P3 | SKIP
+|===
+
 == Faza 1: Fundamenty i przepływ transakcyjny (Core Flow)
 
 Na tym etapie celem jest umożliwienie jednemu uczniowi połączenia się z jednym korepetytorem i zapłacenia za tę usługę. To testuje, czy model technicznie i finansowo działa.
 
-=== Zarządzanie użytkownikami (Dwie oddzielne role) - MAMY
+=== Zarządzanie użytkownikami (Dwie oddzielne role) — DONE
 
 Moduł rejestracji i logowania z podziałem na interfejs Ucznia i Korepetytora.
 
-Mamy, ale póżniej:
+Po MVP:
 
-* Dla ucznia wystarczy szybkie logowanie przez Google/Apple (minimalizacja tarcia).
-* Dla korepetytora proces musi obejmować prosty formularz weryfikacyjny (przesłanie skanu legitymacji studenckiej/dyplomu) obsługiwany na tym etapie ręcznie przez administrację.
+* Dla ucznia szybkie logowanie przez Google/Apple (minimalizacja tarcia). — AFTER_MVP / P1
+* Dla korepetytora proces musi obejmować prosty formularz weryfikacyjny (przesłanie skanu legitymacji studenckiej/dyplomu) obsługiwany na tym etapie ręcznie przez administrację. — AFTER_MVP / P1
 
-=== Kreator zlecenia (Frictionless Request) - MAMY
+=== Kreator zlecenia (Frictionless Request) — DONE
 
 Ekran dla ucznia pozwalający w 3 kliknięciach zdefiniować problem. Wybór przedmiotu z listy (np. matematyka, fizyka), wybór poziomu (np. szkoła podstawowa, liceum), krótki opis tekstowy problemu oraz wybór czasu (30 lub 60 minut).
 
-=== Bramka płatnicza z preautoryzacją (Hold Funds) - PÓŻNIEJ
+=== Bramka płatnicza z preautoryzacją (Hold Funds) — AFTER_MVP / P1
 
 Integracja z systemem płatności (np. Stripe, PayU). Gdy uczeń klika "Szukaj korepetytora", system nie pobiera od razu środków, a jedynie je "zamraża" (preautoryzacja) na karcie podpiętej do konta lub przez BLIK OneClick. Zabezpiecza to platformę przed oszustwami i gwarantuje wypłacalność dla korepetytora.
 
-=== Pula zgłoszeń i system "Kto pierwszy, ten lepszy" (Matchmaking) - MOŻNA JUŻ
+=== Pula zgłoszeń i system "Kto pierwszy, ten lepszy" (Matchmaking) — DONE
 
 Główny feed dla zalogowanych korepetytorów, gdzie pojawiają się aktywne zlecenia w czasie rzeczywistym. Widzą oni przedmiot, stawkę i krótki opis. Kliknięcie "Akceptuj" natychmiast blokuje zgłoszenie dla innych i przypisuje zlecającego ucznia do tego korepetytora.
 
@@ -29,40 +58,41 @@ Główny feed dla zalogowanych korepetytorów, gdzie pojawiają się aktywne zle
 
 Gdy użytkownicy są połączeni finansowo i systemowo, muszą móc zrealizować usługę w sposób efektywny. Skupiamy się tu na niskim opóźnieniu i narzędziach do nauk ścisłych.
 
-=== Wbudowana wideorozmowa 1:1 (WebRTC) - MOŻNA JUŻ
+=== Wbudowana wideorozmowa 1:1 (WebRTC) — DONE
+
 Integracja gotowego API do wideo (np. Twilio Video, Vonage, Daily.co), aby uniknąć budowania infrastruktury wideo od zera. Wymaga obsługi kamery, mikrofonu i przycisku wyciszenia. Aplikacja nie może wymuszać instalacji dodatkowego oprogramowania (działa z poziomu przeglądarki lub prostej aplikacji mobilnej).
 
-=== Przerwanie transmisji.  - MOŻNA JUŻ
+=== Przerwanie transmisji — DONE
 
-Do połączenia można wrócić (np. po zamknięciu okna) chyba, że przerwie je wykładowca (zakończenie przed czasem możliwe przez wykładowce). Podaje w opise powód zakończenia.
+Do połączenia można wrócić (np. po zamknięciu okna) chyba, że przerwie je wykładowca (zakończenie przed czasem możliwe przez wykładowce). Podaje w opisie powód zakończenia.
 
-=== Współdzielenie ekranu i załączniki ad-hoc - MOŻNA JUŻ
+=== Współdzielenie ekranu i załączniki ad-hoc — DONE
 
 Opcja udostępnienia ekranu przez korepetytora (niezbędne do pokazywania prezentacji czy wykresów). Dodatkowo funkcja szybkiego czatu wewnątrz pokoju, w którym uczeń może wgrać zdjęcie swojego zeszytu z zadaniem, by korepetytor widział, na czym polega problem.
 
-=== Wirtualna tablica (Whiteboard) - MOŻNA ALE NIEKONIECZNIE MVP
+=== Wirtualna tablica (Whiteboard) — AFTER_MVP / P2
 
 Współdzielona, prosta przestrzeń robocza, po której korepetytor może rysować myszką lub rysikiem (np. równania matematyczne). To krytyczny element z punktu widzenia użyteczności przy przedmiotach ścisłych, stanowiących większość problemów "na wczoraj".
 
-=== Odliczanie czasu w widoku wideo.  - MOŻNA JUŻ
+=== Odliczanie czasu w widoku wideo — DONE
 
 Odliczamy czas sesji. Na 2 minuty przed końcem informacja i odliczanie czasu na 30 sekund ostatnie. System wyłącza się po 30 sekundach od minięcia 30 minut lub od razu po 30 minutach gdy uczeń lub korepetytor wyszli z lekcji po 30 minutach.
 
-=== Mechanizm przedłużania (Upselling) - MOŻNA ALE NIEKONIECZNIE MVP
+=== Mechanizm przedłużania (Upselling) — AFTER_MVP / P2
 
 Na 5 minut przed końcem uczeń otrzymuje powiadomienie z przyciskiem "Przedłuż o 30 minut". Kliknięcie wysyła prośbę do korepetytora. Jeśli ten się zgadza, system automatycznie rozszerza preautoryzację płatności na karcie o kolejną kwotę.
 
-=== Mechanizm informowania - popup na desktop. - MOŻNA JUŻ
+=== Mechanizm informowania - popup na desktop — DONE
 
 Korepetytor widzi, że jest oferta - dostaje popup.
 
-=== Może aplikacja desktopowa dla instruktorów? - może nie mvp
+=== Aplikacja desktopowa dla korepetytorów — SKIP / P3
 
 == Faza 3: Samoregulacja rynku i retencja (Quality & Mechanics)
 
 Kiedy aplikacja potrafi zrealizować zlecenie, trzeba zadbać o utrzymanie poziomu obsługi i zaufanie, aby użytkownicy wracali.
 
-=== Dwustronny system ocen (Rating System)
+=== Dwustronny system ocen (Rating System) — MVP / P1
 
 Po zakończeniu wideorozmowy okno zamyka się i pojawia się prośba o ocenę 1-5 gwiazdek. Uczeń ocenia korepetytora (klarowność tłumaczenia), a korepetytor ucznia (kultura, przygotowanie). Na etapie MVP oceny ucznia służą tylko do wyłapywania toksycznych użytkowników, oceny korepetytora wchodzą do profilu. Użytkownik może
 
@@ -71,10 +101,10 @@ Po zakończeniu wideorozmowy okno zamyka się i pojawia się prośba o ocenę 1-
     ** gdy to możliwe chcę się uczyć w przyszłości z tym nauczycielem
     ** nie polecaj mi tego nauczyciala
 
-=== Algorytm priorytetyzacji powiadomień (The VIP Tier)
+=== Algorytm priorytetyzacji powiadomień (The VIP Tier) — AFTER_MVP / P2
 
-Automatyzacja obiecana w pitchu. Skrypt opóźniający wysyłanie powiadomień o nowych zleceniach do korepetytorów z oceną poniżej 4.5. Ulubieni dostają inforację od razu. "Elita" (4.5+) dostaje powiadomienie np. o 10 sekund póżniej. Inni 30 sekund póżniej. To tworzy asymetrię informacji promującą najwyższą jakość na platformie.
+Automatyzacja obiecana w pitchu. Skrypt opóźniający wysyłanie powiadomień o nowych zleceniach do korepetytorów z oceną poniżej 4.5. Ulubieni dostają informację od razu. "Elita" (4.5+) dostaje powiadomienie np. o 10 sekund później. Inni 30 sekund później. To tworzy asymetrię informacji promującą najwyższą jakość na platformie.
 
-=== Wirtualny portfel i moduł wypłat (Payouts)
+=== Wirtualny portfel i moduł wypłat (Payouts) — AFTER_MVP / P2
 
 Dashboard dla korepetytora, pokazujący historię odbytych sesji i zgromadzone środki po odliczeniu 30% prowizji platformy. Możliwość zlecenia przelewu na konto bankowe. Operacyjnie można to na start zautomatyzować przez funkcję Stripe Connect (dzielenie płatności od razu na subkonta).

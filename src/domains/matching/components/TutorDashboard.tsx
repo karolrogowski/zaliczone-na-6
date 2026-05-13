@@ -79,6 +79,12 @@ export function TutorDashboard({
   }
 
   if (acceptedRequest) {
+    const sessionData = Array.isArray(acceptedRequest.session)
+      ? acceptedRequest.session[0]
+      : acceptedRequest.session
+    const sessionId = sessionData?.id
+    const hasRoom = !!sessionData?.daily_room_url
+
     return (
       <div className="flex flex-col gap-6">
         <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
@@ -87,8 +93,18 @@ export function TutorDashboard({
           <p className="text-sm text-zinc-600">
             Przedmiot:{' '}
             <strong>{acceptedRequest.subjects?.label ?? acceptedRequest.subject_id}</strong>.
-            Sesja wkrótce się rozpocznie.
           </p>
+          {hasRoom && sessionId ? (
+            <a
+              href={`/session/${sessionId}`}
+              data-testid="join-session-link"
+              className="mt-4 inline-block rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+            >
+              Dołącz do sesji
+            </a>
+          ) : (
+            <p className="mt-3 text-sm text-zinc-400">Sesja wkrótce się rozpocznie...</p>
+          )}
           <button
             onClick={() =>
               startTransition(async () => {
@@ -97,7 +113,7 @@ export function TutorDashboard({
               })
             }
             disabled={isPending}
-            className="cursor-pointer mt-4 text-sm text-zinc-500 hover:text-zinc-700 disabled:opacity-50 transition-colors"
+            className="cursor-pointer mt-4 block text-sm text-zinc-500 hover:text-zinc-700 disabled:opacity-50 transition-colors"
           >
             {isPending ? 'Ładowanie...' : 'Zakończ sesję'}
           </button>

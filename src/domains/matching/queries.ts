@@ -17,7 +17,7 @@ export const getStudentActiveRequest = cache(
     const supabase = await createClient()
     const { data } = await supabase
       .from('matching_requests')
-      .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name)')
+      .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name), session:sessions(id, daily_room_url)')
       .neq('status', 'cancelled')
       .neq('status', 'expired')
       .neq('status', 'completed')
@@ -101,7 +101,7 @@ export const getTutorAcceptedRequest = cache(
     const supabase = await createClient()
     const { data } = await supabase
       .from('matching_requests')
-      .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name)')
+      .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name), session:sessions(id, daily_room_url)')
       .eq('status', 'accepted')
       .order('updated_at', { ascending: false })
       .limit(1)

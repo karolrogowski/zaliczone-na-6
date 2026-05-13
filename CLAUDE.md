@@ -52,6 +52,9 @@ src/
 - Komponenty serwerowe pobierają dane i przekazują jako props — nie fetchuj w komponentach klienckich bez wyraźnego powodu.
 - Server actions w plikach z `'use server'` na górze; nigdy nie mieszaj z kodem klienckim.
 
+### Śledzenie wymagań
+- Po każdej zaimplementowanej funkcjonalności zaktualizuj `requirements/requirements.adoc` — zmień status w tabeli podsumowującej oraz w nagłówku danej sekcji (np. `MVP` → `DONE`).
+
 ## Co jeszcze nie jest zaimplementowane
 - Połączenie wideo (Daily.co) — tabela `sessions` już istnieje, kolumny `daily_room_name/url` są nullable do czasu integracji.
 - Płatności (Stripe) — tabela `session_financials` istnieje, ale logika płatności nie.

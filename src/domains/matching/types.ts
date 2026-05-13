@@ -17,6 +17,7 @@ export type MatchingRequest = {
 export type MatchingRequestWithSubject = MatchingRequest & {
   subjects: { label: string }
   tutor_profile: { full_name: string } | null
+  session?: { id: string; daily_room_url: string | null } | null
 }
 
 export type Subject = {

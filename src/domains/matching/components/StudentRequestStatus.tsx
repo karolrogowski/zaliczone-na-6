@@ -54,6 +54,10 @@ export function StudentRequestStatus({
   if (request.status === 'completed') return null
 
   if (request.status === 'accepted') {
+    const sessionData = Array.isArray(request.session) ? request.session[0] : request.session
+    const sessionId = sessionData?.id
+    const hasRoom = !!sessionData?.daily_room_url
+
     return (
       <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
         <div className="mb-2 text-2xl">🎉</div>
@@ -63,12 +67,22 @@ export function StudentRequestStatus({
             <><strong>{request.tutor_profile.full_name}</strong> zaakceptował Twoje zlecenie z{' '}</>
           )}
           <strong>{request.subjects?.label ?? request.subject_id}</strong>.
-          Sesja wkrótce się rozpocznie.
         </p>
+        {hasRoom && sessionId ? (
+          <a
+            href={`/session/${sessionId}`}
+            data-testid="join-session-link"
+            className="mt-4 inline-block rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+          >
+            Dołącz do sesji
+          </a>
+        ) : (
+          <p className="mt-3 text-sm text-zinc-400">Sesja wkrótce się rozpocznie...</p>
+        )}
         <button
           onClick={handleComplete}
           disabled={isPending}
-          className="cursor-pointer mt-4 text-sm text-zinc-500 hover:text-zinc-700 disabled:opacity-50 transition-colors"
+          className="cursor-pointer mt-4 block text-sm text-zinc-500 hover:text-zinc-700 disabled:opacity-50 transition-colors"
         >
           {isPending ? 'Ładowanie...' : 'Zakończ sesję'}
         </button>
