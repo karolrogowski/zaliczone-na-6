@@ -1,0 +1,1 @@
+-- Dane testowe są ładowane przez scripts/create-admin.mjs i scripts/seed-test-users.mjs

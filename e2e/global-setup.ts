@@ -25,7 +25,9 @@ export default async function globalSetup() {
   const supabase = adminClient()
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/health`)
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/`, {
+      headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY! },
+    })
     if (!res.ok) throw new Error()
   } catch {
     throw new Error('\n\n❌ Supabase nie działa. Uruchom: npx supabase start\n')
@@ -37,11 +39,14 @@ export default async function globalSetup() {
   await upsertUser(supabase, INCOMPLETE_TUTOR_EMAIL, 'tutor', 'Korepetytor Bez Profilu')
   await upsertUser(supabase, RESET_USER_EMAIL, 'student', 'Użytkownik Reset')
 
-  // Skonfiguruj profile korepetytorów pełnych (stawka + przedmiot)
+  // Skonfiguruj profile korepetytorów pełnych (stawka + przedmiot + poziomy)
   for (const tutorId of [tutor1.id, tutor2.id]) {
     await supabase
       .from('tutor_profiles')
-      .upsert({ id: tutorId, hourly_rate_grosz: 10000, is_available: false }, { onConflict: 'id' })
+      .upsert(
+        { id: tutorId, hourly_rate_grosz: 10000, is_available: false, levels: ['liceum_1', 'liceum_2', 'matura'] },
+        { onConflict: 'id' }
+      )
     await supabase
       .from('tutor_subjects')
       .upsert({ tutor_id: tutorId, subject_id: 'matematyka' }, { onConflict: 'tutor_id,subject_id' })

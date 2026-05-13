@@ -9,6 +9,17 @@ export async function loginAs(page: Page, email: string) {
   await page.waitForURL('/dashboard')
 }
 
+/** Wypełnia i wysyła formularz zlecenia na /request, czeka na redirect do /dashboard */
+export async function submitRequest(page: Page, subject = 'matematyka') {
+  await page.goto('/request')
+  await page.selectOption('select[name="subject_id"]', subject)
+  await page.selectOption('select[name="level"]', 'liceum_1')
+  await page.selectOption('select[name="scope"]', 'homework')
+  await page.fill('textarea[name="description"]', 'Testowe zlecenie e2e')
+  await page.click('button[type="submit"]')
+  await page.waitForURL('/dashboard')
+}
+
 export async function getTestUserIds() {
   const { data } = await adminClient().auth.admin.listUsers()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -24,35 +24,38 @@ test.beforeEach(async () => {
 })
 
 // ─── Test 1 ──────────────────────────────────────────────────────────────────
-// Uczeń widzi przycisk "Dołącz do sesji" po akceptacji przez korepetytora
+// Uczeń widzi przycisk "Dołącz do sesji" gdy sesja jest in_progress
 
-test('uczeń widzi przycisk "Dołącz do sesji" po akceptacji zlecenia', async ({ browser }) => {
+test('uczeń widzi przycisk "Dołącz do sesji" gdy sesja jest gotowa', async ({ page }) => {
   const ids = await getUserIds()
-  await adminClient().from('tutor_profiles').update({ is_available: true }).eq('id', ids.tutor1Id)
+  const db = adminClient()
 
-  const studentCtx = await browser.newContext()
-  const tutorCtx = await browser.newContext()
-  const studentPage = await studentCtx.newPage()
-  const tutorPage = await tutorCtx.newPage()
+  // Utwórz zaakceptowane zlecenie i sesję bezpośrednio w DB
+  const { data: request } = await db
+    .from('matching_requests')
+    .insert({
+      student_id: ids.studentId,
+      subject_id: 'matematyka',
+      status: 'accepted',
+      tutor_id: ids.tutor1Id,
+    })
+    .select()
+    .single()
 
-  // Uczeń składa zlecenie
-  await loginAs(studentPage, STUDENT_EMAIL)
-  await studentPage.selectOption('select[name="subject_id"]', 'matematyka')
-  await studentPage.click('button[type="submit"]')
-  await expect(studentPage.getByText('Szukamy korepetytora')).toBeVisible()
+  await db.from('sessions').insert({
+    matching_request_id: request.id,
+    student_id: ids.studentId,
+    tutor_id: ids.tutor1Id,
+    daily_room_name: 'test-room-join',
+    daily_room_url: 'https://test.daily.co/test-room-join',
+    status: 'in_progress',
+    started_at: new Date().toISOString(),
+    duration_minutes: 60,
+  })
 
-  // Korepetytor akceptuje
-  await loginAs(tutorPage, TUTOR1_EMAIL)
-  await expect(tutorPage.getByText('Akceptuj zlecenie')).toBeVisible({ timeout: 10_000 })
-  await tutorPage.getByText('Akceptuj zlecenie').click()
-  await expect(tutorPage.getByText('Zaakceptowałeś zlecenie')).toBeVisible({ timeout: 10_000 })
-
-  // Uczeń powinien zobaczyć przycisk dołączenia do sesji
-  await expect(studentPage.getByText('Znaleziono korepetytora')).toBeVisible({ timeout: 10_000 })
-  await expect(studentPage.getByTestId('join-session-link')).toBeVisible({ timeout: 10_000 })
-
-  await studentCtx.close()
-  await tutorCtx.close()
+  await loginAs(page, STUDENT_EMAIL)
+  await expect(page.getByText('Znaleziono korepetytora')).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByTestId('join-session-link')).toBeVisible({ timeout: 10_000 })
 })
 
 // ─── Test 2 ──────────────────────────────────────────────────────────────────
@@ -173,11 +176,11 @@ test('korepetytor kończy sesję i jest przekierowany na ocenę', async ({ page 
   await loginAs(page, TUTOR1_EMAIL)
   await page.goto(`/session/${session.id}`)
 
-  await expect(page.getByText('Zakończ sesję')).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByRole('button', { name: 'Zakończ sesję' })).toBeVisible({ timeout: 10_000 })
 
   // Korepetytor musi podać powód gdy kończy przed czasem
   await page.fill('textarea', 'Test zakończenia sesji')
-  await page.getByText('Zakończ sesję').click()
+  await page.getByRole('button', { name: 'Zakończ sesję' }).click()
 
   // Oczekuj przekierowania na /rate/
   await page.waitForURL(/\/rate\//, { timeout: 15_000 })
