@@ -1,0 +1,80 @@
+= Zaliczone na 6 - wymagania
+
+== Faza 1: Fundamenty i przepływ transakcyjny (Core Flow)
+
+Na tym etapie celem jest umożliwienie jednemu uczniowi połączenia się z jednym korepetytorem i zapłacenia za tę usługę. To testuje, czy model technicznie i finansowo działa.
+
+=== Zarządzanie użytkownikami (Dwie oddzielne role) - MAMY
+
+Moduł rejestracji i logowania z podziałem na interfejs Ucznia i Korepetytora.
+
+Mamy, ale póżniej:
+
+* Dla ucznia wystarczy szybkie logowanie przez Google/Apple (minimalizacja tarcia).
+* Dla korepetytora proces musi obejmować prosty formularz weryfikacyjny (przesłanie skanu legitymacji studenckiej/dyplomu) obsługiwany na tym etapie ręcznie przez administrację.
+
+=== Kreator zlecenia (Frictionless Request) - MAMY
+
+Ekran dla ucznia pozwalający w 3 kliknięciach zdefiniować problem. Wybór przedmiotu z listy (np. matematyka, fizyka), wybór poziomu (np. szkoła podstawowa, liceum), krótki opis tekstowy problemu oraz wybór czasu (30 lub 60 minut).
+
+=== Bramka płatnicza z preautoryzacją (Hold Funds) - PÓŻNIEJ
+
+Integracja z systemem płatności (np. Stripe, PayU). Gdy uczeń klika "Szukaj korepetytora", system nie pobiera od razu środków, a jedynie je "zamraża" (preautoryzacja) na karcie podpiętej do konta lub przez BLIK OneClick. Zabezpiecza to platformę przed oszustwami i gwarantuje wypłacalność dla korepetytora.
+
+=== Pula zgłoszeń i system "Kto pierwszy, ten lepszy" (Matchmaking) - MOŻNA JUŻ
+
+Główny feed dla zalogowanych korepetytorów, gdzie pojawiają się aktywne zlecenia w czasie rzeczywistym. Widzą oni przedmiot, stawkę i krótki opis. Kliknięcie "Akceptuj" natychmiast blokuje zgłoszenie dla innych i przypisuje zlecającego ucznia do tego korepetytora.
+
+== Faza 2: Realizacja usługi (Wideo i Narzędzia)
+
+Gdy użytkownicy są połączeni finansowo i systemowo, muszą móc zrealizować usługę w sposób efektywny. Skupiamy się tu na niskim opóźnieniu i narzędziach do nauk ścisłych.
+
+=== Wbudowana wideorozmowa 1:1 (WebRTC) - MOŻNA JUŻ
+Integracja gotowego API do wideo (np. Twilio Video, Vonage, Daily.co), aby uniknąć budowania infrastruktury wideo od zera. Wymaga obsługi kamery, mikrofonu i przycisku wyciszenia. Aplikacja nie może wymuszać instalacji dodatkowego oprogramowania (działa z poziomu przeglądarki lub prostej aplikacji mobilnej).
+
+=== Przerwanie transmisji.  - MOŻNA JUŻ
+
+Do połączenia można wrócić (np. po zamknięciu okna) chyba, że przerwie je wykładowca (zakończenie przed czasem możliwe przez wykładowce). Podaje w opise powód zakończenia.
+
+=== Współdzielenie ekranu i załączniki ad-hoc - MOŻNA JUŻ
+
+Opcja udostępnienia ekranu przez korepetytora (niezbędne do pokazywania prezentacji czy wykresów). Dodatkowo funkcja szybkiego czatu wewnątrz pokoju, w którym uczeń może wgrać zdjęcie swojego zeszytu z zadaniem, by korepetytor widział, na czym polega problem.
+
+=== Wirtualna tablica (Whiteboard) - MOŻNA ALE NIEKONIECZNIE MVP
+
+Współdzielona, prosta przestrzeń robocza, po której korepetytor może rysować myszką lub rysikiem (np. równania matematyczne). To krytyczny element z punktu widzenia użyteczności przy przedmiotach ścisłych, stanowiących większość problemów "na wczoraj".
+
+=== Odliczanie czasu w widoku wideo.  - MOŻNA JUŻ
+
+Odliczamy czas sesji. Na 2 minuty przed końcem informacja i odliczanie czasu na 30 sekund ostatnie. System wyłącza się po 30 sekundach od minięcia 30 minut lub od razu po 30 minutach gdy uczeń lub korepetytor wyszli z lekcji po 30 minutach.
+
+=== Mechanizm przedłużania (Upselling) - MOŻNA ALE NIEKONIECZNIE MVP
+
+Na 5 minut przed końcem uczeń otrzymuje powiadomienie z przyciskiem "Przedłuż o 30 minut". Kliknięcie wysyła prośbę do korepetytora. Jeśli ten się zgadza, system automatycznie rozszerza preautoryzację płatności na karcie o kolejną kwotę.
+
+=== Mechanizm informowania - popup na desktop. - MOŻNA JUŻ
+
+Korepetytor widzi, że jest oferta - dostaje popup.
+
+=== Może aplikacja desktopowa dla instruktorów? - może nie mvp
+
+== Faza 3: Samoregulacja rynku i retencja (Quality & Mechanics)
+
+Kiedy aplikacja potrafi zrealizować zlecenie, trzeba zadbać o utrzymanie poziomu obsługi i zaufanie, aby użytkownicy wracali.
+
+=== Dwustronny system ocen (Rating System)
+
+Po zakończeniu wideorozmowy okno zamyka się i pojawia się prośba o ocenę 1-5 gwiazdek. Uczeń ocenia korepetytora (klarowność tłumaczenia), a korepetytor ucznia (kultura, przygotowanie). Na etapie MVP oceny ucznia służą tylko do wyłapywania toksycznych użytkowników, oceny korepetytora wchodzą do profilu. Użytkownik może
+
+* ocenić od 1 do 5 gwiazdek
+* wybrać jedną z opcji bonusowych
+    ** gdy to możliwe chcę się uczyć w przyszłości z tym nauczycielem
+    ** nie polecaj mi tego nauczyciala
+
+=== Algorytm priorytetyzacji powiadomień (The VIP Tier)
+
+Automatyzacja obiecana w pitchu. Skrypt opóźniający wysyłanie powiadomień o nowych zleceniach do korepetytorów z oceną poniżej 4.5. Ulubieni dostają inforację od razu. "Elita" (4.5+) dostaje powiadomienie np. o 10 sekund póżniej. Inni 30 sekund póżniej. To tworzy asymetrię informacji promującą najwyższą jakość na platformie.
+
+=== Wirtualny portfel i moduł wypłat (Payouts)
+
+Dashboard dla korepetytora, pokazujący historię odbytych sesji i zgromadzone środki po odliczeniu 30% prowizji platformy. Możliwość zlecenia przelewu na konto bankowe. Operacyjnie można to na start zautomatyzować przez funkcję Stripe Connect (dzielenie płatności od razu na subkonta).
