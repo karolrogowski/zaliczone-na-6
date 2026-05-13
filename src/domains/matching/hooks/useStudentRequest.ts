@@ -8,7 +8,7 @@ async function fetchRequest(id: string): Promise<MatchingRequestWithSubject | nu
   const supabase = createClient()
   const { data } = await supabase
     .from('matching_requests')
-    .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name)')
+    .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name), session:sessions(id, daily_room_url)')
     .eq('id', id)
     .maybeSingle()
   return data as MatchingRequestWithSubject | null

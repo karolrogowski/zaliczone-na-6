@@ -31,6 +31,9 @@ export default async function SessionPage({
 
   const isTutor = session.tutor_id === profile.id
   const durationMinutes = session.duration_minutes ?? 60
+  const roomUrl = isTutor
+    ? (session.host_room_url ?? session.daily_room_url)
+    : session.daily_room_url
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -46,7 +49,7 @@ export default async function SessionPage({
       <VideoSession
         sessionId={session.id}
         matchingRequestId={session.matching_request_id}
-        dailyRoomUrl={session.daily_room_url}
+        dailyRoomUrl={roomUrl}
         startedAt={session.started_at}
         durationMinutes={durationMinutes}
         isTutor={isTutor}

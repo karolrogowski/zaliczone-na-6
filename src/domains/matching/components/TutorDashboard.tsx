@@ -222,7 +222,8 @@ function RequestCard({
           </div>
         </div>
         <span className="shrink-0 rounded-full bg-zinc-100 px-3 py-1 text-sm font-mono text-zinc-600">
-          {minutes}:{String(seconds).padStart(2, '0')}
+          {/* suppressHydrationWarning — timer zmienia się co sekundę, wartość SSR i CSR celowo różna */}
+          <span suppressHydrationWarning>{minutes}:{String(seconds).padStart(2, '0')}</span>
         </span>
       </div>
 

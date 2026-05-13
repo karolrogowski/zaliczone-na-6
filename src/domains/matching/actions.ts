@@ -6,42 +6,7 @@ import { createClient } from '@/shared/supabase/server'
 import { validateSubmitRequest } from './validation'
 import { LEVEL_OPTIONS, SCOPE_OPTIONS, resolveOption } from './options'
 import type { AcceptRequestResult, RatingFormState, SubmitRequestFormState } from './types'
-
-async function createDailyRoom(): Promise<{ name: string; url: string } | null> {
-  const apiKey = process.env.DAILY_API_KEY
-
-  if (!apiKey) {
-    const mockName = `test-room-${Date.now()}`
-    return { name: mockName, url: `https://test.daily.co/${mockName}` }
-  }
-
-  const exp = Math.floor(Date.now() / 1000) + 3600 * 2
-
-  try {
-    const res = await fetch('https://api.daily.co/v1/rooms', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        properties: {
-          exp,
-          max_participants: 2,
-          enable_chat: false,
-          start_video_off: false,
-          start_audio_off: false,
-        },
-      }),
-    })
-
-    if (!res.ok) return null
-    const room = await res.json()
-    return { name: room.name, url: room.url }
-  } catch {
-    return null
-  }
-}
+import { createVideoRoom } from '@/domains/sessions/video-provider'
 
 export async function submitMatchingRequest(
   _state: SubmitRequestFormState,
@@ -124,20 +89,19 @@ export async function acceptMatchingRequest(
     .select('id')
     .single()
 
-  // Tworzy pokój Daily.co i aktualizuje sesję
+  // Tworzy pokój wideo i aktualizuje sesję
   if (session) {
-    const dailyRoom = await createDailyRoom()
-    if (dailyRoom) {
-      await supabase
-        .from('sessions')
-        .update({
-          daily_room_name: dailyRoom.name,
-          daily_room_url: dailyRoom.url,
-          status: 'in_progress',
-          started_at: new Date().toISOString(),
-        })
-        .eq('id', session.id)
-    }
+    const room = await createVideoRoom()
+    await supabase
+      .from('sessions')
+      .update({
+        daily_room_name: room.name,
+        daily_room_url: room.url,
+        host_room_url: room.hostUrl,
+        status: 'in_progress',
+        started_at: new Date().toISOString(),
+      })
+      .eq('id', session.id)
   }
 
   revalidatePath('/dashboard')

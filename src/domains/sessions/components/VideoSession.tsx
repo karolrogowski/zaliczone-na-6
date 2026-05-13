@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { completeSession } from '../actions'
+import { createClient } from '@/shared/supabase/client'
 
 type VideoSessionProps = {
   sessionId: string
@@ -46,6 +47,7 @@ export function VideoSession({
   const [reason, setReason] = useState('')
   const [showReasonError, setShowReasonError] = useState(false)
   const [ended, setEnded] = useState(false)
+  const [videoLoaded, setVideoLoaded] = useState(false)
   const autoEndFired = useRef(false)
 
   const { secondsLeft, formatted } = useSessionTimer(startedAt, durationMinutes)
@@ -64,6 +66,43 @@ export function VideoSession({
       })
     }
   }, [secondsLeft, sessionId, matchingRequestId, router, ended])
+
+  // Wykrywanie zakończenia sesji przez drugą stronę (Realtime + fallback polling)
+  useEffect(() => {
+    if (ended) return
+
+    const supabase = createClient()
+
+    async function checkStatus() {
+      const { data } = await supabase
+        .from('sessions')
+        .select('status')
+        .eq('id', sessionId)
+        .single()
+      if (data?.status === 'completed') {
+        setEnded(true)
+        router.push(`/rate/${matchingRequestId}`)
+      }
+    }
+
+    const channel = supabase
+      .channel(`session-end-${sessionId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `id=eq.${sessionId}` },
+        (payload) => { if ((payload.new as { status: string }).status === 'completed') {
+          setEnded(true)
+          router.push(`/rate/${matchingRequestId}`)
+        }}
+      )
+      .subscribe()
+
+    const pollId = setInterval(checkStatus, 5_000)
+
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(pollId)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, matchingRequestId])
 
   function handleComplete() {
     if (isTutor && secondsLeft > 30 && !reason.trim()) {
@@ -95,7 +134,7 @@ export function VideoSession({
           className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-center font-semibold text-red-700"
         >
           Sesja kończy się za{' '}
-          <span data-testid="timer">{formatted}</span>!
+          <span data-testid="timer" suppressHydrationWarning>{formatted}</span>!
         </div>
       ) : isWarning ? (
         <div
@@ -103,24 +142,37 @@ export function VideoSession({
           className="rounded-xl border border-yellow-300 bg-yellow-50 px-4 py-3 text-center font-medium text-yellow-700"
         >
           Zbliża się koniec sesji —{' '}
-          <span data-testid="timer">Pozostało: {formatted}</span>
+          <span data-testid="timer" suppressHydrationWarning>Pozostało: {formatted}</span>
         </div>
       ) : (
         <div
           data-testid="timer-normal"
           className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-center text-sm text-zinc-600"
         >
-          <span data-testid="timer">Pozostało: {formatted}</span>
+          <span data-testid="timer" suppressHydrationWarning>Pozostało: {formatted}</span>
         </div>
       )}
 
-      {/* Iframe Daily.co Prebuilt */}
-      <div className="overflow-hidden rounded-2xl border border-zinc-200" style={{ height: '70vh' }}>
+      {/* Iframe wideo */}
+      <div className="relative overflow-hidden rounded-2xl border border-zinc-200" style={{ height: '70vh' }}>
+        {!videoLoaded && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-900 text-white">
+            <svg className="h-8 w-8 animate-spin text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+            <p className="text-sm font-medium text-zinc-300">
+              {isTutor ? 'Przygotowywanie pokoju wideo...' : 'Oczekiwanie na połączenie z korepetytorem...'}
+            </p>
+            <p className="text-xs text-zinc-500">Może to potrwać kilka sekund</p>
+          </div>
+        )}
         <iframe
           src={dailyRoomUrl}
-          allow="camera; microphone; fullscreen; speaker; display-capture"
-          style={{ width: '100%', height: '100%', border: 'none' }}
+          allow="camera; microphone; fullscreen; speaker; display-capture; autoplay; clipboard-write; compute-pressure"
+          style={{ width: '100%', height: '100%', border: 'none', opacity: videoLoaded ? 1 : 0 }}
           title="Sesja wideo"
+          onLoad={() => setVideoLoaded(true)}
         />
       </div>
 

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/shared/supabase/server'
+import { deleteVideoRoom } from './video-provider'
 
 export async function completeSession(sessionId: string, reason?: string): Promise<void> {
   const supabase = await createClient()
@@ -13,7 +14,7 @@ export async function completeSession(sessionId: string, reason?: string): Promi
 
   const { data: session } = await supabase
     .from('sessions')
-    .select('id, student_id, tutor_id, matching_request_id, status')
+    .select('id, student_id, tutor_id, matching_request_id, status, daily_room_name')
     .eq('id', sessionId)
     .maybeSingle()
 
@@ -45,4 +46,9 @@ export async function completeSession(sessionId: string, reason?: string): Promi
 
   revalidatePath('/dashboard')
   revalidatePath(`/session/${sessionId}`)
+
+  // Usuń pokój wideo — best-effort, nie blokuje zakończenia sesji
+  if (session.daily_room_name) {
+    void deleteVideoRoom(session.daily_room_name)
+  }
 }
