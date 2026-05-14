@@ -159,6 +159,42 @@ export const hasRatingForSession = cache(
   }
 )
 
+export const getSessionDetail = cache(
+  async (requestId: string): Promise<MatchingRequestWithSubject | null> => {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('matching_requests')
+      .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name), student_profile:profiles!student_id(full_name), session:sessions(id, notes)')
+      .eq('id', requestId)
+      .maybeSingle()
+    return data as MatchingRequestWithSubject | null
+  }
+)
+
+export const getStudentAllSessions = cache(
+  async (): Promise<MatchingRequestWithSubject[]> => {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('matching_requests')
+      .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name), session:sessions(id, notes)')
+      .eq('status', 'completed')
+      .order('updated_at', { ascending: false })
+    return (data ?? []) as MatchingRequestWithSubject[]
+  }
+)
+
+export const getTutorAllSessions = cache(
+  async (): Promise<MatchingRequestWithSubject[]> => {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('matching_requests')
+      .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name), student_profile:profiles!student_id(full_name), session:sessions(id, notes)')
+      .in('status', ['accepted', 'completed'])
+      .order('updated_at', { ascending: false })
+    return (data ?? []) as MatchingRequestWithSubject[]
+  }
+)
+
 export const getTutorProfileDetails = cache(
   async (): Promise<TutorProfileDetails | null> => {
     const supabase = await createClient()

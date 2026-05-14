@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import type { MatchingRequestWithSubject } from '../types'
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
@@ -20,13 +21,13 @@ export function TutorRequestHistory({
       <div className="flex flex-col gap-2">
         {requests.map((req) => {
           const { label, className } = STATUS_LABELS[req.status] ?? { label: req.status, className: 'bg-zinc-100 text-zinc-500' }
-          const notes = Array.isArray(req.session) ? req.session[0]?.notes : req.session?.notes
           return (
-            <div
+            <Link
               key={req.id}
-              className="rounded-xl border border-zinc-200 bg-white px-4 py-3 flex flex-col gap-2"
+              href={`/history/${req.id}`}
+              className="rounded-xl border border-zinc-200 bg-white px-4 py-3 flex items-center justify-between gap-4 hover:bg-zinc-50 transition-colors"
             >
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center justify-between gap-4 flex-1">
                 <div className="flex flex-col gap-0.5">
                   <span className="text-sm font-medium text-zinc-900">
                     {req.subjects?.label ?? req.subject_id}
@@ -39,15 +40,17 @@ export function TutorRequestHistory({
                   {label}
                 </span>
               </div>
-              {notes && (
-                <p className="text-xs text-zinc-600 border-t border-zinc-100 pt-2">
-                  {notes}
-                </p>
-              )}
-            </div>
+              <span className="shrink-0 text-zinc-400 text-sm" aria-hidden="true">→</span>
+            </Link>
           )
         })}
       </div>
+      <Link
+        href="/history"
+        className="text-sm text-blue-600 hover:text-blue-700 transition-colors self-start"
+      >
+        Pokaż całą historię →
+      </Link>
     </div>
   )
 }
