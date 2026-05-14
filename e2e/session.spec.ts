@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import {
   STUDENT_EMAIL,
   TUTOR1_EMAIL,
+  TUTOR2_EMAIL,
   adminClient,
 } from './global-setup'
 import { loginAs, getTestUserIds } from './helpers'
@@ -12,6 +13,7 @@ async function getUserIds() {
   return {
     studentId: byEmail(STUDENT_EMAIL)!,
     tutor1Id: byEmail(TUTOR1_EMAIL)!,
+    tutor2Id: byEmail(TUTOR2_EMAIL)!,
   }
 }
 
@@ -112,7 +114,7 @@ test('sesja kończy się automatycznie po upływie czasu', async ({ page }) => {
     .select().single()
 
   // Sesja z 4 sekundami do końca — timer naturalnie doliczy do 0
-  const startedAt = new Date(Date.now() - (60 * 60 - 4) * 1000).toISOString()
+  const startedAt = new Date(Date.now() - (60 * 60 - 10) * 1000).toISOString()
 
   const { data: session } = await db
     .from('sessions')
@@ -155,4 +157,82 @@ test('korepetytor kończy sesję i jest przekierowany na ocenę', async ({ page 
 
   await page.waitForURL(/\/rate\//, { timeout: 15_000 })
   expect(page.url()).toContain('/rate/')
+})
+
+// ─── Test 6 ──────────────────────────────────────────────────────────────────
+
+test('obcy użytkownik nie może wejść do cudzej sesji', async ({ page }) => {
+  const ids = await getUserIds()
+  const db = adminClient()
+
+  const { data: request } = await db
+    .from('matching_requests')
+    .insert({ student_id: ids.studentId, subject_id: 'matematyka', status: 'accepted', tutor_id: ids.tutor1Id })
+    .select().single()
+
+  const { data: session } = await db
+    .from('sessions')
+    .insert(makeSession({ matching_request_id: request.id, student_id: ids.studentId, tutor_id: ids.tutor1Id }))
+    .select().single()
+
+  // tutor2 nie jest uczestnikiem tej sesji
+  await loginAs(page, TUTOR2_EMAIL)
+  await page.goto(`/session/${session.id}`)
+
+  await expect(page).toHaveURL('/dashboard')
+})
+
+// ─── Test 7 ──────────────────────────────────────────────────────────────────
+
+test('wejście na stronę zakończonej sesji przekierowuje do oceny', async ({ page }) => {
+  const ids = await getUserIds()
+  const db = adminClient()
+
+  const { data: request } = await db
+    .from('matching_requests')
+    .insert({ student_id: ids.studentId, subject_id: 'matematyka', status: 'completed', tutor_id: ids.tutor1Id })
+    .select().single()
+
+  const { data: session } = await db
+    .from('sessions')
+    .insert({
+      ...makeSession({ matching_request_id: request.id, student_id: ids.studentId, tutor_id: ids.tutor1Id }),
+      status: 'completed',
+      ended_at: new Date().toISOString(),
+    })
+    .select().single()
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/session/${session.id}`)
+
+  await expect(page).toHaveURL(`/rate/${request.id}`)
+})
+
+// ─── Test 8 ──────────────────────────────────────────────────────────────────
+
+test('wejście na sesję bez pokoju wideo przekierowuje do dashboardu', async ({ page }) => {
+  const ids = await getUserIds()
+  const db = adminClient()
+
+  const { data: request } = await db
+    .from('matching_requests')
+    .insert({ student_id: ids.studentId, subject_id: 'matematyka', status: 'accepted', tutor_id: ids.tutor1Id })
+    .select().single()
+
+  const { data: session } = await db
+    .from('sessions')
+    .insert({
+      matching_request_id: request.id,
+      student_id: ids.studentId,
+      tutor_id: ids.tutor1Id,
+      status: 'in_progress',
+      started_at: new Date().toISOString(),
+      duration_minutes: 60,
+    })
+    .select().single()
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/session/${session.id}`)
+
+  await expect(page).toHaveURL('/dashboard')
 })

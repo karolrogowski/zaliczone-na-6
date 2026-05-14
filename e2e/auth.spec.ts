@@ -107,3 +107,22 @@ test('pełny flow resetu hasła: formularz → email → nowe hasło → logowan
   await page.waitForURL('/dashboard')
   expect(page.url()).toContain('/dashboard')
 })
+
+// ─── Test 6 ──────────────────────────────────────────────────────────────────
+
+test('wylogowanie czyści sesję i blokuje dostęp do chronionych tras', async ({ page }) => {
+  await loginAs(page, STUDENT_EMAIL)
+  await expect(page).toHaveURL('/dashboard')
+
+  // Kliknij "Wyloguj" w formularzu w layoucie
+  await page.getByRole('button', { name: 'Wyloguj' }).click()
+  await page.waitForURL('/login')
+
+  // Próba wejścia na chronioną trasę po wylogowaniu → redirect do /login
+  await page.goto('/dashboard')
+  await expect(page).toHaveURL('/login')
+
+  // Próba wejścia na stronę sesji po wylogowaniu → redirect do /login
+  await page.goto('/session/some-fake-id')
+  await expect(page).toHaveURL('/login')
+})

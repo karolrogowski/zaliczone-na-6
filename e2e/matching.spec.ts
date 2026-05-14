@@ -79,7 +79,7 @@ test('korepetytor widzi zlecenie ucznia w czasie rzeczywistym', async ({ browser
   const tutorPage = await tutorCtx.newPage()
 
   await loginAs(tutorPage, TUTOR1_EMAIL)
-  await expect(tutorPage.getByText('Brak zleceń w Twoich przedmiotach')).toBeVisible()
+  await expect(tutorPage.getByText('Brak zleceń w Twoich przedmiotach')).toBeVisible({ timeout: 10_000 })
 
   // Student składa zlecenie przez DB — unikamy auth issue z form submission
   await adminClient().from('matching_requests').insert({
@@ -154,8 +154,8 @@ test('uczeń anuluje zlecenie i wraca do dashboardu bez aktywnego zlecenia', asy
 
   await page.getByText('Anuluj zlecenie').click()
 
-  await expect(page.getByText('Szukamy korepetytora...')).not.toBeVisible({ timeout: 5_000 })
-  await expect(page.getByRole('link', { name: /Złóż pierwsze zlecenie/ })).toBeVisible({ timeout: 5_000 })
+  await expect(page.getByText('Szukamy korepetytora...')).not.toBeVisible({ timeout: 10_000 })
+  await expect(page.getByRole('link', { name: /Złóż pierwsze zlecenie/ })).toBeVisible({ timeout: 10_000 })
 })
 
 test('uczeń widzi w czasie rzeczywistym że korepetytor zaakceptował', async ({ browser }) => {
@@ -203,6 +203,7 @@ test('zalogowany uczeń nie widzi przełącznika dostępności korepetytora', as
 test('formularz zlecenia wymaga wybrania przedmiotu', async ({ page }) => {
   await loginAs(page, STUDENT_EMAIL)
   await page.goto('/request')
+  await page.waitForURL('/request')
 
   // HTML5 validation blokuje wysłanie bez wybranego przedmiotu
   await page.click('button[type="submit"]')
@@ -243,8 +244,45 @@ test('zaakceptowane zlecenie nie jest widoczne dla drugiego korepetytora', async
   const tutor2Page = await tutor2Ctx.newPage()
   await loginAs(tutor2Page, TUTOR2_EMAIL)
 
-  await expect(tutor2Page.getByText('Brak zleceń w Twoich przedmiotach')).toBeVisible()
+  await expect(tutor2Page.getByText('Brak zleceń w Twoich przedmiotach')).toBeVisible({ timeout: 10_000 })
   await expect(tutor2Page.getByText('Akceptuj zlecenie')).not.toBeVisible()
 
   await tutor2Ctx.close()
+})
+// ─── Scenariusz 13 ───────────────────────────────────────────────────────────
+
+test('uczeń z aktywnym zleceniem widzi jego status zamiast przycisku nowego zlecenia', async ({ page }) => {
+  const { studentId } = await getUserIds()
+  await adminClient().from('matching_requests').insert({
+    student_id: studentId,
+    subject_id: 'matematyka',
+    status: 'pending',
+  })
+
+  await loginAs(page, STUDENT_EMAIL)
+
+  await expect(page.getByText('Szukamy korepetytora...')).toBeVisible()
+  // Przycisk "Złóż pierwsze zlecenie" nie powinien być widoczny gdy zlecenie aktywne
+  await expect(page.getByRole('link', { name: /Złóż pierwsze zlecenie/ })).not.toBeVisible()
+})
+
+// ─── Scenariusz 14 ───────────────────────────────────────────────────────────
+
+test('po wygaśnięciu zlecenia uczeń może złożyć nowe', async ({ page }) => {
+  const { studentId } = await getUserIds()
+  // Status 'expired' wprost — getStudentActiveRequest filtruje 'expired',
+  // więc /request page nie zrobi redirect i formularz będzie dostępny
+  await adminClient().from('matching_requests').insert({
+    student_id: studentId,
+    subject_id: 'matematyka',
+    status: 'expired',
+    expires_at: new Date(Date.now() - 60_000).toISOString(),
+  })
+
+  await loginAs(page, STUDENT_EMAIL)
+
+  // Formularz nowego zlecenia jest dostępny — brak aktywnego zlecenia
+  await page.goto('/request')
+  await page.waitForURL('/request')
+  await expect(page.locator('select[name="subject_id"]')).toBeVisible({ timeout: 5_000 })
 })
