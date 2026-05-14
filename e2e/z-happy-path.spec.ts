@@ -80,8 +80,9 @@ test('pełny przepływ: oczekiwanie → akceptacja → sesja → zakończenie �
   await expect(tutorPage.getByRole('button', { name: 'Zakończ sesję' })).toBeVisible({ timeout: 10_000 })
 
   // ── Etap 5: Korepetytor kończy sesję ──────────────────────────────────────
-  await tutorPage.fill('textarea', 'Materiał omówiony, wszystko jasne.')
+  await tutorPage.fill('#session-notes', 'Materiał omówiony, wszystko jasne.')
   await tutorPage.getByRole('button', { name: 'Zakończ sesję' }).click()
+  await tutorPage.getByRole('button', { name: 'Tak, zakończ' }).click()
 
   // Korepetytor → /rate/ (ale nie jest studentem, więc zostanie przekierowany)
   await tutorPage.waitForURL(/\/rate\/|\/dashboard/, { timeout: 15_000 })

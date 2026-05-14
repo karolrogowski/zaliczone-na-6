@@ -44,8 +44,8 @@ export function VideoSession({
 }: VideoSessionProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [reason, setReason] = useState('')
-  const [showReasonError, setShowReasonError] = useState(false)
+  const [notes, setNotes] = useState('')
+  const [confirming, setConfirming] = useState(false)
   const [ended, setEnded] = useState(false)
   const [videoLoaded, setVideoLoaded] = useState(false)
   const autoEndFired = useRef(false)
@@ -104,17 +104,21 @@ export function VideoSession({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, matchingRequestId])
 
-  function handleComplete() {
-    if (isTutor && secondsLeft > 30 && !reason.trim()) {
-      setShowReasonError(true)
-      return
-    }
-    setShowReasonError(false)
+  function handleEndClick() {
+    setConfirming(true)
+  }
+
+  function handleConfirm() {
+    setConfirming(false)
     startTransition(async () => {
-      await completeSession(sessionId, reason.trim() || undefined)
+      await completeSession(sessionId, notes.trim() || undefined)
       setEnded(true)
       router.push(`/rate/${matchingRequestId}`)
     })
+  }
+
+  function handleCancel() {
+    setConfirming(false)
   }
 
   if (ended) {
@@ -179,37 +183,49 @@ export function VideoSession({
       {/* Kontrolki sesji */}
       {isTutor ? (
         <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col gap-3">
-          <p className="text-sm font-medium text-zinc-700">Zakończ sesję</p>
-          {secondsLeft > 30 && (
-            <div className="flex flex-col gap-1">
-              <label htmlFor="end-reason" className="text-xs text-zinc-500">
-                Powód wcześniejszego zakończenia <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                id="end-reason"
-                value={reason}
-                onChange={(e) => {
-                  setReason(e.target.value)
-                  if (showReasonError) setShowReasonError(false)
-                }}
-                placeholder="Podaj powód zakończenia sesji przed czasem..."
-                className="rounded-lg border border-zinc-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-zinc-300"
-                rows={2}
-              />
-              {showReasonError && (
-                <p className="text-xs text-red-500">
-                  Podaj powód zakończenia sesji przed czasem.
-                </p>
-              )}
+          <div className="flex flex-col gap-1">
+            <label htmlFor="session-notes" className="text-sm font-medium text-zinc-700">
+              Notatki z sesji
+              <span className="ml-1 font-normal text-zinc-400">(widoczne dla ucznia w historii)</span>
+            </label>
+            <textarea
+              id="session-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Omówiony materiał, zadania domowe, wskazówki..."
+              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-zinc-300"
+              rows={3}
+            />
+          </div>
+
+          {confirming ? (
+            <div className="flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
+              <p className="text-sm font-medium text-red-700">Na pewno zakończyć sesję?</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleConfirm}
+                  disabled={isPending}
+                  className="cursor-pointer rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+                >
+                  {isPending ? 'Kończenie...' : 'Tak, zakończ'}
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="cursor-pointer rounded-lg border border-zinc-200 bg-white px-4 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
+                >
+                  Anuluj
+                </button>
+              </div>
             </div>
+          ) : (
+            <button
+              onClick={handleEndClick}
+              disabled={isPending}
+              className="cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+            >
+              Zakończ sesję
+            </button>
           )}
-          <button
-            onClick={handleComplete}
-            disabled={isPending}
-            className="cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
-          >
-            {isPending ? 'Kończenie...' : 'Zakończ sesję'}
-          </button>
         </div>
       ) : (
         <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3">

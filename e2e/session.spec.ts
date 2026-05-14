@@ -152,8 +152,8 @@ test('korepetytor kończy sesję i jest przekierowany na ocenę', async ({ page 
   await page.goto(`/session/${session.id}`)
 
   await expect(page.getByRole('button', { name: 'Zakończ sesję' })).toBeVisible({ timeout: 10_000 })
-  await page.fill('textarea', 'Test zakończenia sesji')
   await page.getByRole('button', { name: 'Zakończ sesję' }).click()
+  await page.getByRole('button', { name: 'Tak, zakończ' }).click()
 
   await page.waitForURL(/\/rate\//, { timeout: 15_000 })
   expect(page.url()).toContain('/rate/')

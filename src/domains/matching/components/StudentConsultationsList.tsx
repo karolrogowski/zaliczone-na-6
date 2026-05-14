@@ -21,34 +21,42 @@ export function StudentConsultationsList({
         Ostatnie konsultacje
       </h3>
       <div className="flex flex-col gap-2">
-        {consultations.map((c) => (
-          <div
-            key={c.id}
-            className="rounded-xl border border-zinc-200 bg-white px-4 py-3"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-zinc-900">
-                  {c.subjects?.label ?? c.subject_id}
+        {consultations.map((c) => {
+          const notes = Array.isArray(c.session) ? c.session[0]?.notes : c.session?.notes
+          return (
+            <div
+              key={c.id}
+              className="rounded-xl border border-zinc-200 bg-white px-4 py-3 flex flex-col gap-2"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-sm font-medium text-zinc-900">
+                    {c.subjects?.label ?? c.subject_id}
+                  </span>
+                  {c.level && (
+                    <span className="text-xs text-zinc-500">{c.level}</span>
+                  )}
+                  {c.tutor_profile?.full_name && c.tutor_id && (
+                    <a
+                      href={`/tutor/${c.tutor_id}`}
+                      className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
+                    >
+                      Korepetytor: {c.tutor_profile.full_name}
+                    </a>
+                  )}
+                </div>
+                <span className="shrink-0 pt-0.5 text-xs text-zinc-400">
+                  {formatDate(c.updated_at)}
                 </span>
-                {c.level && (
-                  <span className="text-xs text-zinc-500">{c.level}</span>
-                )}
-                {c.tutor_profile?.full_name && c.tutor_id && (
-                  <a
-                    href={`/tutor/${c.tutor_id}`}
-                    className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors"
-                  >
-                    Korepetytor: {c.tutor_profile.full_name}
-                  </a>
-                )}
               </div>
-              <span className="shrink-0 pt-0.5 text-xs text-zinc-400">
-                {formatDate(c.updated_at)}
-              </span>
+              {notes && (
+                <p className="text-xs text-zinc-600 border-t border-zinc-100 pt-2">
+                  {notes}
+                </p>
+              )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )

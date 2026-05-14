@@ -72,7 +72,7 @@ export const getStudentRecentConsultations = cache(
     const supabase = await createClient()
     const { data } = await supabase
       .from('matching_requests')
-      .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name)')
+      .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name), session:sessions(notes)')
       .eq('status', 'completed')
       .order('updated_at', { ascending: false })
       .limit(5)
@@ -115,7 +115,7 @@ export const getTutorRecentRequests = cache(
     const supabase = await createClient()
     const { data } = await supabase
       .from('matching_requests')
-      .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name)')
+      .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name), session:sessions(notes)')
       .in('status', ['accepted', 'completed'])
       .order('updated_at', { ascending: false })
       .limit(5)

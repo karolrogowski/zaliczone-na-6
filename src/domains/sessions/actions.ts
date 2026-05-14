@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/shared/supabase/server'
 import { deleteVideoRoom } from './video-provider'
 
-export async function completeSession(sessionId: string, reason?: string): Promise<void> {
+export async function completeSession(sessionId: string, notes?: string): Promise<void> {
   const supabase = await createClient()
 
   const {
@@ -30,11 +30,9 @@ export async function completeSession(sessionId: string, reason?: string): Promi
     .update({
       status: 'completed',
       ended_at: new Date().toISOString(),
+      ...(notes?.trim() ? { notes: notes.trim() } : {}),
     })
     .eq('id', sessionId)
-
-  // reason jest przechowywany tylko po stronie klienta (logowanie) — brak kolumny w schemacie
-  void reason
 
   if (session.matching_request_id) {
     await supabase
