@@ -32,6 +32,18 @@ function makeSession(overrides: Record<string, unknown> = {}) {
 test.beforeEach(async () => {
   const db = adminClient()
   const ids = await getUserIds()
+
+  const { data: sessions } = await db
+    .from('sessions')
+    .select('id')
+    .eq('student_id', ids.studentId)
+
+  if (sessions?.length) {
+    const sessionIds = sessions.map((s: { id: string }) => s.id)
+    await db.from('ratings').delete().in('session_id', sessionIds)
+    await db.from('session_financials').delete().in('session_id', sessionIds)
+  }
+
   await db.from('sessions').delete().eq('student_id', ids.studentId)
   await db.from('matching_requests').delete().eq('student_id', ids.studentId)
   await db.from('tutor_profiles').update({ is_available: false }).eq('id', ids.tutor1Id)
