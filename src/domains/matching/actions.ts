@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/shared/supabase/server'
+import { getCurrentUser, getCurrentUserOrNull } from '@/shared/auth/getCurrentUser'
 import { validateSubmitRequest } from './validation'
 import { LEVEL_OPTIONS, SCOPE_OPTIONS, resolveOption } from './options'
 import type { AcceptRequestResult, RatingFormState, SubmitRequestFormState } from './types'
@@ -25,12 +26,10 @@ export async function submitMatchingRequest(
   const validationError = validateSubmitRequest({ subject_id, level, scope, description })
   if (validationError) return validationError
 
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUserOrNull()
   if (!user) return { message: 'Nie jesteś zalogowany.' }
+
+  const supabase = await createClient()
 
   const { error } = await supabase
     .from('matching_requests')
@@ -58,12 +57,10 @@ export async function cancelMatchingRequest(requestId: string): Promise<void> {
 export async function acceptMatchingRequest(
   requestId: string
 ): Promise<AcceptRequestResult> {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUserOrNull()
   if (!user) return { success: false, message: 'Nie jesteś zalogowany.' }
+
+  const supabase = await createClient()
 
   const { data } = await supabase
     .from('matching_requests')
@@ -146,12 +143,10 @@ export async function submitRating(
     return { errors: { score: ['Wybierz ocenę od 1 do 5 gwiazdek'] } }
   }
 
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUserOrNull()
   if (!user) return { message: 'Nie jesteś zalogowany.' }
+
+  const supabase = await createClient()
 
   const { data: session } = await supabase
     .from('sessions')
@@ -179,12 +174,10 @@ export async function submitRating(
 }
 
 export async function toggleTutorAvailability(isAvailable: boolean): Promise<void> {
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await getCurrentUserOrNull()
   if (!user) return
+
+  const supabase = await createClient()
 
   await supabase
     .from('tutor_profiles')

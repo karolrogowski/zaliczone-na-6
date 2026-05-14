@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/shared/supabase/client'
+import { subscribeToMatchingRequest } from '@/shared/realtime/adapter'
 import type { MatchingRequestWithSubject } from '../types'
 
 async function fetchRequest(id: string): Promise<MatchingRequestWithSubject | null> {
@@ -26,29 +27,11 @@ export function useStudentRequest(initial: MatchingRequestWithSubject | null) {
   useEffect(() => {
     if (!initial?.id) return
 
-    const supabase = createClient()
-
-    const channel = supabase
-      .channel(`student-request-${initial.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'matching_requests',
-          filter: `id=eq.${initial.id}`,
-        },
-        () => refetch()
-      )
-      .subscribe()
-
-    // Fallback polling — odpala co 5 sekund gdy Realtime zawiedzie
-    const pollId = setInterval(refetch, 5_000)
-
-    return () => {
-      supabase.removeChannel(channel)
-      clearInterval(pollId)
-    }
+    return subscribeToMatchingRequest({
+      requestId: initial.id,
+      onChange: refetch,
+      pollingIntervalMs: 5_000,
+    })
   }, [initial?.id, refetch])
 
   return request

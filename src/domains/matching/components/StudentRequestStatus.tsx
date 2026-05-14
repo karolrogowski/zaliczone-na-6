@@ -51,7 +51,7 @@ export function StudentRequestStatus({
     })
   }
 
-  if (request.status === 'completed') return null
+  if (request.status === 'completed' || request.status === 'cancelled') return null
 
   if (request.status === 'accepted') {
     const sessionData = Array.isArray(request.session) ? request.session[0] : request.session

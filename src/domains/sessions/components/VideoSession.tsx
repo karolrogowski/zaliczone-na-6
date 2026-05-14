@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { completeSession } from '../actions'
+import { subscribeToSession } from '@/shared/realtime/adapter'
 import { createClient } from '@/shared/supabase/client'
 
 type VideoSessionProps = {
@@ -71,36 +72,27 @@ export function VideoSession({
   useEffect(() => {
     if (ended) return
 
-    const supabase = createClient()
+    function handleSessionEnd() {
+      setEnded(true)
+      router.push(`/rate/${matchingRequestId}`)
+    }
 
-    async function checkStatus() {
+    async function pollSessionStatus() {
+      const supabase = createClient()
       const { data } = await supabase
         .from('sessions')
         .select('status')
         .eq('id', sessionId)
         .single()
-      if (data?.status === 'completed') {
-        setEnded(true)
-        router.push(`/rate/${matchingRequestId}`)
-      }
+      if (data?.status === 'completed') handleSessionEnd()
     }
 
-    const channel = supabase
-      .channel(`session-end-${sessionId}`)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'sessions', filter: `id=eq.${sessionId}` },
-        (payload) => { if ((payload.new as { status: string }).status === 'completed') {
-          setEnded(true)
-          router.push(`/rate/${matchingRequestId}`)
-        }}
-      )
-      .subscribe()
-
-    const pollId = setInterval(checkStatus, 5_000)
-
-    return () => {
-      supabase.removeChannel(channel)
-      clearInterval(pollId)
-    }
+    return subscribeToSession({
+      sessionId,
+      onUpdate: ({ status }) => { if (status === 'completed') handleSessionEnd() },
+      pollingFn: pollSessionStatus,
+      pollingIntervalMs: 5_000,
+    })
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, matchingRequestId])
 

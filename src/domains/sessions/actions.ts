@@ -2,15 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/shared/supabase/server'
+import { getCurrentUser } from '@/shared/auth/getCurrentUser'
 import { deleteVideoRoom } from './video-provider'
 
 export async function completeSession(sessionId: string, notes?: string): Promise<void> {
+  const user = await getCurrentUser()
   const supabase = await createClient()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) throw new Error('Nie jesteś zalogowany.')
 
   const { data: session } = await supabase
     .from('sessions')

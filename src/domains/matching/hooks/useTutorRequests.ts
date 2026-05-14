@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { createClient } from '@/shared/supabase/client'
+import { subscribeToMatchingRequests } from '@/shared/realtime/adapter'
 import type { MatchingRequestWithSubject } from '../types'
 
 async function fetchPendingRequests(): Promise<MatchingRequestWithSubject[]> {
@@ -25,34 +26,17 @@ export function useTutorRequests(initial: MatchingRequestWithSubject[]) {
   }, [])
 
   useEffect(() => {
-    const supabase = createClient()
-
-    const channel = supabase
-      .channel('tutor-matching-requests')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'matching_requests' },
-        () => refetch()
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'matching_requests' },
-        (payload) => {
-          const updated = payload.new as MatchingRequestWithSubject
-          if (updated.status !== 'pending') {
-            setRequests((prev) => prev.filter((r) => r.id !== updated.id))
-          }
+    return subscribeToMatchingRequests({
+      channelName: 'tutor-matching-requests',
+      onInsert: refetch,
+      onUpdate: (updated) => {
+        if (updated.status !== 'pending') {
+          setRequests((prev) => prev.filter((r) => r.id !== updated.id))
         }
-      )
-      .subscribe()
-
-    // Fallback polling — odpala co 8 sekund gdy Realtime zawiedzie
-    const pollId = setInterval(refetch, 8_000)
-
-    return () => {
-      supabase.removeChannel(channel)
-      clearInterval(pollId)
-    }
+      },
+      pollingFn: refetch,
+      pollingIntervalMs: 8_000,
+    })
   }, [refetch])
 
   return requests

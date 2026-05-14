@@ -22,6 +22,19 @@ test.beforeEach(async () => {
   const db = adminClient()
   const ids = await getUserIds()
 
+  // Pobierz session IDs żeby usunąć rekordy z FK (ratings, session_financials)
+  // zanim usuniemy sessions. Bez tego DELETE na sessions może się nie udać z powodu FK.
+  const { data: sessions } = await db
+    .from('sessions')
+    .select('id')
+    .eq('student_id', ids.studentId)
+
+  if (sessions?.length) {
+    const sessionIds = sessions.map((s: { id: string }) => s.id)
+    await db.from('ratings').delete().in('session_id', sessionIds)
+    await db.from('session_financials').delete().in('session_id', sessionIds)
+  }
+
   await db.from('sessions').delete().eq('student_id', ids.studentId)
   await db.from('matching_requests').delete().eq('student_id', ids.studentId)
   await db
