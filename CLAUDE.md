@@ -9,7 +9,7 @@ Platforma korepetycji on-demand (model Uber): uczeń składa zlecenie → korepe
 - Next.js 16 (App Router) — breaking changes, czytaj AGENTS.md
 - Supabase lokalnie przez Docker (auth, PostgreSQL, Realtime)
 - Tailwind CSS
-- Vitest (testy jednostkowe), brak E2E
+- Vitest (testy jednostkowe) + Playwright (testy E2E)
 
 ## Struktura kodu
 ```
@@ -32,7 +32,8 @@ src/
 
 ### Testy
 - Po każdej zmianie kodu uruchom `npm run test:run` i upewnij się, że wszystkie przechodzą.
-- Nie pytaj o strategię testowania — testy jednostkowe Vitest, bez E2E.
+- Po większych zmianach (nowa strona, nowy moduł, zmiana schematu DB, refactoring) uruchom dodatkowo `npx playwright test` i upewnij się, że wszystkie testy E2E przechodzą.
+- Testy jednostkowe: Vitest (`npm run test:run`). Testy E2E: Playwright (`npx playwright test`). Wymaga działającego Supabase (`npx supabase start`).
 
 ### Język
 - Cały tekst widoczny dla użytkownika piszemy po polsku.
@@ -56,6 +57,7 @@ src/
 - Po każdej zaimplementowanej funkcjonalności zaktualizuj `requirements/requirements.adoc` — zmień status w tabeli podsumowującej oraz w nagłówku danej sekcji (np. `MVP` → `DONE`).
 
 ## Co jeszcze nie jest zaimplementowane
-- Połączenie wideo (Daily.co) — tabela `sessions` już istnieje, kolumny `daily_room_name/url` są nullable do czasu integracji.
 - Płatności (Stripe) — tabela `session_financials` istnieje, ale logika płatności nie.
 - Powiadomienia email — Supabase email działa dla auth, brak transakcyjnych emaili dla zdarzeń biznesowych.
+- Ocena korepetytora → ucznia (dwukierunkowa) — aktualnie tylko uczeń ocenia korepetytora.
+- VIP tier — algorytm opóźniania powiadomień wg oceny korepetytora.
