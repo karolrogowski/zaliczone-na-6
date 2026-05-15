@@ -40,7 +40,21 @@ export async function adminLogin(
   redirect('/admin/dashboard')
 }
 
+async function requireAdminSession(): Promise<void> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/admin/login')
+
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+  if (profile?.role !== 'admin') redirect('/dashboard')
+
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+  if (aal?.currentLevel !== 'aal2') redirect('/admin/mfa/verify')
+}
+
 export async function markSessionPaid(sessionId: string): Promise<void> {
+  await requireAdminSession()
+
   const db = createAdminClient()
   await db
     .from('session_financials')
@@ -55,6 +69,8 @@ export async function updateCommissionPct(
   _state: ConfigFormState,
   formData: FormData
 ): Promise<ConfigFormState> {
+  await requireAdminSession()
+
   const value = (formData.get('commission_pct') as string | null) ?? ''
   const error = validateCommissionPct(value)
   if (error) return { errors: { commission_pct: error } }
@@ -73,6 +89,8 @@ export async function toggleSubjectActive(
   subjectId: string,
   isActive: boolean
 ): Promise<void> {
+  await requireAdminSession()
+
   const db = createAdminClient()
   await db.from('subjects').update({ is_active: isActive }).eq('id', subjectId)
   revalidatePath('/admin/config')

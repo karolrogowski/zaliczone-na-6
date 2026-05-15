@@ -43,12 +43,16 @@ export async function submitMatchingRequest(
 }
 
 export async function cancelMatchingRequest(requestId: string): Promise<void> {
+  const user = await getCurrentUserOrNull()
+  if (!user) return
+
   const supabase = await createClient()
 
   await supabase
     .from('matching_requests')
     .update({ status: 'cancelled' })
     .eq('id', requestId)
+    .eq('student_id', user.id)
     .eq('status', 'pending')
 
   revalidatePath('/dashboard')
@@ -88,17 +92,27 @@ export async function acceptMatchingRequest(
 
   // Tworzy pokój wideo i aktualizuje sesję
   if (session) {
-    const room = await createVideoRoom()
-    await supabase
-      .from('sessions')
-      .update({
-        daily_room_name: room.name,
-        daily_room_url: room.url,
-        host_room_url: room.hostUrl,
-        status: 'in_progress',
-        started_at: new Date().toISOString(),
-      })
-      .eq('id', session.id)
+    try {
+      const room = await createVideoRoom()
+      await supabase
+        .from('sessions')
+        .update({
+          daily_room_name: room.name,
+          daily_room_url: room.url,
+          host_room_url: room.hostUrl,
+          status: 'in_progress',
+          started_at: new Date().toISOString(),
+        })
+        .eq('id', session.id)
+    } catch (err) {
+      console.error('[video] Nie udało się utworzyć pokoju wideo, sesja anulowana:', err)
+      await supabase.from('sessions').delete().eq('id', session.id)
+      await supabase
+        .from('matching_requests')
+        .update({ status: 'pending', tutor_id: null })
+        .eq('id', requestId)
+      return { success: false, message: 'Nie udało się uruchomić sesji wideo. Spróbuj ponownie.' }
+    }
   }
 
   revalidatePath('/dashboard')
@@ -106,6 +120,9 @@ export async function acceptMatchingRequest(
 }
 
 export async function completeMatchingRequest(requestId: string): Promise<void> {
+  const user = await getCurrentUserOrNull()
+  if (!user) return
+
   const supabase = await createClient()
 
   await supabase
