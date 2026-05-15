@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 
-const PROTECTED_PREFIXES = ['/dashboard', '/matching', '/session']
+const PROTECTED_PREFIXES = [
+  '/dashboard',
+  '/matching',
+  '/session',
+  '/request',
+  '/rate',
+  '/profile',
+  '/settings',
+  '/history',
+  '/tutor',
+]
 const AUTH_ONLY_ROUTES = ['/login', '/register', '/forgot-password', '/check-email']
 const ADMIN_PUBLIC = ['/admin/login', '/admin/mfa']
 
@@ -43,14 +53,9 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL('/admin/login', request.url))
     }
 
-    // Sprawdź rolę admina
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profile?.role !== 'admin') {
+    // Rola jest w user_metadata (ustawiana przy rejestracji/tworzeniu konta) — bez DB round-trip.
+    // Middleware to warstwa routingu; ostateczna weryfikacja jest w requireAdminSession() w actions.
+    if (user.user_metadata?.role !== 'admin') {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 

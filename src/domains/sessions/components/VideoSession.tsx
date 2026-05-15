@@ -20,16 +20,19 @@ function useSessionTimer(startedAt: string, durationMinutes: number) {
 
   const calcRemaining = () => Math.max(0, Math.floor((endTime - Date.now()) / 1000))
 
-  const [secondsLeft, setSecondsLeft] = useState(calcRemaining)
+  // null podczas SSR — unikamy hydration mismatch (Date.now() różni się między serwerem a klientem)
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
 
   useEffect(() => {
+    setSecondsLeft(calcRemaining())
     const id = setInterval(() => setSecondsLeft(calcRemaining()), 1000)
     return () => clearInterval(id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startedAt, durationMinutes])
 
-  const minutes = Math.floor(secondsLeft / 60)
-  const seconds = secondsLeft % 60
+  const secs = secondsLeft ?? 0
+  const minutes = Math.floor(secs / 60)
+  const seconds = secs % 60
   const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 
   return { secondsLeft, formatted }
@@ -49,21 +52,27 @@ export function VideoSession({
   const [confirming, setConfirming] = useState(false)
   const [ended, setEnded] = useState(false)
   const [videoLoaded, setVideoLoaded] = useState(false)
+  const [endError, setEndError] = useState(false)
   const autoEndFired = useRef(false)
 
   const { secondsLeft, formatted } = useSessionTimer(startedAt, durationMinutes)
 
-  const isWarning = secondsLeft > 0 && secondsLeft <= 120
-  const isCritical = secondsLeft > 0 && secondsLeft <= 30
+  const isWarning = secondsLeft !== null && secondsLeft > 0 && secondsLeft <= 120
+  const isCritical = secondsLeft !== null && secondsLeft > 0 && secondsLeft <= 30
 
   // Automatyczne zakończenie sesji po upływie czasu
   useEffect(() => {
     if (secondsLeft === 0 && !autoEndFired.current && !ended) {
       autoEndFired.current = true
       startTransition(async () => {
-        await completeSession(sessionId)
-        setEnded(true)
-        router.push(`/rate/${matchingRequestId}`)
+        try {
+          await completeSession(sessionId)
+          setEnded(true)
+          router.push(`/rate/${matchingRequestId}`)
+        } catch {
+          autoEndFired.current = false
+          setEndError(true)
+        }
       })
     }
   }, [secondsLeft, sessionId, matchingRequestId, router, ended])
@@ -103,9 +112,13 @@ export function VideoSession({
   function handleConfirm() {
     setConfirming(false)
     startTransition(async () => {
-      await completeSession(sessionId, notes.trim() || undefined)
-      setEnded(true)
-      router.push(`/rate/${matchingRequestId}`)
+      try {
+        await completeSession(sessionId, notes.trim() || undefined)
+        setEnded(true)
+        router.push(`/rate/${matchingRequestId}`)
+      } catch {
+        setEndError(true)
+      }
     })
   }
 
@@ -123,6 +136,12 @@ export function VideoSession({
 
   return (
     <div className="flex flex-col gap-4">
+      {endError && (
+        <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-700">
+          Nie udało się zakończyć sesji. Sprawdź połączenie i spróbuj ponownie.
+        </div>
+      )}
+
       {/* Baner timera */}
       {isCritical ? (
         <div
