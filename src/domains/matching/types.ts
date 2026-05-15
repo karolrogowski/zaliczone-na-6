@@ -14,12 +14,15 @@ export type MatchingRequest = {
   updated_at: string
 }
 
+export type SessionData = { id: string; daily_room_url: string | null; notes?: string | null }
+
 export type MatchingRequestWithSubject = MatchingRequest & {
   subjects: { label: string }
   tutor_profile: { full_name: string } | null
   student_profile?: { full_name: string } | null
-  session?: { id: string; daily_room_url: string | null; notes?: string | null } | null
+  session?: SessionData | SessionData[] | null
 }
+
 
 export type Subject = {
   id: string

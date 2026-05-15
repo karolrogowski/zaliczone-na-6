@@ -2,20 +2,9 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getCurrentProfile } from '@/domains/auth/queries'
 import { getStudentAllSessions, getTutorAllSessions } from '@/domains/matching/queries'
+import { STATUS_LABELS, STATUS_LABEL_FALLBACK } from '@/domains/matching/status'
+import { formatDate } from '@/shared/utils/formatDate'
 import type { MatchingRequestWithSubject } from '@/domains/matching/types'
-
-function formatDate(isoStr: string): string {
-  return new Intl.DateTimeFormat('pl-PL', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(new Date(isoStr))
-}
-
-const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  accepted:  { label: 'Zaakceptowane', className: 'bg-blue-100 text-blue-800' },
-  completed: { label: 'Zakończone',    className: 'bg-green-100 text-green-800' },
-}
 
 function SessionRow({
   request,
@@ -24,7 +13,7 @@ function SessionRow({
   request: MatchingRequestWithSubject
   showStatus: boolean
 }) {
-  const statusMeta = STATUS_LABELS[request.status] ?? { label: request.status, className: 'bg-zinc-100 text-zinc-500' }
+  const statusMeta = STATUS_LABELS[request.status] ?? { ...STATUS_LABEL_FALLBACK, label: request.status }
 
   return (
     <Link

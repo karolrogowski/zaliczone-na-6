@@ -1,23 +1,12 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { cancelMatchingRequest, completeMatchingRequest } from '../actions'
 import { useStudentRequest } from '../hooks/useStudentRequest'
+import { useCountdown } from '../hooks/useCountdown'
+import { getSessionData } from '../sessionUtils'
 import type { MatchingRequestWithSubject } from '../types'
-
-function useCountdown(expiresAt: string) {
-  const calc = () =>
-    Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000))
-  const [secs, setSecs] = useState(calc)
-
-  useEffect(() => {
-    const id = setInterval(() => setSecs(calc()), 1000)
-    return () => clearInterval(id)
-  }, [expiresAt])
-
-  return secs
-}
 
 export function StudentRequestStatus({
   initialRequest,
@@ -54,7 +43,7 @@ export function StudentRequestStatus({
   if (request.status === 'completed' || request.status === 'cancelled') return null
 
   if (request.status === 'accepted') {
-    const sessionData = Array.isArray(request.session) ? request.session[0] : request.session
+    const sessionData = getSessionData(request.session)
     const sessionId = sessionData?.id
     const hasRoom = !!sessionData?.daily_room_url
 
@@ -117,6 +106,7 @@ export function StudentRequestStatus({
         </div>
         <span
           data-testid="countdown"
+          suppressHydrationWarning
           className="rounded-full bg-zinc-100 px-3 py-1 text-sm font-mono text-zinc-600"
         >
           {minutes}:{String(seconds).padStart(2, '0')}

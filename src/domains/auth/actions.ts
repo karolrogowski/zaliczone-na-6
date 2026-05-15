@@ -151,14 +151,9 @@ export async function changePassword(
 ): Promise<SettingsFormState> {
   const password = (formData.get('password') as string | null) ?? ''
   const confirmPassword = (formData.get('confirmPassword') as string | null) ?? ''
-  const errors: NonNullable<SettingsFormState>['errors'] = {}
 
-  if (password.length < 8)
-    errors.password = ['Hasło musi mieć co najmniej 8 znaków']
-  if (password !== confirmPassword)
-    errors.confirmPassword = ['Hasła nie są identyczne']
-
-  if (Object.keys(errors).length > 0) return { errors }
+  const validationError = validateResetPasswordForm({ password, confirmPassword })
+  if (validationError) return validationError as SettingsFormState
 
   const supabase = await createClient()
   const { error } = await supabase.auth.updateUser({ password })

@@ -1,24 +1,13 @@
 'use client'
 
-import { useEffect, useOptimistic, useRef, useState, useTransition } from 'react'
+import { useOptimistic, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { acceptMatchingRequest, completeMatchingRequest, toggleTutorAvailability } from '../actions'
 import { useTutorRequests } from '../hooks/useTutorRequests'
+import { useCountdown } from '../hooks/useCountdown'
 import { TutorRequestHistory } from './TutorRequestHistory'
+import { getSessionData } from '../sessionUtils'
 import type { MatchingRequestWithSubject, TutorProfileDetails } from '../types'
-
-function useCountdown(expiresAt: string) {
-  const calc = () =>
-    Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000))
-  const [secs, setSecs] = useState(calc)
-
-  useEffect(() => {
-    const id = setInterval(() => setSecs(calc()), 1000)
-    return () => clearInterval(id)
-  }, [expiresAt])
-
-  return secs
-}
 
 export function TutorDashboard({
   initialRequests,
@@ -79,9 +68,7 @@ export function TutorDashboard({
   }
 
   if (acceptedRequest) {
-    const sessionData = Array.isArray(acceptedRequest.session)
-      ? acceptedRequest.session[0]
-      : acceptedRequest.session
+    const sessionData = getSessionData(acceptedRequest.session)
     const sessionId = sessionData?.id
     const hasRoom = !!sessionData?.daily_room_url
 
