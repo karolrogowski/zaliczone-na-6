@@ -14,7 +14,7 @@ Działasz PRZED innymi agentami. Twoim zadaniem jest definiowanie kontraktów i 
 
 - **Frontend + Backend**: Next.js 14 (App Router)
 - **Baza danych + Auth + Realtime**: Supabase
-- **Wideo**: Daily.co
+- **Wideo**: 3rd-party provider (aktualnie Whereby Embedded; abstrakcja w `src/domains/sessions/video-provider.ts`)
 - **Płatności**: Stripe + Stripe Connect
 - **Hosting**: Vercel
 - **Stylowanie**: Tailwind CSS

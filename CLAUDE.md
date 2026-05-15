@@ -3,11 +3,12 @@
 # Zaliczone na 6 — instrukcje dla Claude
 
 ## Co to jest
-Platforma korepetycji on-demand (model Uber): uczeń składa zlecenie → korepetytor akceptuje w czasie rzeczywistym → sesja wideo (Daily.co, jeszcze nie zaimplementowane).
+Platforma korepetycji on-demand (model Uber): uczeń składa zlecenie → korepetytor akceptuje w czasie rzeczywistym → sesja wideo (3-rd party provider).
 
 ## Stack
 - Next.js 16 (App Router) — breaking changes, czytaj AGENTS.md
 - Supabase lokalnie przez Docker (auth, PostgreSQL, Realtime)
+- 3-rd party provider — sesje wideo 1:1 (osadzone przez iframe); zmiana providera tylko w `src/domains/sessions/video-provider.ts`
 - Tailwind CSS
 - Vitest (testy jednostkowe) + Playwright (testy E2E)
 
@@ -56,8 +57,11 @@ src/
 ### Śledzenie wymagań
 - Po każdej zaimplementowanej funkcjonalności zaktualizuj `requirements/requirements.adoc` — zmień status w tabeli podsumowującej oraz w nagłówku danej sekcji (np. `MVP` → `DONE`).
 
-## Co jeszcze nie jest zaimplementowane
+## Co jeszcze nie jest zaimplementowane (MVP)
+- Dwustronny system ocen — aktualnie tylko uczeń ocenia korepetytora; brakuje oceny korepetytora → ucznia.
+
+## Poza zakresem MVP (AFTER_MVP)
 - Płatności (Stripe) — tabela `session_financials` istnieje, ale logika płatności nie.
 - Powiadomienia email — Supabase email działa dla auth, brak transakcyjnych emaili dla zdarzeń biznesowych.
-- Ocena korepetytora → ucznia (dwukierunkowa) — aktualnie tylko uczeń ocenia korepetytora.
 - VIP tier — algorytm opóźniania powiadomień wg oceny korepetytora.
+- Logowanie Google/Apple, weryfikacja korepetytora, wirtualna tablica, mechanizm przedłużania sesji, wirtualny portfel i wypłaty.

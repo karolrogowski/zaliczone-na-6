@@ -40,4 +40,10 @@ Specyficzne wymaganie projektu — korepetytor skierowany kamerą na kartki — 
 Timer sesji działa po stronie serwera (nie w iframe). Aplikacja Next.js wyświetla odliczanie obok iframe, a zakończenie sesji jest wyzwalane przez serwer — nie przez interakcję z Daily Prebuilt.
 
 **Ścieżka do własnego UI (post-MVP):**
-Jeśli pojawi się potrzeba własnego brandingu lub specyficznych funkcji (np. tablica do rysowania), migracja do `@daily-co/daily-react` jest możliwa bez zmiany logiki backendowej — tylko warstwa UI się zmienia.
+Jeśli pojawi się potrzeba własnego brandingu lub specyficznych funkcji (np. tablica do rysowania), migracja do innego providera jest możliwa bez zmiany logiki backendowej — jedyne miejsce zmiany to `src/domains/sessions/video-provider.ts`.
+
+## Aktualizacja: wybór Whereby zamiast Daily.co
+
+Po przetestowaniu kilku providerów (Daily.co, Jitsi, Whereby) okazało się, że **Whereby jako jedyny oferuje faktyczny darmowy plan** z limitem wystarczającym do testów MVP (2 000 participant-minutes/miesiąc, bez karty kredytowej). Daily.co wymaga karty kredytowej już przy rejestracji lub ma limity niewystarczające w praktyce.
+
+Aktywny provider: **Whereby Embedded** — implementacja w `src/domains/sessions/video-provider.ts`. Daily.co zachowane jako zakomentowany fallback w tym samym pliku.

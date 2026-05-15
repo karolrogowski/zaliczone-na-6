@@ -28,7 +28,7 @@ Korepetytor naciska "Akceptuj"
         ↓
 status: matched (atomowo — tylko pierwszy wygrywa)
         ↓
-Obie strony dostają URL pokoju Daily.co
+Obie strony dostają URL pokoju wideo (z video-provider.ts)
         ↓
 status: in_progress (gdy obie strony dołączą)
         ↓

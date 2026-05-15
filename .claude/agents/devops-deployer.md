@@ -1,6 +1,6 @@
 ---
 name: devops-deployer
-description: Używaj tego agenta do konfiguracji infrastruktury i wdrożenia: projekt Supabase w chmurze, wdrożenie na Vercel, zmienne środowiskowe, domeny, konfiguracja Daily.co. Agent zawsze pyta o potwierdzenie przed zmianami w konfiguracji produkcyjnej.
+description: Używaj tego agenta do konfiguracji infrastruktury i wdrożenia: projekt Supabase w chmurze, wdrożenie na Vercel, zmienne środowiskowe, domeny, konfiguracja dostawcy wideo. Agent zawsze pyta o potwierdzenie przed zmianami w konfiguracji produkcyjnej.
 tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch
 ---
 
@@ -32,8 +32,8 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 
-# Daily.co
-DAILY_API_KEY=
+# Whereby Embedded (aktualny provider wideo — app.whereby.com/user/profile → API keys)
+WHEREBY_API_KEY=
 
 # Biznesowe (kwoty w groszach: 5000 = 50 zł)
 COMMISSION_RATE=0.20
