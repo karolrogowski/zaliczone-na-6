@@ -178,3 +178,25 @@ test('pominięcie oceny przekierowuje do dashboardu', async ({ page }) => {
 
   await expect(page).toHaveURL('/dashboard')
 })
+
+// ─── Test 7 ──────────────────────────────────────────────────────────────────
+
+test('przycisk "Wyślij ocenę" jest wyłączony bez gwiazdki i aktywuje się po jej wyborze', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request } = await createCompletedSession(ids)
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  const submitBtn = page.getByRole('button', { name: 'Wyślij ocenę' })
+
+  // Bez wyboru gwiazdki przycisk powinien być wyłączony (disabled={selected === 0})
+  await expect(submitBtn).toBeDisabled()
+
+  // Po kliknięciu gwiazdki 3 przycisk aktywuje się
+  await page.locator('label:has(input[name="score"][value="3"])').click()
+  await expect(submitBtn).toBeEnabled({ timeout: 3_000 })
+
+  // Etykieta opisująca ocenę 3 powinna być widoczna — potwierdza, że selected state działa
+  await expect(page.getByText('Średnio')).toBeVisible()
+})
