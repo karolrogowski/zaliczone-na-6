@@ -67,7 +67,7 @@ for (const [key, value] of Object.entries(varsToSync)) {
     const res = await fetch(`${BASE}/${existingVar.id}`, {
       method: 'PATCH',
       headers: HEADERS,
-      body: JSON.stringify({ value, target: ['production'] }),
+      body: JSON.stringify({ value, target: ['production', 'preview'] }),
     })
     if (res.ok) {
       updated++
@@ -81,7 +81,7 @@ for (const [key, value] of Object.entries(varsToSync)) {
     const res = await fetch(BASE, {
       method: 'POST',
       headers: HEADERS,
-      body: JSON.stringify({ key, value, target: ['production'], type: 'encrypted' }),
+      body: JSON.stringify({ key, value, target: ['production', 'preview'], type: 'encrypted' }),
     })
     if (res.ok) {
       created++

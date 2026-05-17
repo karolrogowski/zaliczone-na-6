@@ -31,10 +31,17 @@ src/
 
 ## Zasady pracy
 
-### Testy
-- Po każdej zmianie kodu uruchom `npm run test:run` i upewnij się, że wszystkie przechodzą.
-- Po większych zmianach (nowa strona, nowy moduł, zmiana schematu DB, refactoring) uruchom dodatkowo `npx playwright test` i upewnij się, że wszystkie testy E2E przechodzą.
-- Testy jednostkowe: Vitest (`npm run test:run`). Testy E2E: Playwright (`npx playwright test`). Wymaga działającego Supabase (`npx supabase start`).
+### Testy i jakość kodu
+Po każdej zmianie kodu uruchom wszystkie poniższe komendy i upewnij się, że przechodzą — w tej kolejności:
+1. `npm run lint` — linting
+2. `npx tsc --noEmit` — sprawdzenie typów TypeScript
+3. `npm run test:run` — testy jednostkowe (Vitest)
+
+Po większych zmianach (nowa strona, nowy moduł, zmiana schematu DB, refactoring) uruchom dodatkowo:
+4. `npm run build` — weryfikacja buildu produkcyjnego
+5. `npx playwright test` — testy E2E (wymaga działającego Supabase: `npx supabase start`)
+
+Nie zgłaszaj zadania jako ukończone dopóki wszystkie powyższe nie przechodzą.
 
 ### Język
 - Cały tekst widoczny dla użytkownika piszemy po polsku.

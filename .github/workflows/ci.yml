@@ -4,6 +4,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.head_ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -19,6 +23,15 @@ jobs:
 
       - name: Zainstaluj zależności
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Sprawdzenie typów TypeScript
+        run: npx tsc --noEmit
+
+      - name: Build produkcyjny
+        run: npm run build
 
       - name: Testy jednostkowe (Vitest)
         run: npm run test:run
