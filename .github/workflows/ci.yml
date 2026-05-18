@@ -86,6 +86,9 @@ jobs:
             echo "COMMISSION_RATE=0.20"
             echo "PRICE_30_MIN_GROSZE=5000"
             echo "PRICE_60_MIN_GROSZE=9000"
+            echo "NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}"
+            echo "UPSTASH_REDIS_REST_URL=${{ secrets.UPSTASH_REDIS_REST_URL }}"
+            echo "UPSTASH_REDIS_REST_TOKEN=${{ secrets.UPSTASH_REDIS_REST_TOKEN }}"
           } > .env.local
 
       - name: Cache przeglądarek Playwright

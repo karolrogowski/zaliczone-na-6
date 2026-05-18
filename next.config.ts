@@ -1,7 +1,22 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
+import { withSentryConfig } from '@sentry/nextjs'
+
+const securityHeaders = [
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'geolocation=()' },
+]
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  headers: async () => [
+    { source: '/(.*)', headers: securityHeaders },
+  ],
+}
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  silent: true,
+  sourcemaps: { disable: true },
+  telemetry: false,
+  webpack: { treeshake: { removeDebugLogging: true } },
+})
