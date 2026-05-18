@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
 import { STUDENT_EMAIL, adminClient } from './global-setup'
 import { getTestUserIds } from './helpers'
 
@@ -24,7 +24,7 @@ test.afterAll(async () => {
 })
 
 async function fillRegisterForm(
-  page: Parameters<Parameters<typeof test>[1]>[0]['page'],
+  page: Page,
   email: string,
   role: 'student' | 'tutor',
   options: { password?: string; fullName?: string } = {}
