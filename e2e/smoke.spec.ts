@@ -8,9 +8,12 @@ import { test, expect } from '@playwright/test'
 
 test('health check: zmienne środowiskowe Supabase skonfigurowane i osiągalne', async ({ request }) => {
   const res = await request.get('/api/health')
-  expect(res.status(), 'Supabase nieosiągalny lub brakuje env vars — sprawdź konfigurację w Vercel').toBe(200)
-  const body = await res.json()
-  expect(body.ok, body.error).toBe(true)
+  const body = await res.json().catch(() => null)
+  expect(
+    res.status(),
+    `Health check zwrócił ${res.status()}: ${JSON.stringify(body)}`
+  ).toBe(200)
+  expect(body.ok, body?.error).toBe(true)
 })
 
 // ─── Autentykacja ─────────────────────────────────────────────────────────────
