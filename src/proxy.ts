@@ -69,6 +69,17 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  // ── Wymuszenie re-logowania admina po 1h (wszystkie trasy) ────────────────
+  // Zastępstwo za Supabase auth.sessions.timebox (wymaga planu Pro).
+  if (user && user.user_metadata?.role === 'admin') {
+    const ADMIN_SESSION_MAX_AGE_MS = 60 * 60 * 1000
+    const lastSignIn = user.last_sign_in_at ? new Date(user.last_sign_in_at).getTime() : 0
+    if (Date.now() - lastSignIn > ADMIN_SESSION_MAX_AGE_MS) {
+      await supabase.auth.signOut()
+      return NextResponse.redirect(new URL('/admin/login', request.url))
+    }
+  }
+
   // ── Trasy admina ──────────────────────────────────────────────────────────
   if (pathname.startsWith('/admin')) {
     const isAdminPublic = ADMIN_PUBLIC.some((p) => pathname.startsWith(p))
