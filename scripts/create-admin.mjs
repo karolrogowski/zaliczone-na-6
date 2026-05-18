@@ -8,17 +8,27 @@
 import { createClient } from '@supabase/supabase-js'
 import { readFileSync } from 'fs'
 
-// Wczytaj .env.local
-try {
-  const env = readFileSync('.env.local', 'utf8')
-  for (const line of env.split('\n')) {
-    const [key, ...rest] = line.split('=')
-    if (key && !key.startsWith('#')) {
-      process.env[key.trim()] ??= rest.join('=').trim()
+function loadEnv(path) {
+  try {
+    const env = readFileSync(path, 'utf8')
+    for (const line of env.split('\n')) {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) continue
+      const eqIndex = trimmed.indexOf('=')
+      if (eqIndex === -1) continue
+      const key = trimmed.slice(0, eqIndex).trim()
+      const raw = trimmed.slice(eqIndex + 1).trim()
+      const value = raw.replace(/^(['"])(.*)\1$/, '$2')
+      if (key) process.env[key] ??= value
     }
-  }
-} catch {
-  console.error('❌ Nie znaleziono pliku .env.local — uruchom skrypt z katalogu projektu.')
+  } catch { /* plik opcjonalny */ }
+}
+
+loadEnv('.env.local')
+loadEnv('.env.scripts')
+
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  console.error('❌ Nie znaleziono .env.local — uruchom skrypt z katalogu projektu.')
   process.exit(1)
 }
 
@@ -27,7 +37,7 @@ const password = process.argv[3] || process.env.ADMIN_PASSWORD
 const fullName = process.argv[4] || process.env.ADMIN_FULL_NAME
 
 if (!email || !password || !fullName) {
-  console.error('❌ Brak danych admina. Uzupełnij ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_FULL_NAME w .env.local')
+  console.error('❌ Brak danych admina. Uzupełnij ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_FULL_NAME w .env.scripts')
   console.error('   lub podaj jako argumenty: node scripts/create-admin.mjs <email> <hasło> "<imię>"')
   process.exit(1)
 }

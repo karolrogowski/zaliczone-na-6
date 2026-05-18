@@ -64,27 +64,12 @@ jobs:
               | grep -v '<none>') \
             -o /tmp/supabase-docker.tar
 
-      - name: Utwórz .env.local z kluczami Supabase
+      - name: Utwórz .env.local z kluczami lokalnego Supabase
         run: |
           STATUS=$(npx supabase status --output env)
-          API_URL=$(echo "$STATUS" | grep '^API_URL=' | cut -d= -f2-)
-          ANON_KEY=$(echo "$STATUS" | grep '^ANON_KEY=' | cut -d= -f2-)
-          SERVICE_ROLE=$(echo "$STATUS" | grep '^SERVICE_ROLE_KEY=' | cut -d= -f2-)
-          {
-            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
-            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
-            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE"
-            echo "WHEREBY_API_KEY=${{ secrets.WHEREBY_API_KEY }}"
-            echo "ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}"
-            echo "ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}"
-            echo "ADMIN_FULL_NAME=${{ secrets.ADMIN_FULL_NAME }}"
-            echo "COMMISSION_RATE=0.20"
-            echo "PRICE_30_MIN_GROSZE=5000"
-            echo "PRICE_60_MIN_GROSZE=9000"
-            echo "NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}"
-            echo "UPSTASH_REDIS_REST_URL=${{ secrets.UPSTASH_REDIS_REST_URL }}"
-            echo "UPSTASH_REDIS_REST_TOKEN=${{ secrets.UPSTASH_REDIS_REST_TOKEN }}"
-          } > .env.local
+          echo "NEXT_PUBLIC_SUPABASE_URL=$(echo "$STATUS" | grep '^API_URL=' | cut -d= -f2-)"        > .env.local
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(echo "$STATUS" | grep '^ANON_KEY=' | cut -d= -f2-)"  >> .env.local
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(echo "$STATUS" | grep '^SERVICE_ROLE_KEY=' | cut -d= -f2-)" >> .env.local
 
       - name: Cache przeglądarek Playwright
         uses: actions/cache@v4
