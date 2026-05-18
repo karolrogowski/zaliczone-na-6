@@ -1,0 +1,54 @@
+name: Weryfikacja wdrożenia
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Czekaj na deployment Vercel i sprawdź status
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          echo "Szukam deploymentu dla commita $COMMIT_SHA..."
+
+          for i in $(seq 1 20); do
+            RESPONSE=$(curl -s \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=10")
+
+            STATE=$(echo "$RESPONSE" | \
+              python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          sha = '$COMMIT_SHA'
+          for d in data.get('deployments', []):
+              meta = d.get('meta', {})
+              if meta.get('githubCommitSha', '').startswith(sha[:12]):
+                  print(d.get('readyState', 'UNKNOWN'))
+                  break
+          else:
+              print('NOT_FOUND')
+          ")
+
+            echo "Próba $i/20 — stan: $STATE"
+
+            if [ "$STATE" = "READY" ]; then
+              echo "✅ Deployment gotowy"
+              exit 0
+            elif [ "$STATE" = "ERROR" ] || [ "$STATE" = "CANCELED" ]; then
+              echo "❌ Deployment zakończony błędem: $STATE"
+              exit 1
+            fi
+
+            sleep 30
+          done
+
+          echo "❌ Timeout — deployment nie zakończył się w ciągu 10 minut"
+          exit 1
