@@ -1,8 +1,10 @@
 import { cache } from 'react'
 import { createAdminClient } from '@/shared/supabase/admin'
+import { requireAdminSession } from './require-admin-session'
 import type { AdminSession, AdminStats, AdminUser } from './types'
 
 export const getAdminStats = cache(async (): Promise<AdminStats> => {
+  await requireAdminSession()
   const db = createAdminClient()
 
   const [{ count: totalSessions }, { count: totalUsers }, { data: financials }] =
@@ -28,6 +30,7 @@ export const getAdminStats = cache(async (): Promise<AdminStats> => {
 })
 
 export const getAdminSessions = cache(async (): Promise<AdminSession[]> => {
+  await requireAdminSession()
   const db = createAdminClient()
   const { data } = await db
     .from('sessions')
@@ -44,6 +47,7 @@ export const getAdminSessions = cache(async (): Promise<AdminSession[]> => {
 })
 
 export const getAdminUsers = cache(async (): Promise<AdminUser[]> => {
+  await requireAdminSession()
   const db = createAdminClient()
 
   const [{ data: profiles }, { data: authData }] = await Promise.all([
@@ -71,12 +75,14 @@ export const getAdminUsers = cache(async (): Promise<AdminUser[]> => {
 })
 
 export const getPlatformConfig = cache(async () => {
+  await requireAdminSession()
   const db = createAdminClient()
   const { data } = await db.from('platform_config').select('key, value, description')
   return data ?? []
 })
 
 export const getAdminSubjects = cache(async () => {
+  await requireAdminSession()
   const db = createAdminClient()
   const { data } = await db.from('subjects').select('id, label, is_active').order('label')
   return data ?? []

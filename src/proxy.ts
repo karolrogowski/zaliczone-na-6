@@ -26,17 +26,18 @@ const AUTH_ONLY_ROUTES = ['/login', '/register', '/forgot-password', '/check-ema
 const ADMIN_PUBLIC = ['/admin/login', '/admin/mfa']
 
 export async function proxy(request: NextRequest) {
-  if (request.method === 'POST' && RATE_LIMITED_ROUTES.some(r => request.nextUrl.pathname.startsWith(r))) {
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ?? '127.0.0.1'
-    const isLocal = ip === '127.0.0.1' || ip === '::1'
-    if (!isLocal) {
-      const { success } = await ratelimit.limit(ip)
-      if (!success) {
-        return NextResponse.json(
-          { error: 'Zbyt wiele prób. Poczekaj chwilę i spróbuj ponownie.' },
-          { status: 429 }
-        )
-      }
+  if (
+    request.method === 'POST' &&
+    process.env.NODE_ENV !== 'development' &&
+    RATE_LIMITED_ROUTES.some(r => request.nextUrl.pathname.startsWith(r))
+  ) {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ?? 'unknown'
+    const { success } = await ratelimit.limit(ip)
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Zbyt wiele prób. Poczekaj chwilę i spróbuj ponownie.' },
+        { status: 429 }
+      )
     }
   }
 

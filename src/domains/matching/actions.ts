@@ -7,7 +7,7 @@ import { getCurrentUser, getCurrentUserOrNull } from '@/shared/auth/getCurrentUs
 import { validateSubmitRequest } from './validation'
 import { LEVEL_OPTIONS, SCOPE_OPTIONS, resolveOption } from './options'
 import type { AcceptRequestResult, RatingFormState, SubmitRequestFormState } from './types'
-import { createVideoRoom } from '@/domains/sessions/video-provider'
+import { createVideoRoom, deleteVideoRoom } from '@/domains/sessions/video-provider'
 
 export async function submitMatchingRequest(
   _state: SubmitRequestFormState,
@@ -43,8 +43,7 @@ export async function submitMatchingRequest(
 }
 
 export async function cancelMatchingRequest(requestId: string): Promise<void> {
-  const user = await getCurrentUserOrNull()
-  if (!user) return
+  const user = await getCurrentUser()
 
   const supabase = await createClient()
 
@@ -65,6 +64,13 @@ export async function acceptMatchingRequest(
   if (!user) return { success: false, message: 'Nie jesteś zalogowany.' }
 
   const supabase = await createClient()
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+  if (profile?.role !== 'tutor') return { success: false, message: 'Brak uprawnień.' }
 
   const { data } = await supabase
     .from('matching_requests')
@@ -134,7 +140,7 @@ export async function completeMatchingRequest(requestId: string): Promise<void> 
   // Oznacza powiązaną sesję jako zakończoną (wymagane przed wystawieniem oceny)
   const { data: session } = await supabase
     .from('sessions')
-    .select('id')
+    .select('id, daily_room_name')
     .eq('matching_request_id', requestId)
     .maybeSingle()
 
@@ -143,6 +149,10 @@ export async function completeMatchingRequest(requestId: string): Promise<void> 
       .from('sessions')
       .update({ status: 'completed', ended_at: new Date().toISOString() })
       .eq('id', session.id)
+
+    if (session.daily_room_name) {
+      await deleteVideoRoom(session.daily_room_name)
+    }
   }
 
   revalidatePath('/dashboard')
