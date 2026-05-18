@@ -8,9 +8,12 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
 
     steps:
-      - name: Czekaj na deployment Vercel i sprawdź status
+      - name: Czekaj na deployment Vercel i pobierz URL
+        id: deployment
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -23,7 +26,7 @@ jobs:
               -H "Authorization: Bearer $VERCEL_TOKEN" \
               "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=10")
 
-            STATE=$(echo "$RESPONSE" | \
+            RESULT=$(echo "$RESPONSE" | \
               python3 -c "
           import sys, json
           data = json.load(sys.stdin)
@@ -31,16 +34,20 @@ jobs:
           for d in data.get('deployments', []):
               meta = d.get('meta', {})
               if meta.get('githubCommitSha', '').startswith(sha[:12]):
-                  print(d.get('readyState', 'UNKNOWN'))
+                  print(d.get('readyState', 'UNKNOWN') + ' ' + d.get('url', ''))
                   break
           else:
               print('NOT_FOUND')
           ")
 
+            STATE=$(echo "$RESULT" | cut -d' ' -f1)
+            URL=$(echo "$RESULT" | cut -d' ' -f2)
+
             echo "Próba $i/20 — stan: $STATE"
 
             if [ "$STATE" = "READY" ]; then
-              echo "✅ Deployment gotowy"
+              echo "✅ Deployment gotowy: https://$URL"
+              echo "url=https://$URL" >> $GITHUB_OUTPUT
               exit 0
             elif [ "$STATE" = "ERROR" ] || [ "$STATE" = "CANCELED" ]; then
               echo "❌ Deployment zakończony błędem: $STATE"
@@ -52,3 +59,21 @@ jobs:
 
           echo "❌ Timeout — deployment nie zakończył się w ciągu 10 minut"
           exit 1
+
+      - name: Smoke testy
+        env:
+          BASE_URL: ${{ steps.deployment.outputs.url }}
+        run: |
+          check() {
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$1")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ $1 → $STATUS"
+            else
+              echo "❌ $1 → $STATUS"
+              exit 1
+            fi
+          }
+
+          check "$BASE_URL/"
+          check "$BASE_URL/login"
+          check "$BASE_URL/register"
