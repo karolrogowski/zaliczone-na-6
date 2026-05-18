@@ -10,15 +10,14 @@ export async function GET() {
   }
 
   try {
-    // Weryfikuje że URL i klucz są prawidłowe — osiągalność REST API Supabase
-    const res = await fetch(`${url}/rest/v1/`, {
-      headers: { apikey: anonKey },
+    // GoTrue /health — dedykowany endpoint health auth serwisu Supabase, nie wymaga klucza
+    const res = await fetch(`${url}/auth/v1/health`, {
       signal: AbortSignal.timeout(5000),
     })
 
     if (!res.ok) {
       return Response.json(
-        { ok: false, error: `Supabase REST API zwrócił ${res.status}` },
+        { ok: false, error: `Supabase auth health zwrócił ${res.status}` },
         { status: 503 }
       )
     }
