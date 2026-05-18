@@ -19,10 +19,10 @@ jobs:
           npx supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_ID }} --yes
           npx supabase db push --yes
 
-  verify:
+  health:
     needs: migrate
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
@@ -60,7 +60,6 @@ jobs:
             echo "Próba $i/20 — stan: $STATE"
 
             if [ "$STATE" = "READY" ]; then
-              echo "✅ Deployment gotowy: https://$URL"
               echo "url=https://$URL" >> $GITHUB_OUTPUT
               exit 0
             elif [ "$STATE" = "ERROR" ] || [ "$STATE" = "CANCELED" ]; then
@@ -74,7 +73,7 @@ jobs:
           echo "❌ Timeout — deployment nie zakończył się w ciągu 10 minut"
           exit 1
 
-      - name: Smoke testy
+      - name: Health check — Supabase connectivity i podstawowe trasy
         env:
           BASE_URL: ${{ steps.deployment.outputs.url }}
           VERCEL_BYPASS_SECRET: ${{ secrets.VERCEL_BYPASS_SECRET }}
@@ -93,3 +92,4 @@ jobs:
           check "$BASE_URL/"
           check "$BASE_URL/login"
           check "$BASE_URL/register"
+          check "$BASE_URL/api/health"

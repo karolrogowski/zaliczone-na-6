@@ -80,7 +80,7 @@ jobs:
       - name: Zainstaluj Playwright (Chromium)
         run: npx playwright install chromium --with-deps
 
-      - name: Testy E2E (Playwright)
+      - name: Testy E2E (Playwright) — lokalny Supabase
         run: npm run test:e2e
 
       - name: Wgraj raport testów przy niepowodzeniu
@@ -88,5 +88,94 @@ jobs:
         if: failure()
         with:
           name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # Smoke testy na Vercel preview — weryfikacja że deployment działa z prawdziwym Supabase,
+  # ZANIM zmiany trafią na produkcję. Blokuje merge jeśli env vars w Vercel są błędne.
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    # Wymaga: VERCEL_TOKEN, VERCEL_PROJECT_ID, VERCEL_BYPASS_SECRET, SMOKE_TEST_EMAIL, SMOKE_TEST_PASSWORD
+    # SMOKE_TEST_EMAIL / SMOKE_TEST_PASSWORD to dane użytkownika istniejącego w chmurowym Supabase.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Zainstaluj zależności
+        run: npm ci
+
+      - name: Cache przeglądarek Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Zainstaluj Playwright (Chromium)
+        run: npx playwright install chromium --with-deps
+
+      - name: Czekaj na Vercel preview i uruchom smoke testy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_BYPASS_SECRET: ${{ secrets.VERCEL_BYPASS_SECRET }}
+          SMOKE_TEST_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
+          SMOKE_TEST_PASSWORD: ${{ secrets.SMOKE_TEST_PASSWORD }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "Szukam preview deploymentu dla commita $COMMIT_SHA..."
+
+          for i in $(seq 1 20); do
+            RESPONSE=$(curl -s \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&limit=10")
+
+            RESULT=$(echo "$RESPONSE" | \
+              python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          sha = '$COMMIT_SHA'
+          for d in data.get('deployments', []):
+              meta = d.get('meta', {})
+              if meta.get('githubCommitSha', '').startswith(sha[:12]):
+                  print(d.get('readyState', 'UNKNOWN') + ' ' + d.get('url', ''))
+                  break
+          else:
+              print('NOT_FOUND')
+          ")
+
+            STATE=$(echo "$RESULT" | cut -d' ' -f1)
+            URL=$(echo "$RESULT" | cut -d' ' -f2)
+
+            echo "Próba $i/20 — stan: $STATE"
+
+            if [ "$STATE" = "READY" ]; then
+              echo "✅ Preview gotowy: https://$URL"
+              export PLAYWRIGHT_BASE_URL="https://$URL"
+              npx playwright test --config=playwright.smoke.config.ts
+              exit $?
+            elif [ "$STATE" = "ERROR" ] || [ "$STATE" = "CANCELED" ]; then
+              echo "❌ Preview deployment zakończony błędem: $STATE"
+              exit 1
+            fi
+
+            sleep 30
+          done
+
+          echo "❌ Timeout — preview deployment nie zakończył się w ciągu 10 minut"
+          exit 1
+
+      - name: Wgraj raport smoke testów przy niepowodzeniu
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: smoke-report
           path: playwright-report/
           retention-days: 7
