@@ -5,7 +5,20 @@ on:
     branches: [main]
 
 jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Zastosuj migracje do Supabase Cloud
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: npx supabase db push --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+
   verify:
+    needs: migrate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
