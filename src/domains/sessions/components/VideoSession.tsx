@@ -24,13 +24,13 @@ function useSessionTimer(startedAt: string, durationMinutes: number) {
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null)
 
   useEffect(() => {
-    setSecondsLeft(calcRemaining())
     const id = setInterval(() => setSecondsLeft(calcRemaining()), 1000)
     return () => clearInterval(id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startedAt, durationMinutes])
 
-  const secs = secondsLeft ?? 0
+  // null podczas SSR → obliczamy wprost przy renderze; suppressHydrationWarning na spanach tłumi mismatch
+  const secs = secondsLeft ?? calcRemaining()
   const minutes = Math.floor(secs / 60)
   const seconds = secs % 60
   const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`

@@ -17,22 +17,23 @@ async function fetchRequest(id: string): Promise<MatchingRequestWithSubject | nu
 
 export function useStudentRequest(initial: MatchingRequestWithSubject | null) {
   const [request, setRequest] = useState(initial)
+  const initialId = initial?.id
 
   const refetch = useCallback(async () => {
-    if (!initial?.id) return
-    const fresh = await fetchRequest(initial.id)
+    if (!initialId) return
+    const fresh = await fetchRequest(initialId)
     if (fresh) setRequest(fresh)
-  }, [initial?.id])
+  }, [initialId])
 
   useEffect(() => {
-    if (!initial?.id) return
+    if (!initialId) return
 
     return subscribeToMatchingRequest({
-      requestId: initial.id,
+      requestId: initialId,
       onChange: refetch,
       pollingIntervalMs: 5_000,
     })
-  }, [initial?.id, refetch])
+  }, [initialId, refetch])
 
   return request
 }
