@@ -41,11 +41,6 @@ jobs:
       - name: Testy jednostkowe (Vitest)
         run: npm run test:run
 
-      - name: Zainstaluj Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
       - name: Cache obrazów Docker (Supabase)
         id: supabase-cache
         uses: actions/cache@v4
@@ -58,7 +53,7 @@ jobs:
         run: docker load -i /tmp/supabase-docker.tar
 
       - name: Uruchom lokalnego Supabase
-        run: supabase start
+        run: npx supabase start
 
       - name: Zapisz obrazy Docker do cache
         if: steps.supabase-cache.outputs.cache-hit != 'true'
@@ -71,7 +66,7 @@ jobs:
 
       - name: Utwórz .env.local z kluczami Supabase
         run: |
-          STATUS=$(supabase status --output env)
+          STATUS=$(npx supabase status --output env)
           API_URL=$(echo "$STATUS" | grep '^API_URL=' | cut -d= -f2-)
           ANON_KEY=$(echo "$STATUS" | grep '^ANON_KEY=' | cut -d= -f2-)
           SERVICE_ROLE=$(echo "$STATUS" | grep '^SERVICE_ROLE_KEY=' | cut -d= -f2-)
@@ -86,6 +81,9 @@ jobs:
             echo "COMMISSION_RATE=0.20"
             echo "PRICE_30_MIN_GROSZE=5000"
             echo "PRICE_60_MIN_GROSZE=9000"
+            echo "NEXT_PUBLIC_SENTRY_DSN=${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}"
+            echo "UPSTASH_REDIS_REST_URL=${{ secrets.UPSTASH_REDIS_REST_URL }}"
+            echo "UPSTASH_REDIS_REST_TOKEN=${{ secrets.UPSTASH_REDIS_REST_TOKEN }}"
           } > .env.local
 
       - name: Cache przeglądarek Playwright

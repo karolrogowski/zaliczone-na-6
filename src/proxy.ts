@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { Ratelimit } from '@upstash/ratelimit'
+import { Redis } from '@upstash/redis'
+
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, '1 m'),
+  prefix: 'rl:auth',
+})
+
+const RATE_LIMITED_ROUTES = ['/login', '/register', '/forgot-password']
 
 const PROTECTED_PREFIXES = [
   '/dashboard',
@@ -16,6 +26,20 @@ const AUTH_ONLY_ROUTES = ['/login', '/register', '/forgot-password', '/check-ema
 const ADMIN_PUBLIC = ['/admin/login', '/admin/mfa']
 
 export async function proxy(request: NextRequest) {
+  if (request.method === 'POST' && RATE_LIMITED_ROUTES.some(r => request.nextUrl.pathname.startsWith(r))) {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ?? '127.0.0.1'
+    const isLocal = ip === '127.0.0.1' || ip === '::1'
+    if (!isLocal) {
+      const { success } = await ratelimit.limit(ip)
+      if (!success) {
+        return NextResponse.json(
+          { error: 'Zbyt wiele prób. Poczekaj chwilę i spróbuj ponownie.' },
+          { status: 429 }
+        )
+      }
+    }
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
