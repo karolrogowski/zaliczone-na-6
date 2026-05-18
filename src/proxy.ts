@@ -3,11 +3,17 @@ import { createServerClient } from '@supabase/ssr'
 import { Ratelimit } from '@upstash/ratelimit'
 import { Redis } from '@upstash/redis'
 
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(10, '1 m'),
-  prefix: 'rl:auth',
-})
+let ratelimit: Ratelimit | null = null
+function getRatelimit(): Ratelimit {
+  if (!ratelimit) {
+    ratelimit = new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(10, '1 m'),
+      prefix: 'rl:auth',
+    })
+  }
+  return ratelimit
+}
 
 const RATE_LIMITED_ROUTES = ['/login', '/register', '/forgot-password']
 
@@ -32,7 +38,7 @@ export async function proxy(request: NextRequest) {
     RATE_LIMITED_ROUTES.some(r => request.nextUrl.pathname.startsWith(r))
   ) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ?? 'unknown'
-    const { success } = await ratelimit.limit(ip)
+    const { success } = await getRatelimit().limit(ip)
     if (!success) {
       return NextResponse.json(
         { error: 'Zbyt wiele prób. Poczekaj chwilę i spróbuj ponownie.' },
