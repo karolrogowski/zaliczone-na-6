@@ -5,6 +5,7 @@ config({ path: '.env.local' })
 
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: ['**/*.smoke.ts'],
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   maxFailures: 1,
