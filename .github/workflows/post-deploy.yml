@@ -80,7 +80,7 @@ jobs:
           VERCEL_BYPASS_SECRET: ${{ secrets.VERCEL_BYPASS_SECRET }}
         run: |
           check() {
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+            STATUS=$(curl -sL -o /dev/null -w "%{http_code}" --max-time 10 \
               -H "x-vercel-protection-bypass: $VERCEL_BYPASS_SECRET" "$1")
             if [ "$STATUS" = "200" ]; then
               echo "✅ $1 → $STATUS"
