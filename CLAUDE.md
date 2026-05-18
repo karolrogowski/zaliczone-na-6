@@ -37,14 +37,21 @@ Po każdej zmianie kodu uruchom wszystkie poniższe komendy i upewnij się, że 
 2. `npx tsc --noEmit` — sprawdzenie typów TypeScript
 3. `npm run test:run` — testy jednostkowe (Vitest)
 
-Po większych zmianach (nowa strona, nowy moduł, zmiana schematu DB, refactoring) uruchom dodatkowo:
+Po większych zmianach (nowa strona, nowy moduł, **zmiana schematu DB**, refactoring) uruchom dodatkowo:
 4. `npm run build` — weryfikacja buildu produkcyjnego
-5. `npx playwright test` — testy E2E (wymaga działającego Supabase: `npx supabase start`)
+5. `npm run db:reset` — jeśli była zmiana schematu DB (nowa migracja)
+6. `npx playwright test` — testy E2E (wymaga działającego Supabase: `npx supabase start`)
+
+**Zmiana schematu DB = nowa migracja SQL = obowiązkowe E2E. Bez wyjątków.**
 
 Nie zgłaszaj zadania jako ukończone dopóki wszystkie powyższe nie przechodzą.
 
 ### Język
 - Cały tekst widoczny dla użytkownika piszemy po polsku.
+
+### Narzędzia CLI dostępne w środowisku
+- `gh` — GitHub CLI: sprawdzaj sekrety (`gh secret list`), obserwuj pipeline (`gh run watch`), zarządzaj PR-ami. Używaj zamiast pytać użytkownika o stan CI/CD czy sekrety.
+- `npx supabase` — CLI Supabase: migracje, status lokalny.
 
 ### Baza danych
 - Po dodaniu nowych migracji powiedz użytkownikowi, żeby uruchomił `npm run db:reset`.
