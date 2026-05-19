@@ -1,12 +1,14 @@
 import { test, expect } from '@playwright/test'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { adminClient, TEST_PASSWORD, STUDENT_EMAIL, TUTOR1_EMAIL } from './global-setup'
+import { adminClient, TEST_PASSWORD, STUDENT_EMAIL, TUTOR1_EMAIL, TUTOR2_EMAIL } from './global-setup'
 import { loginAs, getTestUserIds } from './helpers'
 
 const ADMIN_NO_MFA_EMAIL = 'sec-admin-nomfa@test.zaliczone.local'
 const ATTACKER_EMAIL = 'sec-attacker-admin@test.zaliczone.local'
 const SEC_TUTOR_EMAIL = 'sec-rls-tutor@test.zaliczone.local'
 const SEC_STUDENT_EMAIL = 'sec-rls-student@test.zaliczone.local'
+
+let secRequestId: string | null = null
 
 async function deleteIfExists(email: string) {
   const { byEmail } = await getTestUserIds()
@@ -54,9 +56,31 @@ test.beforeAll(async () => {
     user_metadata: { role: 'student', full_name: 'Uczeń RLS' },
     email_confirm: true,
   })
+
+  // Zlecenie do testu anulowania przez korepetytora
+  const { byEmail: lookup } = await getTestUserIds()
+  const studentId = lookup(STUDENT_EMAIL)
+  if (studentId) {
+    const { data } = await supabase
+      .from('matching_requests')
+      .insert({
+        student_id: studentId,
+        subject_id: 'matematyka',
+        level: 'Test bezpieczeństwa',
+        scope: 'Test bezpieczeństwa',
+        description: 'Zlecenie tworzone automatycznie przez testy bezpieczeństwa',
+        status: 'pending',
+      })
+      .select('id')
+      .single()
+    secRequestId = data?.id ?? null
+  }
 })
 
 test.afterAll(async () => {
+  if (secRequestId) {
+    await adminClient().from('matching_requests').delete().eq('id', secRequestId)
+  }
   for (const email of [ADMIN_NO_MFA_EMAIL, ATTACKER_EMAIL, SEC_TUTOR_EMAIL, SEC_STUDENT_EMAIL]) {
     await deleteIfExists(email)
   }
@@ -145,4 +169,89 @@ test('korepetytor bez wspólnej sesji nie widzi profilu ucznia', async () => {
   expect(data).toBeNull()
 
   await userClient.auth.signOut()
+})
+
+// ─── Test 8: RLS — korepetytor nie może anulować cudzego zlecenia ─────────────
+
+test('korepetytor nie może anulować zlecenia ucznia przez bezpośrednie zapytanie do bazy', async () => {
+  if (!secRequestId) {
+    test.skip(true, 'Brak danych testowych — insert zlecenia nie powiódł się w beforeAll')
+    return
+  }
+
+  const tutorClient = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  await tutorClient.auth.signInWithPassword({ email: TUTOR1_EMAIL, password: TEST_PASSWORD })
+
+  // Korepetytor próbuje ustawić status='cancelled' bez filtra student_id
+  await tutorClient
+    .from('matching_requests')
+    .update({ status: 'cancelled' })
+    .eq('id', secRequestId!)
+    .eq('status', 'pending')
+
+  await tutorClient.auth.signOut()
+
+  // Zlecenie musi nadal być 'pending' — RLS lub brak uprawnień do UPDATE powinien zablokować
+  const { data } = await adminClient()
+    .from('matching_requests')
+    .select('status')
+    .eq('id', secRequestId!)
+    .single()
+
+  expect(data?.status).toBe('pending')
+})
+
+// ─── Test 9: RLS — tutor2 nie widzi zakończonych zleceń tutor1 ───────────────
+
+test('tutor2 nie widzi zakończonych zleceń obsługiwanych przez tutor1', async () => {
+  const { byEmail } = await getTestUserIds()
+  const tutor1Id = byEmail(TUTOR1_EMAIL)
+  expect(tutor1Id).toBeDefined()
+
+  const tutor2Client = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  await tutor2Client.auth.signInWithPassword({ email: TUTOR2_EMAIL, password: TEST_PASSWORD })
+
+  // Tutor2 próbuje zobaczyć zlecenia gdzie tutor1 był korepetytorem
+  const { data } = await tutor2Client
+    .from('matching_requests')
+    .select('id')
+    .eq('tutor_id', tutor1Id!)
+    .in('status', ['accepted', 'completed'])
+
+  expect(data ?? []).toHaveLength(0)
+
+  await tutor2Client.auth.signOut()
+})
+
+// ─── Test 10: RLS — uczeń nie widzi zleceń innego ucznia ─────────────────────
+
+test('uczeń nie widzi zleceń innego ucznia przez zapytanie do bazy', async () => {
+  const { byEmail } = await getTestUserIds()
+  const student1Id = byEmail(STUDENT_EMAIL)
+  expect(student1Id).toBeDefined()
+
+  const secStudentClient = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  await secStudentClient.auth.signInWithPassword({ email: SEC_STUDENT_EMAIL, password: TEST_PASSWORD })
+
+  // SEC_STUDENT próbuje zobaczyć zlecenia STUDENT — nie powinien mieć dostępu
+  const { data } = await secStudentClient
+    .from('matching_requests')
+    .select('id')
+    .eq('student_id', student1Id!)
+
+  expect(data ?? []).toHaveLength(0)
+
+  await secStudentClient.auth.signOut()
 })

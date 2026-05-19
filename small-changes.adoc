@@ -1,0 +1,4 @@
+- testy e2e po wszystkich audytach security
+- testy e2e po wszystkich zabawach z env
+- testy rate limiting
+- testy konfiguracji sentry
