@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/domains/auth/queries'
-import { getSessionById } from '@/domains/sessions/queries'
+import { getSessionById, getSessionHostRoomUrl } from '@/domains/sessions/queries'
 import { VideoSession } from '@/domains/sessions/components/VideoSession'
 
 export default async function SessionPage({
@@ -31,8 +31,9 @@ export default async function SessionPage({
 
   const isTutor = session.tutor_id === profile.id
   const durationMinutes = session.duration_minutes ?? 60
+  const hostRoomUrl = isTutor ? await getSessionHostRoomUrl(session.id) : null
   const roomUrl = isTutor
-    ? (session.host_room_url ?? session.daily_room_url)
+    ? (hostRoomUrl ?? session.daily_room_url)
     : session.daily_room_url
 
   return (

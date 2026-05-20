@@ -15,7 +15,22 @@ function getRatelimit(): Ratelimit {
   return ratelimit
 }
 
-const RATE_LIMITED_ROUTES = ['/login', '/register', '/forgot-password']
+// Osobny, ostrzejszy limiter dla tras adminowych — brute-force na konto admina
+// musi być wykrywalny po znacznie mniejszej liczbie prób niż na zwykłym /login.
+let adminRatelimit: Ratelimit | null = null
+function getAdminRatelimit(): Ratelimit {
+  if (!adminRatelimit) {
+    adminRatelimit = new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(5, '1 m'),
+      prefix: 'rl:admin',
+    })
+  }
+  return adminRatelimit
+}
+
+const RATE_LIMITED_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password']
+const ADMIN_RATE_LIMITED_ROUTES = ['/admin/login', '/admin/mfa']
 
 const PROTECTED_PREFIXES = [
   '/dashboard',
@@ -32,18 +47,22 @@ const AUTH_ONLY_ROUTES = ['/login', '/register', '/forgot-password', '/check-ema
 const ADMIN_PUBLIC = ['/admin/login', '/admin/mfa']
 
 export async function proxy(request: NextRequest) {
-  if (
-    request.method === 'POST' &&
-    process.env.NODE_ENV !== 'development' &&
-    RATE_LIMITED_ROUTES.some(r => request.nextUrl.pathname.startsWith(r))
-  ) {
+  if (request.method === 'POST' && process.env.NODE_ENV !== 'development') {
+    const pathname = request.nextUrl.pathname
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ?? 'unknown'
-    const { success } = await getRatelimit().limit(ip)
-    if (!success) {
-      return NextResponse.json(
-        { error: 'Zbyt wiele prób. Poczekaj chwilę i spróbuj ponownie.' },
-        { status: 429 }
-      )
+
+    const isAdminRoute = ADMIN_RATE_LIMITED_ROUTES.some(r => pathname.startsWith(r))
+    const isAuthRoute = RATE_LIMITED_ROUTES.some(r => pathname.startsWith(r))
+
+    if (isAdminRoute || isAuthRoute) {
+      const limiter = isAdminRoute ? getAdminRatelimit() : getRatelimit()
+      const { success } = await limiter.limit(ip)
+      if (!success) {
+        return NextResponse.json(
+          { error: 'Zbyt wiele prób. Poczekaj chwilę i spróbuj ponownie.' },
+          { status: 429 }
+        )
+      }
     }
   }
 

@@ -59,6 +59,22 @@ Nie zgłaszaj zadania jako ukończone dopóki wszystkie powyższe nie przechodz�
 - Użytkownicy testowi: `uczen1@test.pl`, `uczen2@test.pl`, `korepetytor1–3@test.pl`, hasło: `testtest1`.
 - Klient `admin.ts` (service role) używaj wyłącznie w domenie `admin/`.
 
+### Strategia migracji: expand-then-contract
+**Zasada:** każda migracja musi być backwards-compatible z aktualnie wdrożonym kodem produkcyjnym. Powód: preview deployment na Vercel używa tego samego Supabase Cloud co produkcja, a migracje trafiają na Cloud DOPIERO po merge'u do `main` (workflow `post-deploy.yml`). W oknie między deployem preview a merge'em produkcja działa na starym schemacie + nowym kodzie.
+
+**Dla zmian niekompatybilnych rozbij na osobne PR-y:**
+1. **Expand** — migracja dodaje nową strukturę (kolumna nullable, nowa polityka obok starej, nowa tabela). Kod jeszcze nie używa. Merge i deploy.
+2. **Migrate code** — kod zaczyna używać nowej struktury. Stara dalej działa.
+3. **Contract** (opcjonalnie) — migracja usuwa starą strukturę.
+
+**Czerwone flagi w jednym PR-cie:**
+- `drop column` / `drop table` / `drop policy` razem z kodem który z nich korzysta
+- `alter column ... not null` na tabeli z istniejącymi rekordami bez backfilla
+- zmiana typu kolumny używanej przez aktualnie wdrożony kod
+- rename kolumny lub tabeli
+
+Jeśli widzisz taką zmianę — zaproponuj rozbicie na osobne PR-y PRZED implementacją.
+
 ### Realtime + server actions
 - `revalidatePath()` w server action wywołanej przez `onClick` (nie przez `useActionState`) NIE wymusza odświeżenia klienta automatycznie.
 - Po każdej takiej akcji wywołaj `router.refresh()` po stronie klienta.
