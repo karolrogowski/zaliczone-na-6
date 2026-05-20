@@ -1,11 +1,12 @@
 /**
  * Testy rate-limitingu Supabase Auth.
  *
- * Wymagają świeżej instancji Supabase (liczniki GoTrue w pamięci = 0).
- * W CI uruchamiane w osobnym jobie ze świeżym runnerem.
- * Lokalnie: npx supabase stop && npx supabase start
+ * Wymagają świeżej instancji Supabase z licznikami GoTrue w 0.
+ * W CI: osobny job ze świeżym runnerem i obniżonym limitem sign_in_sign_ups = 3.
+ * Lokalnie: nie uruchamiać bez ręcznego obniżenia limitu w config.toml + restart Supabase.
  *
- * Nie używają przeglądarki — wywołują Supabase API bezpośrednio z Node.js.
+ * Uwaga: email_sent nie działa z lokalnym InBucket (wymaga zewnętrznego SMTP),
+ * dlatego testujemy sign_in_sign_ups — limit niezależny od SMTP.
  */
 
 import { test, expect } from '@playwright/test'
@@ -19,15 +20,22 @@ function anonClient() {
   )
 }
 
-test('email_sent = 2 — trzecia próba wysłania emaila w ciągu godziny zwraca 429', async () => {
+test('sign_in_sign_ups = 3 — czwarta próba logowania z tego samego IP zwraca 429', async () => {
   const client = anonClient()
+  // Limit w CI obniżony do 3 przed startem Supabase (sed w kroku CI)
+  const WRONG = 'wrong-password-xyz'
 
-  // Trzy różne adresy — unikamy limitu max_frequency per-adres (1s)
-  const { error: e1 } = await client.auth.resetPasswordForEmail(STUDENT_EMAIL)
-  const { error: e2 } = await client.auth.resetPasswordForEmail(TUTOR1_EMAIL)
-  const { error: e3 } = await client.auth.resetPasswordForEmail(TUTOR2_EMAIL)
+  const statuses: Array<number | undefined> = []
+  for (const email of [STUDENT_EMAIL, TUTOR1_EMAIL, TUTOR2_EMAIL, STUDENT_EMAIL]) {
+    const { error } = await client.auth.signInWithPassword({ email, password: WRONG })
+    statuses.push(error?.status)
+  }
 
-  expect(e1, 'Pierwsze żądanie powinno być zaakceptowane').toBeNull()
-  expect(e2, 'Drugie żądanie powinno być zaakceptowane').toBeNull()
-  expect(e3?.status, 'Trzecie żądanie powinno zwrócić 429 Too Many Requests').toBe(429)
+  // Pierwsze 3: błąd logowania (nieprawidłowe hasło), ale w limicie
+  for (let i = 0; i < 3; i++) {
+    expect(statuses[i], `Próba ${i + 1}: powinna zwrócić błąd logowania, nie rate limit`).toBeDefined()
+    expect(statuses[i], `Próba ${i + 1}: nie powinna być jeszcze rate-limitowana`).not.toBe(429)
+  }
+  // 4.: wyczerpany limit
+  expect(statuses[3], 'Czwarta próba powinna zwrócić 429 Too Many Requests').toBe(429)
 })

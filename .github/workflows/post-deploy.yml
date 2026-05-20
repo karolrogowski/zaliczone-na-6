@@ -19,6 +19,28 @@ jobs:
           npx supabase link --project-ref ${{ secrets.SUPABASE_PROJECT_ID }} --yes
           npx supabase db push --yes
 
+      - name: Ustaw rate limity auth przez Supabase Management API
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+        run: |
+          echo "=== Aktualna konfiguracja auth (przed zmianą) ==="
+          curl -sf \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/config/auth" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            | python3 -m json.tool | grep -i "rate_limit"
+
+          curl -sf -X PATCH \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/config/auth" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "rate_limit_email_sent": 2,
+              "rate_limit_token_refresh": 150,
+              "rate_limit_verify": 30,
+              "rate_limit_anonymous_users": 30
+            }'
+
   health:
     needs: migrate
     runs-on: ubuntu-latest

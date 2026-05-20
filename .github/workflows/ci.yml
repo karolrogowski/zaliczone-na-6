@@ -119,6 +119,9 @@ jobs:
         if: steps.supabase-cache.outputs.cache-hit == 'true'
         run: docker load -i /tmp/supabase-docker.tar
 
+      - name: Obniż sign_in_sign_ups do 3 (tymczasowo — runner efemeryczny)
+        run: sed -i 's/sign_in_sign_ups = 30/sign_in_sign_ups = 3/' supabase/config.toml
+
       - name: Uruchom lokalnego Supabase
         run: npx supabase start
 
