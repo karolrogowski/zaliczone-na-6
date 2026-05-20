@@ -17,6 +17,7 @@ import {
   validateForgotPasswordForm,
   validateResetPasswordForm,
   validateTutorProfile,
+  MAX_FULL_NAME,
 } from './validation'
 
 export async function register(
@@ -41,10 +42,10 @@ export async function register(
     },
   })
 
-  if (error) {
-    if (error.code === 'user_already_exists') {
-      return { errors: { email: ['Konto z tym adresem email już istnieje'] } }
-    }
+  // Nie ujawniamy czy konto już istnieje — atak enumeracji adresów email.
+  // Supabase i tak wyśle email "ktoś próbował się zarejestrować na Twój adres"
+  // jeśli email jest zajęty, więc właściciel konta dostanie ostrzeżenie.
+  if (error && error.code !== 'user_already_exists') {
     return { message: 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie.' }
   }
 
@@ -65,11 +66,11 @@ export async function login(
 
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
+  // Ujednolicony komunikat — nie ujawniamy czy konto istnieje, czy jest niezweryfikowane.
+  // Email enumeration vector: różne komunikaty pozwalały atakującemu wytypować zarejestrowane
+  // adresy do dalszego phishingu.
   if (error) {
-    if (error.code === 'email_not_confirmed') {
-      return { message: 'Najpierw potwierdź swój adres email. Sprawdź skrzynkę mailową.' }
-    }
-    return { message: 'Nieprawidłowy email lub hasło' }
+    return { message: 'Nieprawidłowy email lub hasło lub konto niezweryfikowane' }
   }
 
   redirect('/dashboard')
@@ -128,6 +129,8 @@ export async function updateFullName(
 
   if (full_name.length < 2)
     return { errors: { full_name: ['Imię i nazwisko musi mieć co najmniej 2 znaki'] } }
+  if (full_name.length > MAX_FULL_NAME)
+    return { errors: { full_name: [`Imię i nazwisko nie może być dłuższe niż ${MAX_FULL_NAME} znaków`] } }
 
   const supabase = await createClient()
   const {
@@ -172,7 +175,7 @@ export async function saveTutorProfile(
   const hourly_rate_pln = (formData.get('hourly_rate_pln') as string | null)?.trim() ?? ''
   const bio = (formData.get('bio') as string | null)?.trim() ?? ''
 
-  const validationError = validateTutorProfile({ subject_ids, levels, hourly_rate_pln })
+  const validationError = validateTutorProfile({ subject_ids, levels, hourly_rate_pln, bio })
   if (validationError) return validationError
 
   const supabase = await createClient()

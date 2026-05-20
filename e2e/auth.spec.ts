@@ -47,13 +47,14 @@ test('logowanie złym hasłem pokazuje błąd', async ({ page }) => {
 
 // ─── Test 2 ──────────────────────────────────────────────────────────────────
 
-test('logowanie przed potwierdzeniem emaila pokazuje właściwy komunikat', async ({ page }) => {
+test('logowanie przed potwierdzeniem emaila zwraca generyczny komunikat (user enumeration defense)', async ({ page }) => {
   await page.goto('/login')
   await page.fill('input[name="email"]', UNCONFIRMED_EMAIL)
   await page.fill('input[name="password"]', TEST_PASSWORD)
   await page.click('button[type="submit"]')
 
-  await expect(page.getByText('Najpierw potwierdź swój adres email')).toBeVisible()
+  // Ujednolicony komunikat — nie ujawnia czy konto istnieje ani czy jest niezweryfikowane
+  await expect(page.getByText('Nieprawidłowy email lub hasło lub konto niezweryfikowane')).toBeVisible()
   expect(page.url()).toContain('/login')
 })
 

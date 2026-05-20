@@ -62,17 +62,19 @@ test('rejestracja jako korepetytor przekierowuje na stronę potwierdzenia emaila
 })
 
 // ════════════════════════════════════════════════════════════════════════════
-// Test 3 — Rejestracja z istniejącym emailem → komunikat błędu
+// Test 3 — Rejestracja z istniejącym emailem NIE ujawnia stanu konta
 // ════════════════════════════════════════════════════════════════════════════
+// Zabezpieczenie przed user enumeration: ekran sukcesu identyczny jak przy
+// nowej rejestracji. Właściciel istniejącego konta dostanie email od Supabase
+// o próbie ponownej rejestracji.
 
-test('rejestracja z istniejącym emailem wyświetla komunikat błędu w formularzu', async ({ page }) => {
+test('rejestracja z istniejącym emailem zachowuje się jak nowa rejestracja (user enumeration defense)', async ({ page }) => {
   // STUDENT_EMAIL już istnieje w bazie (tworzony przez global-setup)
   await fillRegisterForm(page, STUDENT_EMAIL, 'student')
   await page.getByRole('button', { name: 'Zarejestruj się' }).click()
 
-  await expect(page.getByText('Konto z tym adresem email już istnieje')).toBeVisible({ timeout: 10_000 })
-  // Użytkownik pozostaje na /register — nie doszło do redirect
-  expect(page.url()).toContain('/register')
+  await page.waitForURL('/check-email', { timeout: 10_000 })
+  await expect(page.getByRole('heading', { name: 'Sprawdź skrzynkę mailową' })).toBeVisible()
 })
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -83,6 +85,6 @@ test('rejestracja ze zbyt krótkim hasłem wyświetla błąd walidacji', async (
   await fillRegisterForm(page, 'walidacja@test.zaliczone.local', 'student', { password: 'abc123' })
   await page.getByRole('button', { name: 'Zarejestruj się' }).click()
 
-  await expect(page.getByText('Hasło musi mieć co najmniej 8 znaków')).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByText('Hasło musi mieć co najmniej 10 znaków')).toBeVisible({ timeout: 10_000 })
   expect(page.url()).toContain('/register')
 })

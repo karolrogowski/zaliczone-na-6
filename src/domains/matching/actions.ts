@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/shared/supabase/server'
 import { getCurrentUser, getCurrentUserOrNull } from '@/shared/auth/getCurrentUser'
-import { validateSubmitRequest } from './validation'
+import { validateSubmitRequest, validateRatingComment } from './validation'
 import { LEVEL_OPTIONS, SCOPE_OPTIONS, resolveOption } from './options'
 import type { AcceptRequestResult, RatingFormState, SubmitRequestFormState } from './types'
 import { createVideoRoom, deleteVideoRoom } from '@/domains/sessions/video-provider'
@@ -169,6 +169,9 @@ export async function submitRating(
   if (!score || score < 1 || score > 5) {
     return { errors: { score: ['Wybierz ocenę od 1 do 5 gwiazdek'] } }
   }
+
+  const commentError = validateRatingComment(comment)
+  if (commentError) return { errors: { comment: [commentError] } }
 
   const user = await getCurrentUserOrNull()
   if (!user) return { message: 'Nie jesteś zalogowany.' }
