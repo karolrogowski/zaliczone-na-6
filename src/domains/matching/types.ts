@@ -71,7 +71,7 @@ export type TutorPublicProfile = {
 
 export type RatingFormState =
   | {
-      errors?: { score?: string[] }
+      errors?: { score?: string[]; comment?: string[] }
       message?: string
     }
   | undefined

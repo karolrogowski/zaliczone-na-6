@@ -3,9 +3,14 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/shared/supabase/server'
 import { getCurrentUser } from '@/shared/auth/getCurrentUser'
+import { MAX_NOTES } from '@/domains/matching/validation'
 import { deleteVideoRoom } from './video-provider'
 
 export async function completeSession(sessionId: string, notes?: string): Promise<void> {
+  if (notes && notes.length > MAX_NOTES) {
+    throw new Error(`Notatka nie może być dłuższa niż ${MAX_NOTES} znaków.`)
+  }
+
   const user = await getCurrentUser()
   const supabase = await createClient()
 

@@ -73,6 +73,7 @@ export type TutorProfileFormState =
         subjects?: string[]
         levels?: string[]
         hourly_rate?: string[]
+        bio?: string[]
       }
       message?: string
     }

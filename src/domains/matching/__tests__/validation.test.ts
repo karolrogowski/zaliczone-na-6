@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validateSubmitRequest } from '../validation'
+import { validateSubmitRequest, validateRatingComment, MAX_DESCRIPTION, MAX_COMMENT } from '../validation'
 
 const valid = {
   subject_id: 'matematyka',
@@ -47,5 +47,28 @@ describe('validateSubmitRequest', () => {
 
   it('akceptuje dowolny niepusty string jako poziom (wpis własny)', () => {
     expect(validateSubmitRequest({ ...valid, level: 'Klasa VIII B' })).toBeUndefined()
+  })
+
+  it(`błąd gdy opis przekracza ${MAX_DESCRIPTION} znaków`, () => {
+    const result = validateSubmitRequest({ ...valid, description: 'x'.repeat(MAX_DESCRIPTION + 1) })
+    expect(result?.errors?.description).toBeDefined()
+  })
+
+  it('błąd gdy poziom (wpis własny) przekracza 100 znaków', () => {
+    expect(validateSubmitRequest({ ...valid, level: 'x'.repeat(101) })?.errors?.level).toBeDefined()
+  })
+})
+
+describe('validateRatingComment', () => {
+  it('zwraca null dla pustego komentarza', () => {
+    expect(validateRatingComment('')).toBeNull()
+  })
+
+  it('zwraca null dla normalnego komentarza', () => {
+    expect(validateRatingComment('Świetny korepetytor, polecam!')).toBeNull()
+  })
+
+  it(`zwraca błąd gdy komentarz przekracza ${MAX_COMMENT} znaków`, () => {
+    expect(validateRatingComment('x'.repeat(MAX_COMMENT + 1))).not.toBeNull()
   })
 })

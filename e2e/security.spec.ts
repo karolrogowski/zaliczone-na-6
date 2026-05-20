@@ -419,7 +419,65 @@ test('student nie widzi host_room_url swojej sesji przez bezpośrednie zapytanie
   }
 })
 
-// ─── Test 15: host_room_url dostępny dla korepetytora przez RPC ──────────────
+// ─── Test 15b: Audit log admina rejestruje zmianę prowizji ────────────────────
+
+test('updateCommissionPct zapisuje wpis w admin_audit_log', async () => {
+  // Bezpośredni INSERT przez service role symuluje zapis robiony przez akcję
+  // adminową (action: 'commission_pct_updated'). Sama akcja wymaga aal2 + sesji
+  // adminowej, co byłoby trudne do odtworzenia w czystym teście DB. Tu sprawdzamy
+  // mechanikę audit logu: RLS, append-only, widoczność dla admina.
+  const { byEmail } = await getTestUserIds()
+  const admin = adminClient()
+
+  // Znajdź dowolnego admina (z domyślnego seedu db:reset jest admin@test.pl)
+  const ADMIN_EMAIL = 'admin@test.pl'
+  const adminId = byEmail(ADMIN_EMAIL)
+  if (!adminId) {
+    test.skip(true, 'Konto admina nie istnieje — wymaga db:reset')
+    return
+  }
+
+  const { error: insertError } = await admin.from('admin_audit_log').insert({
+    admin_id: adminId,
+    action: 'commission_pct_updated',
+    target_type: 'platform_config',
+    target_id: 'commission_pct',
+    payload: { value: '25' },
+  })
+  expect(insertError).toBeNull()
+
+  // Student nie powinien zobaczyć żadnych wpisów (polityka admin_audit_log_read)
+  const studentClient = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+  await studentClient.auth.signInWithPassword({ email: STUDENT_EMAIL, password: TEST_PASSWORD })
+  const studentRead = await studentClient.from('admin_audit_log').select('id').limit(1)
+  expect(studentRead.data ?? []).toHaveLength(0)
+  await studentClient.auth.signOut()
+
+  // Service role widzi wpis i ma poprawne wartości
+  const { data: entries } = await admin
+    .from('admin_audit_log')
+    .select('action, target_id, payload')
+    .eq('admin_id', adminId)
+    .eq('action', 'commission_pct_updated')
+    .order('created_at', { ascending: false })
+    .limit(1)
+
+  expect(entries).not.toBeNull()
+  expect(entries!.length).toBeGreaterThan(0)
+  expect(entries![0].target_id).toBe('commission_pct')
+  expect(entries![0].payload).toMatchObject({ value: '25' })
+
+  // Cleanup
+  await admin.from('admin_audit_log')
+    .delete()
+    .eq('admin_id', adminId)
+    .eq('action', 'commission_pct_updated')
+})
+
+// ─── Test 16: host_room_url dostępny dla korepetytora przez RPC ──────────────
 
 test('korepetytor odczytuje host_room_url przez get_session_host_room_url', async () => {
   const { byEmail } = await getTestUserIds()
