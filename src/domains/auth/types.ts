@@ -5,7 +5,6 @@ export type Profile = {
   role: UserRole
   full_name: string
   avatar_url: string | null
-  phone: string | null
 }
 
 export type RegisterFormState =

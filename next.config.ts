@@ -37,9 +37,19 @@ const securityHeaders = [
     : []),
 ]
 
+// Trasy z PII użytkownika — jawnie wymuszamy brak cache (defense in depth;
+// Next domyślnie nie cache'uje dynamic routes, ale jawny nagłówek chroni
+// przed konfiguracjami proxy/CDN, które mogłyby coś niechcąco zapamiętać).
+const noStoreHeader = { key: 'Cache-Control', value: 'private, no-store, max-age=0' }
+
 const nextConfig: NextConfig = {
   headers: async () => [
     { source: '/(.*)', headers: securityHeaders },
+    { source: '/settings/:path*', headers: [noStoreHeader] },
+    { source: '/profile/:path*', headers: [noStoreHeader] },
+    { source: '/history/:path*', headers: [noStoreHeader] },
+    { source: '/session/:path*', headers: [noStoreHeader] },
+    { source: '/admin/:path*', headers: [noStoreHeader] },
   ],
 }
 

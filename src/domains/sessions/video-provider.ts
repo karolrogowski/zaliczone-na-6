@@ -61,13 +61,32 @@ async function deleteWherebyRoom(meetingId: string): Promise<void> {
   const apiKey = process.env.WHEREBY_API_KEY
   if (!apiKey || meetingId.startsWith('test-room-')) return
 
-  try {
-    await fetch(`https://api.whereby.dev/v1/meetings/${meetingId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${apiKey}` },
-    })
-  } catch (err) {
-    console.error('[Whereby] Nie udało się usunąć pokoju:', meetingId, err)
+  // Exponential backoff retry — pokój żyje 24h od utworzenia, więc nieudany
+  // DELETE może zostawić go aktywnego do końca tego okna. 3 próby z opóźnieniem
+  // 200ms / 1s / 5s pokrywają typowe transient errors (network blip, rate-limit).
+  const delays = [200, 1000, 5000]
+  for (let attempt = 0; attempt <= delays.length; attempt++) {
+    try {
+      const res = await fetch(`https://api.whereby.dev/v1/meetings/${meetingId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${apiKey}` },
+      })
+      // 200 = usunięto, 404 = już nie istnieje (też sukces dla naszych celów)
+      if (res.ok || res.status === 404) return
+      // 5xx — może być transient; 4xx (poza 404) — trwałe, nie warto retry
+      if (res.status < 500) {
+        console.error('[Whereby] DELETE odrzucony przez API:', meetingId, res.status)
+        return
+      }
+    } catch (err) {
+      if (attempt === delays.length) {
+        console.error('[Whereby] Nie udało się usunąć pokoju po retry:', meetingId, err)
+        return
+      }
+    }
+    if (attempt < delays.length) {
+      await new Promise((r) => setTimeout(r, delays[attempt]))
+    }
   }
 }
 

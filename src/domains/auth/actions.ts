@@ -117,7 +117,10 @@ export async function updatePassword(
     return { message: 'Nie udało się zmienić hasła. Link mógł wygasnąć — spróbuj ponownie.' }
   }
 
-  await supabase.auth.signOut()
+  // Globalny signOut unieważnia wszystkie refresh tokeny — jeśli ktoś przejął
+  // wcześniej sesję, traci ją po zmianie hasła. Bez 'global' zostałyby aktywne
+  // sesje na innych urządzeniach przy starym haśle.
+  await supabase.auth.signOut({ scope: 'global' })
   redirect('/login')
 }
 
@@ -162,6 +165,11 @@ export async function changePassword(
   const { error } = await supabase.auth.updateUser({ password })
 
   if (error) return { message: 'Nie udało się zmienić hasła. Spróbuj ponownie.' }
+
+  // Globalny signOut — patrz updatePassword. Po zmianie hasła z poziomu
+  // ustawień również chcemy unieważnić wszystkie pozostałe sesje.
+  // Po wykonaniu user musi zalogować się ponownie (handled przez middleware).
+  await supabase.auth.signOut({ scope: 'others' })
 
   return { success: true }
 }

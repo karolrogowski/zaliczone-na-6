@@ -56,7 +56,7 @@ Nie zgłaszaj zadania jako ukończone dopóki wszystkie powyższe nie przechodz�
 ### Baza danych
 - Po dodaniu nowych migracji powiedz użytkownikowi, żeby uruchomił `npm run db:reset`.
 - `npm run db:reset` resetuje bazę, tworzy konto admina i użytkowników testowych.
-- Użytkownicy testowi: `uczen1@test.pl`, `uczen2@test.pl`, `korepetytor1–3@test.pl`, hasło: `testtest1`.
+- Użytkownicy testowi: `uczen1@test.pl`, `uczen2@test.pl`, `korepetytor1–3@test.pl`, hasło: `TestTest1!`.
 - Klient `admin.ts` (service role) używaj wyłącznie w domenie `admin/`.
 
 ### Strategia migracji: expand-then-contract

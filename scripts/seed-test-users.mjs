@@ -23,7 +23,9 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-const PASSWORD = 'testtest1'
+// Hasło spełnia walidację z domeny auth (min 10 znaków, 3 z 4 klas znaków),
+// żeby skrypt seed był zgodny z regułami rejestracji UI.
+const PASSWORD = 'TestTest1!'
 
 const STUDENTS = [
   { email: 'uczen1@test.pl', full_name: 'Anna Kowalska' },
@@ -96,6 +98,6 @@ console.log(`✅ Korepetytorzy: ${TUTORS.map(t => t.email).join(', ')}`)
 
 console.log()
 console.log('Dane do logowania:')
-console.log('  Hasło dla wszystkich: testtest1')
+console.log(`  Hasło dla wszystkich: ${PASSWORD}`)
 console.log('  Uczniowie:      uczen1@test.pl, uczen2@test.pl')
 console.log('  Korepetytorzy: korepetytor1@test.pl, korepetytor2@test.pl, korepetytor3@test.pl')
