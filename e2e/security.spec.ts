@@ -329,3 +329,149 @@ test('korepetytor nie może zmienić rating_avg ani rating_count na tutor_profil
   expect(after?.rating_avg).toBe(before?.rating_avg ?? null)
   expect(after?.rating_count).toBe(before?.rating_count ?? 0)
 })
+
+// ─── Test 13: CSP/HSTS nagłówki obecne na publicznych trasach ─────────────────
+
+test('strona zwraca Content-Security-Policy z restrykcyjnym frame-ancestors', async ({ page }) => {
+  const response = await page.goto('/login')
+  expect(response).not.toBeNull()
+  const csp = response!.headers()['content-security-policy']
+  expect(csp).toBeDefined()
+  expect(csp).toContain("frame-ancestors 'none'")
+  expect(csp).toContain("object-src 'none'")
+  expect(csp).toContain("base-uri 'self'")
+})
+
+// ─── Test 14: host_room_url niewidoczny dla studenta ─────────────────────────
+
+test('student nie widzi host_room_url swojej sesji przez bezpośrednie zapytanie do bazy', async () => {
+  const { byEmail } = await getTestUserIds()
+  const studentId = byEmail(STUDENT_EMAIL)
+  const tutorId = byEmail(TUTOR1_EMAIL)
+  expect(studentId).toBeDefined()
+  expect(tutorId).toBeDefined()
+
+  // Setup: utwórz zlecenie + sesję z host_room_url (service role omija column grants)
+  const admin = adminClient()
+  const { data: mr } = await admin
+    .from('matching_requests')
+    .insert({
+      student_id: studentId!,
+      tutor_id: tutorId!,
+      subject_id: 'matematyka',
+      level: 'Test bezpieczeństwa',
+      scope: 'Test bezpieczeństwa',
+      description: 'Sesja do testu host_room_url',
+      status: 'accepted',
+    })
+    .select('id')
+    .single()
+
+  const { data: sess } = await admin
+    .from('sessions')
+    .insert({
+      matching_request_id: mr!.id,
+      student_id: studentId!,
+      tutor_id: tutorId!,
+      daily_room_name: 'sec-host-test',
+      daily_room_url: 'https://test.whereby.com/sec-host-test',
+      host_room_url: 'https://test.whereby.com/sec-host-test?roomKey=SECRET_HOST_KEY',
+      status: 'scheduled',
+      started_at: new Date().toISOString(),
+      duration_minutes: 60,
+    })
+    .select('id')
+    .single()
+
+  try {
+    const studentClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    await studentClient.auth.signInWithPassword({ email: STUDENT_EMAIL, password: TEST_PASSWORD })
+
+    // Próba bezpośredniego SELECT host_room_url — powinno wywalić błędem permission denied
+    const directRead = await studentClient
+      .from('sessions')
+      .select('host_room_url')
+      .eq('id', sess!.id)
+      .maybeSingle()
+    expect(directRead.error).not.toBeNull()
+
+    // Inne kolumny dalej dostępne dla uczestnika
+    const safeRead = await studentClient
+      .from('sessions')
+      .select('id, daily_room_url, status')
+      .eq('id', sess!.id)
+      .maybeSingle()
+    expect(safeRead.error).toBeNull()
+    expect(safeRead.data?.daily_room_url).toContain('test.whereby.com')
+
+    // RPC zwraca null dla studenta (nie jest tutorem)
+    const rpc = await studentClient.rpc('get_session_host_room_url', { p_session_id: sess!.id })
+    expect(rpc.error).toBeNull()
+    expect(rpc.data).toBeNull()
+
+    await studentClient.auth.signOut()
+  } finally {
+    await admin.from('sessions').delete().eq('id', sess!.id)
+    await admin.from('matching_requests').delete().eq('id', mr!.id)
+  }
+})
+
+// ─── Test 15: host_room_url dostępny dla korepetytora przez RPC ──────────────
+
+test('korepetytor odczytuje host_room_url przez get_session_host_room_url', async () => {
+  const { byEmail } = await getTestUserIds()
+  const studentId = byEmail(STUDENT_EMAIL)
+  const tutorId = byEmail(TUTOR1_EMAIL)
+
+  const admin = adminClient()
+  const { data: mr } = await admin
+    .from('matching_requests')
+    .insert({
+      student_id: studentId!,
+      tutor_id: tutorId!,
+      subject_id: 'matematyka',
+      level: 'Test bezpieczeństwa',
+      scope: 'Test bezpieczeństwa',
+      description: 'Sesja do testu host RPC',
+      status: 'accepted',
+    })
+    .select('id')
+    .single()
+
+  const HOST_URL = 'https://test.whereby.com/sec-host-rpc?roomKey=TUTOR_ONLY'
+  const { data: sess } = await admin
+    .from('sessions')
+    .insert({
+      matching_request_id: mr!.id,
+      student_id: studentId!,
+      tutor_id: tutorId!,
+      daily_room_name: 'sec-host-rpc',
+      daily_room_url: 'https://test.whereby.com/sec-host-rpc',
+      host_room_url: HOST_URL,
+      status: 'scheduled',
+      started_at: new Date().toISOString(),
+      duration_minutes: 60,
+    })
+    .select('id')
+    .single()
+
+  try {
+    const tutorClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    await tutorClient.auth.signInWithPassword({ email: TUTOR1_EMAIL, password: TEST_PASSWORD })
+
+    const rpc = await tutorClient.rpc('get_session_host_room_url', { p_session_id: sess!.id })
+    expect(rpc.error).toBeNull()
+    expect(rpc.data).toBe(HOST_URL)
+
+    await tutorClient.auth.signOut()
+  } finally {
+    await admin.from('sessions').delete().eq('id', sess!.id)
+    await admin.from('matching_requests').delete().eq('id', mr!.id)
+  }
+})

@@ -185,6 +185,7 @@ export function VideoSession({
         <iframe
           src={dailyRoomUrl}
           allow="camera; microphone; fullscreen; speaker; display-capture; autoplay; clipboard-write; compute-pressure"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation allow-popups-to-escape-sandbox"
           style={{ width: '100%', height: '100%', border: 'none', opacity: videoLoaded ? 1 : 0 }}
           title="Sesja wideo"
           onLoad={() => setVideoLoaded(true)}
