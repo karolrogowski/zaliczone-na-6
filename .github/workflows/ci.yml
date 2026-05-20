@@ -91,6 +91,73 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  e2e-rate-limits:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Zainstaluj zależności
+        run: npm ci
+
+      - name: Cache obrazów Docker (Supabase)
+        id: supabase-cache
+        uses: actions/cache@v4
+        with:
+          path: /tmp/supabase-docker.tar
+          key: supabase-docker-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Wczytaj obrazy Docker z cache
+        if: steps.supabase-cache.outputs.cache-hit == 'true'
+        run: docker load -i /tmp/supabase-docker.tar
+
+      - name: Uruchom lokalnego Supabase
+        run: npx supabase start
+
+      - name: Zapisz obrazy Docker do cache
+        if: steps.supabase-cache.outputs.cache-hit != 'true'
+        run: |
+          docker save \
+            $(docker images --format '{{.Repository}}:{{.Tag}}' \
+              | grep -E 'supabase|postgrest|deno|inbucket' \
+              | grep -v '<none>') \
+            -o /tmp/supabase-docker.tar
+
+      - name: Utwórz .env.local z kluczami lokalnego Supabase
+        run: |
+          STATUS=$(npx supabase status --output env)
+          echo "NEXT_PUBLIC_SUPABASE_URL=$(echo "$STATUS" | grep '^API_URL=' | cut -d= -f2-)"        > .env.local
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(echo "$STATUS" | grep '^ANON_KEY=' | cut -d= -f2-)"  >> .env.local
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(echo "$STATUS" | grep '^SERVICE_ROLE_KEY=' | cut -d= -f2-)" >> .env.local
+
+      - name: Cache przeglądarek Playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Zainstaluj Playwright (Chromium)
+        run: npx playwright install chromium --with-deps
+
+      - name: Testy rate-limitingu (Playwright)
+        run: npm run test:e2e:rate-limits
+
+      - name: Wgraj raport testów przy niepowodzeniu
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: rate-limit-report
+          path: playwright-report/
+          retention-days: 7
+
   # Smoke testy na Vercel preview — weryfikacja że deployment działa z prawdziwym Supabase,
   # ZANIM zmiany trafią na produkcję. Blokuje merge jeśli env vars w Vercel są błędne.
   smoke:

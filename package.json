@@ -12,6 +12,7 @@
     "test:run": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:e2e:rate-limits": "playwright test --config=playwright.ratelimit.config.ts",
     "env:sync": "node scripts/sync-env-vercel.mjs"
   },
   "dependencies": {
