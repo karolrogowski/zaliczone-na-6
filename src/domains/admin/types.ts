@@ -47,3 +47,7 @@ export type AdminLoginFormState =
 export type ConfigFormState =
   | { errors?: { commission_pct?: string }; success?: boolean }
   | undefined
+
+export type MfaVerifyFormState =
+  | { message?: string }
+  | undefined

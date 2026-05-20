@@ -7,7 +7,7 @@ import { createAdminClient } from '@/shared/supabase/admin'
 import { requireAdminSession } from './require-admin-session'
 import { validateCommissionPct } from './validation'
 import { logAdminAction } from './audit'
-import type { AdminLoginFormState, ConfigFormState } from './types'
+import type { AdminLoginFormState, ConfigFormState, MfaVerifyFormState } from './types'
 
 export async function adminLogin(
   _state: AdminLoginFormState,
@@ -125,4 +125,56 @@ export async function adminLogout(): Promise<void> {
   const supabase = await createClient()
   await supabase.auth.signOut()
   redirect('/admin/login')
+}
+
+// Server action verify TOTP — przeniesione z klienta, żeby przejść przez
+// middleware proxy.ts gdzie obowiązuje rate-limit /admin/mfa. Wcześniej
+// supabase.auth.mfa.verify() w komponencie szło XHR-em prosto do Supabase,
+// omijając Next.js i rate-limit IP.
+export async function verifyMfa(
+  _state: MfaVerifyFormState,
+  formData: FormData
+): Promise<MfaVerifyFormState> {
+  const code = (formData.get('code') as string | null)?.trim() ?? ''
+  if (!/^\d{6}$/.test(code)) {
+    return { message: 'Podaj 6-cyfrowy kod z aplikacji.' }
+  }
+
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/admin/login')
+
+  const { data: factors } = await supabase.auth.mfa.listFactors()
+  const totp = factors?.totp?.[0]
+  if (!totp) {
+    return { message: 'Brak zarejestrowanego czynnika MFA. Skontaktuj się z administratorem.' }
+  }
+
+  const { data: challenge, error: challengeErr } = await supabase.auth.mfa.challenge({
+    factorId: totp.id,
+  })
+  if (challengeErr || !challenge) {
+    return { message: 'Błąd weryfikacji. Spróbuj ponownie.' }
+  }
+
+  const { error: verifyErr } = await supabase.auth.mfa.verify({
+    factorId: totp.id,
+    challengeId: challenge.id,
+    code,
+  })
+
+  if (verifyErr) {
+    return { message: 'Nieprawidłowy kod. Sprawdź aplikację i spróbuj ponownie.' }
+  }
+
+  // Audit log — pomyślna weryfikacja MFA
+  await logAdminAction({
+    admin_id: user.id,
+    action: 'admin_login_mfa_ok',
+    target_type: 'admin_user',
+    target_id: user.id,
+  })
+
+  redirect('/admin/dashboard')
 }

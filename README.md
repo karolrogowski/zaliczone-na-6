@@ -123,11 +123,11 @@ Aplikacja dostępna pod adresem [http://localhost:3000](http://localhost:3000).
 
 | Email | Rola | Hasło |
 |---|---|---|
-| uczen1@test.pl | uczeń | testtest1 |
-| uczen2@test.pl | uczeń | testtest1 |
-| korepetytor1@test.pl | korepetytor (Matematyka, Fizyka) | testtest1 |
-| korepetytor2@test.pl | korepetytor (Chemia, Biologia) | testtest1 |
-| korepetytor3@test.pl | korepetytor (Angielski, Informatyka) | testtest1 |
+| uczen1@test.pl | uczeń | TestTest1! |
+| uczen2@test.pl | uczeń | TestTest1! |
+| korepetytor1@test.pl | korepetytor (Matematyka, Fizyka) | TestTest1! |
+| korepetytor2@test.pl | korepetytor (Chemia, Biologia) | TestTest1! |
+| korepetytor3@test.pl | korepetytor (Angielski, Informatyka) | TestTest1! |
 
 Dane konta admina ustawiane przez zmienne `ADMIN_EMAIL` / `ADMIN_PASSWORD` w `.env.local`.
 

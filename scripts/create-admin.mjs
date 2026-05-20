@@ -63,4 +63,16 @@ if (error) {
   process.exit(1)
 }
 
+// Trigger handle_new_user whitelistuje role do 'student'|'tutor' i ignoruje 'admin'
+// w user_metadata. Ręcznie promujemy świeżo utworzone konto przez service role.
+const { error: roleError } = await supabase
+  .from('profiles')
+  .update({ role: 'admin' })
+  .eq('id', data.user.id)
+
+if (roleError) {
+  console.error('❌ Nie udało się ustawić roli admin:', roleError.message)
+  process.exit(1)
+}
+
 console.log(`✅ Konto admina odtworzone: ${email} (${fullName})`)

@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/domains/auth/queries'
 import { getSessionById, getSessionHostRoomUrl } from '@/domains/sessions/queries'
 import { VideoSession } from '@/domains/sessions/components/VideoSession'
+import { isUuid } from '@/shared/validation/uuid'
 
 export default async function SessionPage({
   params,
@@ -9,6 +10,8 @@ export default async function SessionPage({
   params: Promise<{ sessionId: string }>
 }) {
   const { sessionId } = await params
+
+  if (!isUuid(sessionId)) redirect('/dashboard')
 
   const profile = await getCurrentProfile()
   if (!profile) redirect('/login')

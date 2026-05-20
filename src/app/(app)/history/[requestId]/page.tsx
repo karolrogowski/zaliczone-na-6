@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getCurrentProfile } from '@/domains/auth/queries'
 import { getSessionDetail } from '@/domains/matching/queries'
+import { isUuid } from '@/shared/validation/uuid'
 
 function formatDate(isoStr: string): string {
   return new Intl.DateTimeFormat('pl-PL', {
@@ -17,6 +18,8 @@ export default async function SessionDetailPage({
   params: Promise<{ requestId: string }>
 }) {
   const { requestId } = await params
+
+  if (!isUuid(requestId)) redirect('/history')
 
   const [profile, request] = await Promise.all([
     getCurrentProfile(),
