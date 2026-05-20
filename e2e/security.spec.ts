@@ -255,3 +255,77 @@ test('uczeń nie widzi zleceń innego ucznia przez zapytanie do bazy', async () 
 
   await secStudentClient.auth.signOut()
 })
+
+// ─── Test 11: Mass assignment — student nie może podnieść siebie do roli admin ─
+
+test('uczeń nie może zmienić swojej roli na admin przez bezpośredni UPDATE profiles', async () => {
+  const { byEmail } = await getTestUserIds()
+  const studentId = byEmail(SEC_STUDENT_EMAIL)
+  expect(studentId).toBeDefined()
+
+  const studentClient = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  await studentClient.auth.signInWithPassword({ email: SEC_STUDENT_EMAIL, password: TEST_PASSWORD })
+
+  // Próba mass assignment: zmiana roli z poziomu klienta
+  await studentClient
+    .from('profiles')
+    .update({ role: 'admin' })
+    .eq('id', studentId!)
+
+  await studentClient.auth.signOut()
+
+  // Service role weryfikuje rzeczywisty stan w bazie
+  const { data } = await adminClient()
+    .from('profiles')
+    .select('role')
+    .eq('id', studentId!)
+    .single()
+
+  expect(data?.role).toBe('student')
+})
+
+// ─── Test 12: Mass assignment — korepetytor nie może zawyżyć swojej oceny ─────
+
+test('korepetytor nie może zmienić rating_avg ani rating_count na tutor_profiles', async () => {
+  const { byEmail } = await getTestUserIds()
+  const tutorId = byEmail(TUTOR1_EMAIL)
+  expect(tutorId).toBeDefined()
+
+  // Zapamiętaj stan wyjściowy
+  const { data: before } = await adminClient()
+    .from('tutor_profiles')
+    .select('rating_avg, rating_count')
+    .eq('id', tutorId!)
+    .single()
+
+  const tutorClient = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+  await tutorClient.auth.signInWithPassword({ email: TUTOR1_EMAIL, password: TEST_PASSWORD })
+
+  // Próba mass assignment ocen — REVOKE na kolumnach powinien zwrócić błąd permission denied
+  const { error } = await tutorClient
+    .from('tutor_profiles')
+    .update({ rating_avg: 5.0, rating_count: 9999 })
+    .eq('id', tutorId!)
+
+  expect(error).not.toBeNull()
+
+  await tutorClient.auth.signOut()
+
+  // Rzeczywiste wartości nie powinny się zmienić
+  const { data: after } = await adminClient()
+    .from('tutor_profiles')
+    .select('rating_avg, rating_count')
+    .eq('id', tutorId!)
+    .single()
+
+  expect(after?.rating_avg).toBe(before?.rating_avg ?? null)
+  expect(after?.rating_count).toBe(before?.rating_count ?? 0)
+})
