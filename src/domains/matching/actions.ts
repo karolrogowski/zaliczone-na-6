@@ -131,28 +131,26 @@ export async function completeMatchingRequest(requestId: string): Promise<void> 
 
   const supabase = await createClient()
 
-  await supabase
-    .from('matching_requests')
-    .update({ status: 'completed' })
-    .eq('id', requestId)
-    .eq('status', 'accepted')
-
-  // Oznacza powiązaną sesję jako zakończoną (wymagane przed wystawieniem oceny)
+  // Znajdź sesję powiązaną ze zleceniem. RLS pokazuje sesję tylko uczestnikom,
+  // więc maybeSingle() = null dla użytkownika bez uprawnień.
   const { data: session } = await supabase
     .from('sessions')
     .select('id, daily_room_name')
     .eq('matching_request_id', requestId)
     .maybeSingle()
 
-  if (session) {
-    await supabase
-      .from('sessions')
-      .update({ status: 'completed', ended_at: new Date().toISOString() })
-      .eq('id', session.id)
+  if (!session) return
 
-    if (session.daily_room_name) {
-      await deleteVideoRoom(session.daily_room_name)
-    }
+  // RPC complete_session atomowo aktualizuje sesję + matching_request,
+  // z walidacją autoryzacji po stronie bazy. Wcześniej każdy uczestnik mógł
+  // wywołać tę akcję, a logika rozproszona była między dwoma UPDATE-ami.
+  await supabase.rpc('complete_session', {
+    p_session_id: session.id,
+    p_notes: null,
+  })
+
+  if (session.daily_room_name) {
+    await deleteVideoRoom(session.daily_room_name)
   }
 
   revalidatePath('/dashboard')
