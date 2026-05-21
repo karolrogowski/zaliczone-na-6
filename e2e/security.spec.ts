@@ -828,6 +828,261 @@ test('select phone z profiles dla anon clienta zwraca permission denied', async 
   await studentClient.auth.signOut()
 })
 
+// ─── Test 26: Tutor nie może wstawić sesji dla cudzego studenta ──────────────
+
+test('korepetytor nie może wstawić sesji dla obcego studenta przez direct INSERT', async () => {
+  const { byEmail } = await getTestUserIds()
+  const studentId = byEmail(STUDENT_EMAIL)
+  const tutorId = byEmail(TUTOR1_EMAIL)
+  const otherStudentId = byEmail(SEC_STUDENT_EMAIL)
+  expect(otherStudentId).toBeDefined()
+
+  const admin = adminClient()
+  // Tworzymy pending request od studenta1, ale tutor próbuje INSERT sesji
+  // z student_id wskazującym na obcego ucznia (SEC_STUDENT)
+  const { data: mr } = await admin
+    .from('matching_requests')
+    .insert({
+      student_id: studentId!,
+      subject_id: 'matematyka',
+      level: 'Test session insert',
+      scope: 'Test',
+      description: 'Test luki #1',
+      status: 'accepted',
+      tutor_id: tutorId,
+    })
+    .select('id')
+    .single()
+
+  try {
+    const tutorClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    await tutorClient.auth.signInWithPassword({ email: TUTOR1_EMAIL, password: TEST_PASSWORD })
+
+    // Próba: tutor wpisuje student_id obcego ucznia + własne URL-e
+    const attempt = await tutorClient
+      .from('sessions')
+      .insert({
+        matching_request_id: mr!.id,
+        student_id: otherStudentId,  // OBCY student
+        tutor_id: tutorId,
+        daily_room_url: 'https://attacker.whereby.com/evil',
+        host_room_url: 'https://attacker.whereby.com/evil?roomKey=PWN',
+        status: 'in_progress',
+      })
+    expect(attempt.error).not.toBeNull()
+
+    await tutorClient.auth.signOut()
+  } finally {
+    await admin.from('sessions').delete().eq('matching_request_id', mr!.id)
+    await admin.from('matching_requests').delete().eq('id', mr!.id)
+  }
+})
+
+// ─── Test 27: Student nie może oznaczyć sesji jako completed bezpośrednio ────
+
+test('student nie może wykonać UPDATE sessions set status=completed bezpośrednio', async () => {
+  const { byEmail } = await getTestUserIds()
+  const studentId = byEmail(STUDENT_EMAIL)
+  const tutorId = byEmail(TUTOR1_EMAIL)
+
+  const admin = adminClient()
+  const { data: mr } = await admin
+    .from('matching_requests')
+    .insert({
+      student_id: studentId!,
+      tutor_id: tutorId!,
+      subject_id: 'matematyka',
+      level: 'Test sabotage status',
+      scope: 'Test',
+      description: 'Test luki #2',
+      status: 'accepted',
+    })
+    .select('id')
+    .single()
+
+  const { data: sess } = await admin
+    .from('sessions')
+    .insert({
+      matching_request_id: mr!.id,
+      student_id: studentId!,
+      tutor_id: tutorId!,
+      daily_room_name: 'sabotage-test',
+      daily_room_url: 'https://test.whereby.com/sabotage',
+      host_room_url: 'https://test.whereby.com/sabotage?roomKey=X',
+      status: 'in_progress',
+      started_at: new Date().toISOString(),
+      duration_minutes: 60,
+    })
+    .select('id')
+    .single()
+
+  try {
+    const studentClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    await studentClient.auth.signInWithPassword({ email: STUDENT_EMAIL, password: TEST_PASSWORD })
+
+    // Próba bezpośredniego UPDATE
+    await studentClient
+      .from('sessions')
+      .update({ status: 'completed', ended_at: new Date().toISOString() })
+      .eq('id', sess!.id)
+
+    await studentClient.auth.signOut()
+  } finally {
+    // Trigger powinien był rzucić — sesja nadal in_progress
+    const { data: after } = await admin
+      .from('sessions')
+      .select('status, ended_at')
+      .eq('id', sess!.id)
+      .single()
+    expect(after?.status).toBe('in_progress')
+    expect(after?.ended_at).toBeNull()
+
+    await admin.from('sessions').delete().eq('id', sess!.id)
+    await admin.from('matching_requests').delete().eq('id', mr!.id)
+  }
+})
+
+// ─── Test 28: RPC complete_session — legalna ścieżka zakończenia sesji ───────
+
+test('RPC complete_session pozwala studentowi zakończyć sesję (auto-end po timerze)', async () => {
+  const { byEmail } = await getTestUserIds()
+  const studentId = byEmail(STUDENT_EMAIL)
+  const tutorId = byEmail(TUTOR1_EMAIL)
+
+  const admin = adminClient()
+  const { data: mr } = await admin
+    .from('matching_requests')
+    .insert({
+      student_id: studentId!,
+      tutor_id: tutorId!,
+      subject_id: 'matematyka',
+      level: 'Test RPC complete',
+      scope: 'Test',
+      description: 'Test legalnej ścieżki zakończenia',
+      status: 'accepted',
+    })
+    .select('id')
+    .single()
+
+  // started_at 61 min temu + duration 60 min = naturalny koniec 1 min temu.
+  // Trigger pozwala studentowi oznaczyć completed dopiero po naturalnym końcu.
+  const { data: sess } = await admin
+    .from('sessions')
+    .insert({
+      matching_request_id: mr!.id,
+      student_id: studentId!,
+      tutor_id: tutorId!,
+      daily_room_name: 'rpc-complete',
+      daily_room_url: 'https://test.whereby.com/rpc-complete',
+      status: 'in_progress',
+      started_at: new Date(Date.now() - 61 * 60 * 1000).toISOString(),
+      duration_minutes: 60,
+    })
+    .select('id')
+    .single()
+
+  try {
+    const studentClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    await studentClient.auth.signInWithPassword({ email: STUDENT_EMAIL, password: TEST_PASSWORD })
+
+    // Student wywołuje RPC — powinno się powieść
+    const { error } = await studentClient.rpc('complete_session', {
+      p_session_id: sess!.id,
+      p_notes: 'Student próbuje wstawić notatki',
+    })
+    expect(error).toBeNull()
+
+    await studentClient.auth.signOut()
+  } finally {
+    const { data: after } = await admin
+      .from('sessions')
+      .select('status, ended_at, notes')
+      .eq('id', sess!.id)
+      .single()
+    expect(after?.status).toBe('completed')
+    expect(after?.ended_at).not.toBeNull()
+    // Notatki od studenta są ignorowane przez RPC — może ustawiać tylko tutor
+    expect(after?.notes).toBeNull()
+
+    // Matching request też zostaje zaktualizowany
+    const { data: mrAfter } = await admin
+      .from('matching_requests')
+      .select('status')
+      .eq('id', mr!.id)
+      .single()
+    expect(mrAfter?.status).toBe('completed')
+
+    await admin.from('sessions').delete().eq('id', sess!.id)
+    await admin.from('matching_requests').delete().eq('id', mr!.id)
+  }
+})
+
+// ─── Test 29: complete_session — obcy user nie może zakończyć cudzej sesji ────
+
+test('complete_session odrzuca obcego użytkownika', async () => {
+  const { byEmail } = await getTestUserIds()
+  const studentId = byEmail(STUDENT_EMAIL)
+  const tutorId = byEmail(TUTOR1_EMAIL)
+
+  const admin = adminClient()
+  const { data: mr } = await admin
+    .from('matching_requests')
+    .insert({
+      student_id: studentId!,
+      tutor_id: tutorId!,
+      subject_id: 'matematyka',
+      level: 'Test obcy RPC',
+      scope: 'Test',
+      description: 'Test obcego użytkownika w RPC',
+      status: 'accepted',
+    })
+    .select('id')
+    .single()
+
+  const { data: sess } = await admin
+    .from('sessions')
+    .insert({
+      matching_request_id: mr!.id,
+      student_id: studentId!,
+      tutor_id: tutorId!,
+      daily_room_name: 'rpc-stranger',
+      daily_room_url: 'https://test.whereby.com/rpc-stranger',
+      status: 'in_progress',
+      started_at: new Date().toISOString(),
+      duration_minutes: 60,
+    })
+    .select('id')
+    .single()
+
+  try {
+    const strangerClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+    await strangerClient.auth.signInWithPassword({ email: TUTOR2_EMAIL, password: TEST_PASSWORD })
+
+    const { error } = await strangerClient.rpc('complete_session', {
+      p_session_id: sess!.id,
+      p_notes: null,
+    })
+    expect(error).not.toBeNull()
+
+    await strangerClient.auth.signOut()
+  } finally {
+    await admin.from('sessions').delete().eq('id', sess!.id)
+    await admin.from('matching_requests').delete().eq('id', mr!.id)
+  }
+})
+
 // ─── Test 16: host_room_url dostępny dla korepetytora przez RPC ──────────────
 
 test('korepetytor odczytuje host_room_url przez get_session_host_room_url', async () => {

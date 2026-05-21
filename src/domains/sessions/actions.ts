@@ -14,9 +14,12 @@ export async function completeSession(sessionId: string, notes?: string): Promis
   const user = await getCurrentUser()
   const supabase = await createClient()
 
+  // Pobieramy session.daily_room_name na potrzeby deleteVideoRoom + sprawdzamy
+  // dostęp. RLS pokazuje sesję tylko uczestnikom, więc maybeSingle() = null
+  // dla obcego usera.
   const { data: session } = await supabase
     .from('sessions')
-    .select('id, student_id, tutor_id, matching_request_id, status, daily_room_name')
+    .select('id, student_id, tutor_id, status, daily_room_name')
     .eq('id', sessionId)
     .maybeSingle()
 
@@ -27,27 +30,22 @@ export async function completeSession(sessionId: string, notes?: string): Promis
 
   if (session.status === 'completed') return
 
-  await supabase
-    .from('sessions')
-    .update({
-      status: 'completed',
-      ended_at: new Date().toISOString(),
-      ...(notes?.trim() ? { notes: notes.trim() } : {}),
-    })
-    .eq('id', sessionId)
+  // RPC complete_session (SECURITY DEFINER) waliduje autoryzację po stronie
+  // bazy i atomowo aktualizuje sesję + matching_request. Notes ustawia tylko
+  // gdy auth.uid() = tutor_id, niezależnie od tego co przyśle klient.
+  const { error } = await supabase.rpc('complete_session', {
+    p_session_id: sessionId,
+    p_notes: notes?.trim() || null,
+  })
 
-  if (session.matching_request_id) {
-    await supabase
-      .from('matching_requests')
-      .update({ status: 'completed' })
-      .eq('id', session.matching_request_id)
-      .eq('status', 'accepted')
+  if (error) {
+    throw new Error('Nie udało się zakończyć sesji.')
   }
 
   revalidatePath('/dashboard')
   revalidatePath(`/session/${sessionId}`)
 
-  // Usuń pokój wideo — best-effort, nie blokuje zakończenia sesji
+  // Best-effort cleanup pokoju wideo
   if (session.daily_room_name) {
     void deleteVideoRoom(session.daily_room_name)
   }

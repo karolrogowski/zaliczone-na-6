@@ -51,3 +51,7 @@ export type ConfigFormState =
 export type MfaVerifyFormState =
   | { message?: string }
   | undefined
+
+export type MfaEnrollVerifyFormState =
+  | { message?: string }
+  | undefined

@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import QRCode from 'qrcode'
 import { createClient } from '@/shared/supabase/client'
+import { enrollVerifyMfa } from '../actions'
 
 export function MfaEnrollForm() {
   const router = useRouter()
@@ -11,8 +12,8 @@ export function MfaEnrollForm() {
   const [secret, setSecret] = useState<string | null>(null)
   const [factorId, setFactorId] = useState<string | null>(null)
   const [code, setCode] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
+  const [enrollError, setEnrollError] = useState<string | null>(null)
+  const [state, formAction, isPending] = useActionState(enrollVerifyMfa, undefined)
 
   useEffect(() => {
     async function enroll() {
@@ -31,7 +32,7 @@ export function MfaEnrollForm() {
         issuer: 'Zaliczone na 6',
       })
       if (error || !data) {
-        setError(`Błąd: ${error?.message ?? 'nieznany błąd'}. Wyloguj się i zaloguj ponownie.`)
+        setEnrollError(`Błąd: ${error?.message ?? 'nieznany błąd'}. Wyloguj się i zaloguj ponownie.`)
         return
       }
 
@@ -43,23 +44,13 @@ export function MfaEnrollForm() {
       setSecret(data.totp.secret)
     }
     enroll()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function handleVerify() {
-    if (!factorId || code.length !== 6) return
-    startTransition(async () => {
-      const supabase = createClient()
-      const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code })
-      if (error) {
-        setError('Nieprawidłowy kod. Sprawdź aplikację i spróbuj ponownie.')
-        return
-      }
-      router.push('/admin/dashboard')
-    })
-  }
+  const message = enrollError ?? state?.message
 
   return (
-    <div className="flex flex-col gap-6">
+    <form action={formAction} className="flex flex-col gap-6">
       <div>
         <h2 className="mb-1 text-lg font-semibold text-zinc-900">
           Konfiguracja weryfikacji dwuetapowej
@@ -74,7 +65,7 @@ export function MfaEnrollForm() {
         <div className="flex justify-center">
           <img src={qrCode} alt="Kod QR do Google Authenticator" width={200} height={200} />
         </div>
-      ) : error ? null : (
+      ) : enrollError ? null : (
         <div className="flex h-[200px] items-center justify-center text-sm text-zinc-400">
           Ładowanie kodu QR...
         </div>
@@ -89,33 +80,37 @@ export function MfaEnrollForm() {
         </div>
       )}
 
+      <input type="hidden" name="factorId" value={factorId ?? ''} />
+
       <div className="flex flex-col gap-2">
         <label htmlFor="code" className="text-sm font-medium text-zinc-700">
           Kod weryfikacyjny (6 cyfr)
         </label>
         <input
           id="code"
+          name="code"
           type="text"
           inputMode="numeric"
           maxLength={6}
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
           placeholder="000000"
+          autoComplete="one-time-code"
           className="rounded-lg border border-zinc-300 px-3 py-2 text-center font-mono text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-zinc-900"
         />
       </div>
 
-      {error && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+      {message && (
+        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{message}</p>
       )}
 
       <button
-        onClick={handleVerify}
+        type="submit"
         disabled={isPending || code.length !== 6 || !factorId}
         className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 transition-colors"
       >
         {isPending ? 'Weryfikowanie...' : 'Aktywuj weryfikację dwuetapową'}
       </button>
-    </div>
+    </form>
   )
 }

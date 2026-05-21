@@ -7,7 +7,7 @@ import { createAdminClient } from '@/shared/supabase/admin'
 import { requireAdminSession } from './require-admin-session'
 import { validateCommissionPct } from './validation'
 import { logAdminAction } from './audit'
-import type { AdminLoginFormState, ConfigFormState, MfaVerifyFormState } from './types'
+import type { AdminLoginFormState, ConfigFormState, MfaVerifyFormState, MfaEnrollVerifyFormState } from './types'
 
 export async function adminLogin(
   _state: AdminLoginFormState,
@@ -172,6 +172,54 @@ export async function verifyMfa(
   await logAdminAction({
     admin_id: user.id,
     action: 'admin_login_mfa_ok',
+    target_type: 'admin_user',
+    target_id: user.id,
+  })
+
+  redirect('/admin/dashboard')
+}
+
+// Server action enroll-verify TOTP — analogicznie do verifyMfa. Wcześniej
+// MfaEnrollForm wywoływał supabase.auth.mfa.challengeAndVerify() w przeglądarce,
+// XHR omijał proxy.ts. Po przeniesieniu POST /admin/mfa/enroll przechodzi przez
+// middleware rate-limit (rl:admin, 5/min/IP).
+export async function enrollVerifyMfa(
+  _state: MfaEnrollVerifyFormState,
+  formData: FormData
+): Promise<MfaEnrollVerifyFormState> {
+  const code = (formData.get('code') as string | null)?.trim() ?? ''
+  const factorId = (formData.get('factorId') as string | null)?.trim() ?? ''
+
+  if (!/^\d{6}$/.test(code)) {
+    return { message: 'Podaj 6-cyfrowy kod z aplikacji.' }
+  }
+  // Akceptujemy tylko UUID-podobne factorId, żeby nie przesyłać śmieci do Supabase API
+  if (!/^[0-9a-f-]{36}$/i.test(factorId)) {
+    return { message: 'Nieprawidłowy identyfikator czynnika.' }
+  }
+
+  const supabase = await createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/admin/login')
+
+  // Sprawdzamy że factorId faktycznie należy do zalogowanego usera — gdyby
+  // ktoś podał cudze id, listFactors zwróci tylko własne i miss.
+  const { data: factors } = await supabase.auth.mfa.listFactors()
+  const ownsFactor = factors?.totp?.some((f) => f.id === factorId) ?? false
+  if (!ownsFactor) {
+    return { message: 'Czynnik MFA nie należy do zalogowanego konta.' }
+  }
+
+  const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code })
+
+  if (error) {
+    return { message: 'Nieprawidłowy kod. Sprawdź aplikację i spróbuj ponownie.' }
+  }
+
+  await logAdminAction({
+    admin_id: user.id,
+    action: 'admin_mfa_enrolled',
     target_type: 'admin_user',
     target_id: user.id,
   })
