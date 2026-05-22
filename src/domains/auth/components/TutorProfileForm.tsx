@@ -93,7 +93,7 @@ export function TutorProfileForm({
             inputMode="decimal"
             placeholder="np. 80"
             defaultValue={initialRate}
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+            className="w-full rounded-lg border border-zinc-300 px-3 py-2 pr-12 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
           />
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-zinc-400">
             PLN/h
@@ -114,7 +114,7 @@ export function TutorProfileForm({
           rows={3}
           placeholder="Kilka słów o sobie, doświadczeniu i metodzie pracy..."
           defaultValue={profile?.bio ?? ''}
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
+          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
         />
       </div>
 
