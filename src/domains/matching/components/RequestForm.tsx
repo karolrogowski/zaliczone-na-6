@@ -6,10 +6,10 @@ import { LEVEL_OPTIONS, SCOPE_OPTIONS } from '../options'
 import type { Subject } from '../types'
 
 const SELECT_CLASS =
-  'rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white'
+  'rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 bg-white'
 
 const INPUT_CLASS =
-  'rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900'
+  'rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900'
 
 export function RequestForm({ subjects }: { subjects: Subject[] }) {
   const [state, action, pending] = useActionState(submitMatchingRequest, undefined)

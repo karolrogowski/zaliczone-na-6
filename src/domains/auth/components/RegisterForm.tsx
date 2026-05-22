@@ -19,7 +19,7 @@ export function RegisterForm() {
           type="text"
           autoComplete="name"
           required
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
         />
         {state?.errors?.full_name && (
           <p className="text-sm text-red-600">{state.errors.full_name[0]}</p>
@@ -36,7 +36,7 @@ export function RegisterForm() {
           type="email"
           autoComplete="email"
           required
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
         />
         {state?.errors?.email && (
           <p className="text-sm text-red-600">{state.errors.email[0]}</p>
@@ -53,7 +53,7 @@ export function RegisterForm() {
           type="password"
           autoComplete="new-password"
           required
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900"
+          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
         />
         {state?.errors?.password && (
           <p className="text-sm text-red-600">{state.errors.password[0]}</p>

@@ -65,7 +65,7 @@ export function RatingForm({ requestId }: { requestId: string }) {
           name="comment"
           rows={3}
           placeholder="Co sądzisz o tej sesji?"
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
+          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
         />
       </div>
 

@@ -205,7 +205,7 @@ export function VideoSession({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Omówiony materiał, zadania domowe, wskazówki..."
-              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-zinc-300"
+              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 resize-none focus:outline-none focus:ring-2 focus:ring-zinc-300"
               rows={3}
             />
           </div>
