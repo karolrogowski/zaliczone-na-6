@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprawdź skrzynkę — Zaliczone na 6</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+
+  .card { background: white; border: 0.5px solid #d3d1c7; border-radius: 12px; padding: 48px 52px; width: 480px; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+
+  .icon-wrap { width: 56px; height: 56px; background: #E6F1FB; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; }
+  .icon-wrap svg { width: 26px; height: 26px; stroke: #185FA5; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  .logo { font-size: 13px; font-weight: 500; color: #888780; margin-bottom: 32px; }
+  h1 { font-size: 20px; font-weight: 500; color: #2c2c2a; margin-bottom: 10px; }
+  .sub { font-size: 14px; color: #5f5e5a; line-height: 1.7; margin-bottom: 8px; }
+  .email-highlight { font-weight: 500; color: #2c2c2a; }
+
+  .hint { font-size: 12px; color: #888780; margin-bottom: 32px; line-height: 1.6; }
+
+  .resend-btn { display: inline-block; font-size: 13px; color: #185FA5; background: none; border: none; cursor: pointer; padding: 0; margin-bottom: 24px; }
+  .resend-btn:hover { text-decoration: underline; }
+
+  .divider { border: none; border-top: 0.5px solid #e8e6de; margin-bottom: 20px; }
+
+  .back-link { font-size: 12px; color: #888780; }
+  .back-link a { color: #5f5e5a; text-decoration: none; }
+  .back-link a:hover { text-decoration: underline; }
+
+  .success-msg { display: none; font-size: 12px; color: #3B6D11; background: #EAF3DE; border-radius: 6px; padding: 8px 14px; margin-bottom: 16px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <p class="logo">Zaliczone na 6</p>
+
+  <div class="icon-wrap">
+    <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+  </div>
+
+  <h1>Sprawdź skrzynkę</h1>
+  <p class="sub">Wysłaliśmy link aktywacyjny na adres<br><span class="email-highlight">anna@example.com</span></p>
+  <p class="hint">Kliknij w link w emailu, żeby aktywować konto.<br>Jeśli nie widzisz wiadomości, sprawdź folder ze spamem.</p>
+
+  <div class="success-msg" id="success-msg">Link wysłany ponownie ✓</div>
+  <button class="resend-btn" onclick="resend()">Wyślij link ponownie</button>
+
+  <hr class="divider">
+  <p class="back-link"><a href="01-rejestracja.html">← Wróć do rejestracji</a></p>
+</div>
+
+<script>
+  let sent = false;
+  function resend() {
+    if (sent) return;
+    sent = true;
+    document.getElementById('success-msg').style.display = 'block';
+    setTimeout(() => { sent = false; }, 30000);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nowe zlecenie — Zaliczone na 6 (korepetytor)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .app { display: flex; width: 860px; height: 560px; border: 0.5px solid #d3d1c7; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.07); background: white; }
+
+  .sidebar { width: 190px; flex-shrink: 0; border-right: 0.5px solid #e8e6de; background: #f5f5f3; display: flex; flex-direction: column; padding: 16px 10px; gap: 2px; }
+  .sidebar-logo { font-size: 13px; font-weight: 500; color: #2c2c2a; padding: 0 6px 14px; border-bottom: 0.5px solid #e8e6de; margin-bottom: 10px; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; font-size: 12px; color: #5f5e5a; }
+  .nav-item.active { background: white; color: #2c2c2a; font-weight: 500; border: 0.5px solid #e8e6de; }
+  .nav-bottom { margin-top: auto; padding-top: 12px; border-top: 0.5px solid #e8e6de; display: flex; flex-direction: column; gap: 4px; }
+  .toggle-block { padding: 6px 8px; }
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+  .toggle-switch { width: 30px; height: 17px; background: #1D9E75; border-radius: 20px; position: relative; }
+  .toggle-switch::after { content: ''; position: absolute; width: 13px; height: 13px; background: white; border-radius: 50%; top: 2px; right: 2px; }
+  .avatar-row { display: flex; align-items: center; gap: 8px; padding: 4px 8px; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: #E1F5EE; color: #085041; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; }
+
+  .content { flex: 1; display: flex; flex-direction: column; }
+  .tabs { display: flex; border-bottom: 0.5px solid #e8e6de; padding: 0 4px; }
+  .tab { padding: 12px 18px; font-size: 13px; color: #5f5e5a; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -0.5px; }
+  .tab.active { color: #2c2c2a; font-weight: 500; border-bottom-color: #185FA5; }
+  .panel { display: none; flex: 1; }
+  .panel.active { display: flex; }
+
+  /* Czekam */
+  .waiting-panel { flex-direction: column; align-items: center; justify-content: center; padding: 40px; gap: 0; }
+  .available-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: #EAF3DE; border-radius: 20px; font-size: 12px; font-weight: 500; color: #27500A; margin-bottom: 24px; }
+  .pulse-dot { width: 7px; height: 7px; border-radius: 50%; background: #639922; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .waiting-heading { font-size: 18px; font-weight: 500; color: #2c2c2a; margin-bottom: 8px; }
+  .waiting-sub { font-size: 13px; color: #5f5e5a; text-align: center; margin-bottom: 24px; line-height: 1.7; }
+  .subjects-list { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 28px; }
+  .subject-tag { padding: 4px 12px; background: #f5f5f3; border: 0.5px solid #e8e6de; border-radius: 20px; font-size: 12px; color: #5f5e5a; }
+  .stats-row { display: flex; gap: 28px; }
+  .stat { text-align: center; }
+  .stat-value { font-size: 20px; font-weight: 500; color: #2c2c2a; display: block; }
+  .stat-label { font-size: 11px; color: #888780; }
+
+  /* Nowe zlecenie */
+  .request-panel { flex-direction: column; }
+  .request-alert-bar { background: #E6F1FB; border-bottom: 0.5px solid #B5D4F4; padding: 12px 28px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  .request-alert-text { font-size: 14px; font-weight: 500; color: #0C447C; flex: 1; }
+  .request-countdown { font-size: 24px; font-weight: 500; color: #0C447C; min-width: 52px; text-align: right; }
+  .request-body { padding: 24px 28px; display: flex; flex-direction: column; gap: 18px; flex: 1; overflow-y: auto; }
+  .subject-row { display: flex; align-items: center; gap: 10px; }
+  .subject-badge { padding: 5px 14px; background: #E6F1FB; border-radius: 20px; font-size: 14px; font-weight: 500; color: #0C447C; }
+  .level-badge { padding: 4px 12px; background: #f5f5f3; border-radius: 20px; font-size: 12px; color: #5f5e5a; }
+  .description-box { background: #f5f5f3; border-radius: 8px; padding: 14px 16px; }
+  .desc-label { font-size: 11px; color: #888780; margin-bottom: 5px; }
+  .desc-text { font-size: 14px; color: #2c2c2a; line-height: 1.6; }
+  .meta-row { display: flex; gap: 28px; }
+  .meta-item { display: flex; flex-direction: column; gap: 3px; }
+  .meta-label { font-size: 11px; color: #888780; }
+  .meta-value { font-size: 15px; font-weight: 500; color: #2c2c2a; }
+  .meta-value.earn { color: #3B6D11; }
+  .actions { display: flex; gap: 10px; padding: 18px 28px; border-top: 0.5px solid #e8e6de; flex-shrink: 0; }
+  .accept-btn { flex: 1; padding: 13px; background: #0F6E56; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+  .accept-btn:hover { background: #085041; }
+  .decline-btn { padding: 13px 22px; background: none; border: 0.5px solid #b4b2a9; border-radius: 8px; font-size: 13px; color: #5f5e5a; cursor: pointer; }
+  .decline-btn:hover { border-color: #5f5e5a; }
+
+  /* Zaakceptowano */
+  .accepted-panel { flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 40px; }
+  .accepted-icon { width: 60px; height: 60px; border-radius: 50%; background: #EAF3DE; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .accepted-heading { font-size: 20px; font-weight: 500; color: #2c2c2a; }
+  .accepted-sub { font-size: 14px; color: #5f5e5a; text-align: center; line-height: 1.7; }
+  .join-btn { padding: 13px 36px; background: #0F6E56; color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; margin-top: 4px; }
+  .join-btn:hover { background: #085041; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">Zaliczone na 6</div>
+    <div class="nav-item active">⬜ Dashboard</div>
+    <div class="nav-item">⬜ Mój profil</div>
+    <div class="nav-item">⬜ Historia</div>
+    <div class="nav-item">⬜ Zarobki</div>
+    <div class="nav-item">⬜ Ustawienia</div>
+    <div class="nav-bottom">
+      <div class="toggle-block">
+        <div class="toggle-row">
+          <span style="font-size:11px;color:#888780;">Dostępność</span>
+          <div class="toggle-switch"></div>
+        </div>
+        <div style="font-size:11px;font-weight:500;color:#27500A;">● Dostępny</div>
+      </div>
+      <div class="avatar-row">
+        <div class="avatar">JW</div>
+        <div>
+          <div style="font-size:12px;font-weight:500;color:#2c2c2a;">Jan W.</div>
+          <div style="font-size:10px;color:#888780;">Korepetytor</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('waiting')">Dashboard</div>
+      <div class="tab" id="tab-request" onclick="showTab('request')">🔔 Nowe zlecenie</div>
+      <div class="tab" id="tab-accepted" style="display:none" onclick="showTab('accepted')">✅ Zaakceptowano</div>
+    </div>
+
+    <div class="panel waiting-panel active" id="panel-waiting">
+      <div class="available-badge"><div class="pulse-dot"></div> Dostępny na zlecenia</div>
+      <p class="waiting-heading">Czekam na zlecenia…</p>
+      <p class="waiting-sub">Gdy uczeń złoży zlecenie z Twojego przedmiotu,<br>powiadomię Cię natychmiast.</p>
+      <div class="subjects-list">
+        <span class="subject-tag">Matematyka</span>
+        <span class="subject-tag">Fizyka</span>
+        <span class="subject-tag">Liceum</span>
+        <span class="subject-tag">Studia</span>
+      </div>
+      <div class="stats-row">
+        <div class="stat"><span class="stat-value">8</span><span class="stat-label">sesji w miesiącu</span></div>
+        <div class="stat"><span class="stat-value">4.9★</span><span class="stat-label">średnia ocena</span></div>
+        <div class="stat"><span class="stat-value">720 zł</span><span class="stat-label">zarobek w miesiącu</span></div>
+      </div>
+    </div>
+
+    <div class="panel request-panel" id="panel-request">
+      <div class="request-alert-bar">
+        <span>🔔</span>
+        <span class="request-alert-text">Nowe zlecenie — zdecyduj zanim ktoś inny je przyjmie</span>
+        <span class="request-countdown" id="countdown">0:45</span>
+      </div>
+      <div class="request-body">
+        <div class="subject-row">
+          <span class="subject-badge">Matematyka</span>
+          <span class="level-badge">Liceum</span>
+        </div>
+        <div class="description-box">
+          <p class="desc-label">Czego uczeń nie rozumie</p>
+          <p class="desc-text">Całki nieoznaczone — nie rozumiem metody przez podstawienie i nie wiem kiedy jej używać. Jutro klasówka o 8 rano.</p>
+        </div>
+        <div class="meta-row">
+          <div class="meta-item"><span class="meta-label">Czas sesji</span><span class="meta-value">60 minut</span></div>
+          <div class="meta-item"><span class="meta-label">Twój zarobek</span><span class="meta-value earn">72 zł</span></div>
+          <div class="meta-item"><span class="meta-label">Rozpoczęcie</span><span class="meta-value">natychmiast</span></div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="accept-btn" onclick="acceptRequest()">Akceptuj zlecenie →</button>
+        <button class="decline-btn" onclick="declineRequest()">Pomiń</button>
+      </div>
+    </div>
+
+    <div class="panel accepted-panel" id="panel-accepted">
+      <div class="accepted-icon">✅</div>
+      <p class="accepted-heading">Zlecenie przyjęte!</p>
+      <p class="accepted-sub">Uczeń czeka na Ciebie w sesji wideo.<br>Matematyka · całki nieoznaczone · 60 min · <strong>72 zł</strong></p>
+      <button class="join-btn" onclick="alert('Następny ekran: sesja wideo')">Dołącz do sesji →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let iv = null, secs = 45;
+  function showTab(name) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    event.target.classList.add('active');
+    if (name === 'request') startCountdown(); else clearInterval(iv);
+  }
+  function startCountdown() {
+    secs = 45; clearInterval(iv); update();
+    iv = setInterval(() => { secs--; if (secs <= 0) { clearInterval(iv); declineRequest(); } else update(); }, 1000);
+  }
+  function update() {
+    const el = document.getElementById('countdown');
+    el.textContent = '0:' + String(secs).padStart(2, '0');
+    el.style.color = secs < 15 ? '#A32D2D' : '#0C447C';
+  }
+  function acceptRequest() {
+    clearInterval(iv);
+    document.getElementById('tab-request').style.display = 'none';
+    document.getElementById('tab-accepted').style.display = '';
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-accepted').classList.add('active');
+    document.getElementById('tab-accepted').classList.add('active');
+  }
+  function declineRequest() {
+    clearInterval(iv);
+    document.getElementById('tab-request').style.display = '';
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-waiting').classList.add('active');
+    document.querySelector('.tab').classList.add('active');
+  }
+</script>
+</body>
+</html>

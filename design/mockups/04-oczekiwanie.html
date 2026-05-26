@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Oczekiwanie na korepetytora — Zaliczone na 6</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .app { display: flex; width: 860px; height: 560px; border: 0.5px solid #d3d1c7; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.07); background: white; }
+  .sidebar { width: 190px; flex-shrink: 0; border-right: 0.5px solid #e8e6de; background: #f5f5f3; display: flex; flex-direction: column; padding: 16px 10px; gap: 2px; }
+  .sidebar-logo { font-size: 13px; font-weight: 500; color: #2c2c2a; padding: 0 6px 14px; border-bottom: 0.5px solid #e8e6de; margin-bottom: 10px; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 8px; font-size: 12px; color: #5f5e5a; }
+  .nav-item.active { background: white; color: #2c2c2a; font-weight: 500; border: 0.5px solid #e8e6de; }
+  .nav-bottom { margin-top: auto; padding-top: 12px; border-top: 0.5px solid #e8e6de; }
+  .avatar-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; margin-top: 4px; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: #E6F1FB; color: #185FA5; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; }
+
+  .content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 48px; }
+
+  .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 14px; background: #EAF3DE; border-radius: 20px; font-size: 12px; font-weight: 500; color: #27500A; margin-bottom: 28px; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #639922; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .timer-wrap { position: relative; width: 148px; height: 148px; margin-bottom: 28px; }
+  .timer-wrap svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+  .timer-track { fill: none; stroke: #e8e6de; stroke-width: 7; }
+  .timer-progress { fill: none; stroke: #185FA5; stroke-width: 7; stroke-linecap: round; stroke-dasharray: 428; transition: stroke-dashoffset 1s linear, stroke 0.5s; }
+  .timer-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .timer-digits { font-size: 34px; font-weight: 500; color: #2c2c2a; line-height: 1; }
+  .timer-label { font-size: 11px; color: #888780; margin-top: 4px; }
+
+  h1 { font-size: 20px; font-weight: 500; color: #2c2c2a; margin-bottom: 8px; text-align: center; }
+  .sub { font-size: 14px; color: #5f5e5a; text-align: center; margin-bottom: 28px; line-height: 1.7; }
+
+  .summary-card { background: #f5f5f3; border-radius: 8px; padding: 12px 24px; display: flex; gap: 28px; margin-bottom: 28px; }
+  .summary-item { display: flex; flex-direction: column; gap: 3px; }
+  .summary-label { font-size: 11px; color: #888780; }
+  .summary-value { font-size: 13px; font-weight: 500; color: #2c2c2a; }
+
+  .cancel-btn { font-size: 12px; color: #5f5e5a; background: none; border: 0.5px solid #b4b2a9; border-radius: 8px; padding: 8px 18px; cursor: pointer; transition: border-color 0.15s; }
+  .cancel-btn:hover { border-color: #5f5e5a; color: #2c2c2a; }
+
+  .no-tutor { display: none; flex-direction: column; align-items: center; text-align: center; gap: 14px; }
+  .no-tutor-icon { width: 56px; height: 56px; border-radius: 50%; background: #FAEEDA; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+  .no-tutor h1 { margin-bottom: 0; }
+  .no-tutor .sub { margin-bottom: 0; }
+  .retry-btn { padding: 11px 28px; background: #185FA5; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; }
+  .retry-btn:hover { background: #0C447C; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">Zaliczone na 6</div>
+    <div class="nav-item active">⏱ Zlecenie w toku</div>
+    <div class="nav-item">⬜ Dashboard</div>
+    <div class="nav-item">⬜ Historia</div>
+    <div class="nav-item">⬜ Korepetytorzy</div>
+    <div class="nav-bottom">
+      <div class="nav-item">⬜ Ustawienia</div>
+      <div class="avatar-row">
+        <div class="avatar">AK</div>
+        <div>
+          <div style="font-size:12px;font-weight:500;color:#2c2c2a;">Anna K.</div>
+          <div style="font-size:10px;color:#888780;">Liceum · Polski</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content" id="waiting-state">
+    <div class="status-pill"><div class="status-dot"></div> Szukamy korepetytora</div>
+
+    <div class="timer-wrap">
+      <svg width="148" height="148" viewBox="0 0 148 148">
+        <circle class="timer-track" cx="74" cy="74" r="68"/>
+        <circle class="timer-progress" id="ring" cx="74" cy="74" r="68"/>
+      </svg>
+      <div class="timer-center">
+        <span class="timer-digits" id="digits">5:00</span>
+        <span class="timer-label">pozostało</span>
+      </div>
+    </div>
+
+    <h1>Czekamy na korepetytora</h1>
+    <p class="sub">Twoje zlecenie trafiło do <strong>4 dostępnych korepetytorów</strong><br>z matematyki na poziomie liceum.</p>
+
+    <div class="summary-card">
+      <div class="summary-item"><span class="summary-label">Przedmiot</span><span class="summary-value">Matematyka</span></div>
+      <div class="summary-item"><span class="summary-label">Temat</span><span class="summary-value">Całki nieoznaczone</span></div>
+      <div class="summary-item"><span class="summary-label">Sesja</span><span class="summary-value">60 min · 90 zł</span></div>
+    </div>
+
+    <button class="cancel-btn" onclick="showNoTutor()">Anuluj zlecenie</button>
+  </div>
+
+  <div class="no-tutor" id="no-tutor-state">
+    <div class="no-tutor-icon">😔</div>
+    <h1>Nie znaleźliśmy korepetytora</h1>
+    <p class="sub" style="max-width:340px;">Żaden korepetytor z matematyki nie był dostępny w ciągu 5 minut.<br><strong>Nic nie zostało pobrane z Twojej karty.</strong></p>
+    <button class="retry-btn" onclick="resetTimer()">Spróbuj ponownie</button>
+    <button class="cancel-btn">Wróć do dashboardu</button>
+  </div>
+</div>
+
+<script>
+  const TOTAL = 300;
+  const C = 2 * Math.PI * 68;
+  let s = TOTAL, iv = null;
+  document.getElementById('ring').style.strokeDasharray = C;
+
+  function tick() {
+    if (s <= 0) { clearInterval(iv); showNoTutor(); return; }
+    s--;
+    const m = Math.floor(s/60), sec = s%60;
+    document.getElementById('digits').textContent = m+':'+String(sec).padStart(2,'0');
+    document.getElementById('ring').style.strokeDashoffset = C*(1 - s/TOTAL);
+    const ring = document.getElementById('ring');
+    if (s < 60) ring.style.stroke = '#E24B4A';
+    else if (s < 120) ring.style.stroke = '#BA7517';
+  }
+  function showNoTutor() {
+    clearInterval(iv);
+    document.getElementById('waiting-state').style.display = 'none';
+    document.getElementById('no-tutor-state').style.display = 'flex';
+  }
+  function resetTimer() {
+    s = TOTAL;
+    document.getElementById('ring').style.stroke = '#185FA5';
+    document.getElementById('ring').style.strokeDashoffset = 0;
+    document.getElementById('digits').textContent = '5:00';
+    document.getElementById('no-tutor-state').style.display = 'none';
+    document.getElementById('waiting-state').style.display = 'flex';
+    iv = setInterval(tick, 1000);
+  }
+  iv = setInterval(tick, 1000);
+</script>
+</body>
+</html>
