@@ -143,61 +143,47 @@ export function RatingForm({ requestId, role, otherPersonName }: RatingFormProps
         )}
       </div>
 
-      {/* Preferencje ucznia — radio buttons (wzajemnie wykluczające się) */}
+      {/* Preferencje ucznia — toggle chips (kliknięcie aktywnego = odznacza) */}
       {isStudent && (
         <div className="flex flex-col gap-3">
           <p className="text-sm font-medium text-zinc-700">
             Preferencje <span className="font-normal text-zinc-400">(opcjonalnie)</span>
           </p>
 
-          <div className="flex flex-col gap-2" role="radiogroup" aria-label="Preferencje dotyczące korepetytora">
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <input
-                type="radio"
-                name="preference_radio"
-                value="want_again"
-                checked={preference === 'want_again'}
-                onChange={() => setPreference('want_again')}
-                className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
-              />
-              <span className="text-sm text-zinc-700 group-hover:text-zinc-900">
-                <span className="inline-flex items-center gap-1.5 font-medium">
-                  Chcę uczyć się z tym korepetytorem w przyszłości
-                  <InfoTooltip content="Korepetytor zobaczy przy Twoim kolejnym zleceniu oznaczenie, że go preferujesz — może to zachęcić go do szybszej akceptacji. Preferencja pozostaje aktywna bezterminowo i możesz ją zmienić przy kolejnej ocenie." />
-                </span>
-              </span>
-            </label>
+          <div className="flex flex-col gap-2" role="group" aria-label="Preferencje dotyczące korepetytora">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-pressed={preference === 'want_again'}
+                onClick={() => setPreference(preference === 'want_again' ? '' : 'want_again')}
+                className={`flex flex-1 items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-900 ${
+                  preference === 'want_again'
+                    ? 'border-green-600 bg-green-50 text-green-800'
+                    : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50'
+                }`}
+              >
+                <span aria-hidden="true">★</span>
+                Chcę uczyć się z tym korepetytorem w przyszłości
+              </button>
+              <InfoTooltip content="Korepetytor zobaczy przy Twoim kolejnym zleceniu oznaczenie, że go preferujesz — może to zachęcić go do szybszej akceptacji. Preferencja pozostaje aktywna bezterminowo i możesz ją zmienić przy kolejnej ocenie." />
+            </div>
 
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <input
-                type="radio"
-                name="preference_radio"
-                value="avoid"
-                checked={preference === 'avoid'}
-                onChange={() => setPreference('avoid')}
-                className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
-              />
-              <span className="text-sm text-zinc-700 group-hover:text-zinc-900">
-                <span className="inline-flex items-center gap-1.5 font-medium">
-                  Nie polecaj mi tego korepetytora
-                  <InfoTooltip content={'Korepetytor nie zobaczy żadnego Twojego przyszłego zlecenia i nie będzie mógł go zaakceptować. Blokadę możesz cofnąć w dowolnym momencie w Ustawieniach → sekcja „Zablokowani korepetytorzy”.'} />
-                </span>
-              </span>
-            </label>
-
-            <label className="flex items-start gap-3 cursor-pointer group">
-              <input
-                type="radio"
-                name="preference_radio"
-                value=""
-                checked={preference === ''}
-                onChange={() => setPreference('')}
-                className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
-              />
-              <span className="text-sm text-zinc-400 group-hover:text-zinc-600">
-                Brak preferencji
-              </span>
-            </label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                aria-pressed={preference === 'avoid'}
+                onClick={() => setPreference(preference === 'avoid' ? '' : 'avoid')}
+                className={`flex flex-1 items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-900 ${
+                  preference === 'avoid'
+                    ? 'border-red-600 bg-red-50 text-red-800'
+                    : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50'
+                }`}
+              >
+                <span aria-hidden="true">{'×'}</span>
+                Nie polecaj mi tego korepetytora
+              </button>
+              <InfoTooltip content={'Korepetytor nie zobaczy żadnego Twojego przyszłego zlecenia i nie będzie mógł go zaakceptować. Blokadę możesz cofnąć w dowolnym momencie w Ustawieniach → sekcja „Zablokowani korepetytorzy".'} />
+            </div>
           </div>
         </div>
       )}
