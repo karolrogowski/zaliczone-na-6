@@ -136,26 +136,54 @@ export const getTutorPublicProfile = cache(
 )
 
 export const getSessionForRating = cache(
-  async (requestId: string): Promise<{ id: string; tutor_id: string; status: string } | null> => {
+  async (requestId: string): Promise<{
+    id: string
+    student_id: string
+    tutor_id: string
+    status: string
+    student: { full_name: string } | null
+    tutor: { full_name: string } | null
+  } | null> => {
     const supabase = await createClient()
     const { data } = await supabase
       .from('sessions')
-      .select('id, tutor_id, status')
+      .select('id, student_id, tutor_id, status, student:profiles!student_id(full_name), tutor:profiles!tutor_id(full_name)')
       .eq('matching_request_id', requestId)
       .maybeSingle()
-    return data
+    return data as {
+      id: string
+      student_id: string
+      tutor_id: string
+      status: string
+      student: { full_name: string } | null
+      tutor: { full_name: string } | null
+    } | null
   }
 )
 
 export const hasRatingForSession = cache(
-  async (sessionId: string): Promise<boolean> => {
+  async (sessionId: string, ratedBy: 'student' | 'tutor'): Promise<boolean> => {
     const supabase = await createClient()
     const { data } = await supabase
       .from('ratings')
       .select('id')
       .eq('session_id', sessionId)
+      .eq('rated_by', ratedBy)
       .maybeSingle()
     return data !== null
+  }
+)
+
+/**
+ * Zwraca matching_request_id sesji z oczekującą oceną (okno 4h).
+ * Używane przez stronę /rate do weryfikacji, czy zalogowany użytkownik
+ * powinien zobaczyć formularz oceny.
+ */
+export const getPendingRatingRequestId = cache(
+  async (userId: string): Promise<string | null> => {
+    const supabase = await createClient()
+    const { data } = await supabase.rpc('get_pending_rating', { p_user_id: userId })
+    return data ?? null
   }
 )
 

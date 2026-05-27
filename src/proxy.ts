@@ -156,6 +156,19 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
+  // ── ADR-006: Twarda blokada oceny (okno 4h) ───────────────────────────────
+  // Jeśli zalogowany użytkownik ma nieocenioną sesję zakończoną < 4h temu,
+  // przekieruj na /rate/[requestId] niezależnie od docelowego URL.
+  // Wyjątek: sama trasa /rate (żeby uniknąć pętli przekierowania).
+  if (user && isProtected && !pathname.startsWith('/rate')) {
+    const { data: pendingRequestId } = await supabase.rpc('get_pending_rating', {
+      p_user_id: user.id,
+    })
+    if (pendingRequestId) {
+      return NextResponse.redirect(new URL(`/rate/${pendingRequestId}`, request.url))
+    }
+  }
+
   return supabaseResponse
 }
 

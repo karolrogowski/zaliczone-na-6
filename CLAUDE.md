@@ -88,7 +88,7 @@ Jeśli widzisz taką zmianę — zaproponuj rozbicie na osobne PR-y PRZED implem
 - Po każdej zaimplementowanej funkcjonalności zaktualizuj `requirements/requirements.adoc` — zmień status w tabeli podsumowującej oraz w nagłówku danej sekcji (np. `MVP` → `DONE`).
 
 ## Co jeszcze nie jest zaimplementowane (MVP)
-- Dwustronny system ocen — aktualnie tylko uczeń ocenia korepetytora; brakuje oceny korepetytora → ucznia.
+*(brak — wszystkie funkcje MVP zostały zaimplementowane)*
 
 ## Poza zakresem MVP (AFTER_MVP)
 - Płatności (Stripe) — tabela `session_financials` istnieje, ale logika płatności nie.

@@ -44,8 +44,8 @@ async function createCompletedSession(
       daily_room_url: mockRoomUrl('test-room-history'),
       host_room_url: mockHostUrl('test-room-history'),
       status: 'completed',
-      started_at: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
-      ended_at: new Date().toISOString(),
+      started_at: new Date(Date.now() - 5 * 60 * 60 * 1000 - 30 * 60 * 1000).toISOString(),
+      ended_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // >4h temu → poza oknem blokady /rate
       duration_minutes: 30,
       ...(notes ? { notes } : {}),
     })

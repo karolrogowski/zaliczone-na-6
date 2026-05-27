@@ -17,7 +17,7 @@ Priorytety: `P0` blokuje launch · `P1` ważne · `P2` nice to have · `P3` świ
 | Sesja wideo 1:1 (Daily.co)                | 2 | P0 | DONE
 | Timer sesji + automatyczne zakończenie     | 2 | P0 | DONE
 | Przerwanie i powrót do sesji               | 2 | P0 | DONE
-| Dwustronny system ocen (po sesji)          | 3 | P1 | MVP
+| Dwustronny system ocen (po sesji)          | 3 | P1 | DONE
 | Współdzielenie ekranu + czat + załączniki  | 2 | P1 | DONE
 | Preautoryzacja płatności (Stripe)          | 1 | P1 | AFTER_MVP
 | Logowanie Google/Apple                     | 1 | P1 | AFTER_MVP
@@ -92,7 +92,7 @@ Korepetytor widzi, że jest oferta - dostaje popup.
 
 Kiedy aplikacja potrafi zrealizować zlecenie, trzeba zadbać o utrzymanie poziomu obsługi i zaufanie, aby użytkownicy wracali.
 
-=== Dwustronny system ocen (Rating System) — MVP / P1
+=== Dwustronny system ocen (Rating System) — DONE / P1
 
 Po zakończeniu wideorozmowy okno zamyka się i pojawia się prośba o ocenę 1-5 gwiazdek. Uczeń ocenia korepetytora (klarowność tłumaczenia), a korepetytor ucznia (kultura, przygotowanie). Na etapie MVP oceny ucznia służą tylko do wyłapywania toksycznych użytkowników, oceny korepetytora wchodzą do profilu. Użytkownik może
 

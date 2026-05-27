@@ -49,13 +49,16 @@ async function createCompletedSession(ids: { studentId: string; tutor1Id: string
   return { request, session }
 }
 
-test.beforeEach(async () => {
+async function cleanupRatingTests() {
   const db = adminClient()
   const ids = await getUserIds()
   await db.from('ratings').delete().eq('tutor_id', ids.tutor1Id)
   await db.from('sessions').delete().eq('student_id', ids.studentId)
   await db.from('matching_requests').delete().eq('student_id', ids.studentId)
-})
+}
+
+test.beforeEach(cleanupRatingTests)
+test.afterAll(cleanupRatingTests)
 
 // ─── Test 1 ──────────────────────────────────────────────────────────────────
 
@@ -66,7 +69,7 @@ test('uczeń widzi formularz oceny po zakończonej sesji', async ({ page }) => {
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  await expect(page.getByText('Oceń korepetytora')).toBeVisible()
+  await expect(page.getByText(/Oceń korepetytora/)).toBeVisible()
   await expect(page.getByText('Wyślij ocenę')).toBeVisible()
   await expect(page.locator('input[name="score"]')).toHaveCount(5)
 })
@@ -88,12 +91,14 @@ test('uczeń może wystawić ocenę i wraca do dashboardu', async ({ page }) => 
   await page.waitForTimeout(3_000)
   const { data: rating } = await adminClient()
     .from('ratings')
-    .select('id, score, comment')
+    .select('id, score, comment, rated_by')
     .eq('session_id', session.id)
+    .eq('rated_by', 'student')
     .maybeSingle()
 
   expect(rating).not.toBeNull()
   expect(rating?.score).toBe(5)
+  expect(rating?.rated_by).toBe('student')
 })
 
 // ─── Test 3 ──────────────────────────────────────────────────────────────────
@@ -102,35 +107,65 @@ test('uczeń nie może ocenić tej samej sesji dwa razy', async ({ page }) => {
   const ids = await getUserIds()
   const { request, session } = await createCompletedSession(ids)
 
-  // Wstaw ocenę bezpośrednio w DB
+  // Wstaw ocenę ucznia bezpośrednio w DB
   await adminClient().from('ratings').insert({
     session_id: session.id,
     student_id: ids.studentId,
     tutor_id: ids.tutor1Id,
     score: 4,
+    rated_by: 'student',
   })
 
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  // Już oceniona → redirect do /dashboard
+  // Już oceniona przez ucznia → redirect do /dashboard
   await expect(page).toHaveURL('/dashboard')
 })
 
 // ─── Test 4 ──────────────────────────────────────────────────────────────────
 
-test('korepetytor nie może wejść na stronę oceny', async ({ page }) => {
+test('korepetytor widzi formularz oceny ucznia po zakończonej sesji', async ({ page }) => {
   const ids = await getUserIds()
   const { request } = await createCompletedSession(ids)
 
   await loginAs(page, TUTOR1_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  // Korepetytor nie jest studentem → redirect
-  await expect(page).toHaveURL('/dashboard')
+  // Korepetytor powinien widzieć swój formularz
+  await expect(page.getByText(/Oceń ucznia/)).toBeVisible()
+  await expect(page.getByText('Wyślij ocenę')).toBeVisible()
+  await expect(page.locator('input[name="score"]')).toHaveCount(5)
+  // Korepetytor nie widzi checkboxów preferencji
+  await expect(page.getByText('Preferencje')).not.toBeVisible()
 })
 
 // ─── Test 5 ──────────────────────────────────────────────────────────────────
+
+test('korepetytor może wystawić ocenę uczniowi', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request, session } = await createCompletedSession(ids)
+
+  await loginAs(page, TUTOR1_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  await page.locator('label:has(input[name="score"][value="4"])').click()
+  await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
+
+  await page.waitForTimeout(3_000)
+  const { data: rating } = await adminClient()
+    .from('ratings')
+    .select('id, score, rated_by')
+    .eq('session_id', session.id)
+    .eq('rated_by', 'tutor')
+    .maybeSingle()
+
+  expect(rating).not.toBeNull()
+  expect(rating?.score).toBe(4)
+  expect(rating?.rated_by).toBe('tutor')
+})
+
+// ─── Test 6 ──────────────────────────────────────────────────────────────────
 
 test('strona oceny z niezakończoną sesją przekierowuje do dashboardu', async ({ page }) => {
   const ids = await getUserIds()
@@ -165,21 +200,21 @@ test('strona oceny z niezakończoną sesją przekierowuje do dashboardu', async 
   await expect(page).toHaveURL('/dashboard')
 })
 
-// ─── Test 6 ──────────────────────────────────────────────────────────────────
+// ─── Test 7 ──────────────────────────────────────────────────────────────────
 
-test('pominięcie oceny przekierowuje do dashboardu', async ({ page }) => {
+test('formularz nie ma przycisku "Pomiń" (ADR-006 §1)', async ({ page }) => {
   const ids = await getUserIds()
   const { request } = await createCompletedSession(ids)
 
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  await page.getByRole('link', { name: 'Pomiń' }).click()
-
-  await expect(page).toHaveURL('/dashboard')
+  // ADR-006: ocena obowiązkowa — brak przycisku Pomiń
+  await expect(page.getByRole('link', { name: 'Pomiń' })).not.toBeVisible()
+  await expect(page.getByRole('button', { name: /pomiń/i })).not.toBeVisible()
 })
 
-// ─── Test 7 ──────────────────────────────────────────────────────────────────
+// ─── Test 8 ──────────────────────────────────────────────────────────────────
 
 test('przycisk "Wyślij ocenę" jest wyłączony bez gwiazdki i aktywuje się po jej wyborze', async ({ page }) => {
   const ids = await getUserIds()
@@ -193,10 +228,59 @@ test('przycisk "Wyślij ocenę" jest wyłączony bez gwiazdki i aktywuje się po
   // Bez wyboru gwiazdki przycisk powinien być wyłączony (disabled={selected === 0})
   await expect(submitBtn).toBeDisabled()
 
-  // Po kliknięciu gwiazdki 3 przycisk aktywuje się
-  await page.locator('label:has(input[name="score"][value="3"])').click()
+  // Po kliknięciu gwiazdki 4 przycisk aktywuje się (score >= 3 → komentarz opcjonalny)
+  await page.locator('label:has(input[name="score"][value="4"])').click()
   await expect(submitBtn).toBeEnabled({ timeout: 3_000 })
 
-  // Etykieta opisująca ocenę 3 powinna być widoczna — potwierdza, że selected state działa
-  await expect(page.getByText('Średnio')).toBeVisible()
+  // Etykieta opisująca ocenę 4 powinna być widoczna
+  await expect(page.getByText('Dobrze')).toBeVisible()
+})
+
+// ─── Test 9 ──────────────────────────────────────────────────────────────────
+
+test('przy ocenie 1–2 gwiazdki komentarz jest wymagany (min. 50 znaków)', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request } = await createCompletedSession(ids)
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  const submitBtn = page.getByRole('button', { name: 'Wyślij ocenę' })
+
+  // Wybór 1 gwiazdki — przycisk zablokowany, bo komentarz pusty
+  await page.locator('label:has(input[name="score"][value="1"])').click()
+  await expect(submitBtn).toBeDisabled({ timeout: 3_000 })
+
+  // Krótki komentarz (< 50 znaków) — wciąż zablokowany
+  await page.fill('textarea[name="comment"]', 'Za krótki')
+  await expect(submitBtn).toBeDisabled()
+
+  // Komentarz >= 50 znaków — przycisk aktywuje się
+  await page.fill('textarea[name="comment"]', 'Korepetytor nie był przygotowany i nie odpowiedział na żadne moje pytanie.')
+  await expect(submitBtn).toBeEnabled({ timeout: 3_000 })
+})
+
+// ─── Test 10 ──────────────────────────────────────────────────────────────────
+
+test('uczeń widzi checkboxy preferencji, korepetytor ich nie widzi', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request } = await createCompletedSession(ids)
+
+  // Sprawdzamy widok ucznia
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+  await expect(page.getByText('Preferencje')).toBeVisible()
+  await expect(page.getByText(/Chcę uczyć się z tym korepetytorem/)).toBeVisible()
+  await expect(page.getByText(/Nie polecaj mi tego korepetytora/)).toBeVisible()
+
+  // Wyloguj studenta — student ma pending rating, więc bez wyczyszczenia cookies
+  // middleware przekierowuje z /login → /rate i loginAs nigdy nie widzi formularza.
+  await page.context().clearCookies()
+
+  // Czyścimy ocenę ucznia i sprawdzamy widok korepetytora
+  await adminClient().from('ratings').delete().eq('tutor_id', ids.tutor1Id)
+
+  await loginAs(page, TUTOR1_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+  await expect(page.getByText('Preferencje')).not.toBeVisible()
 })

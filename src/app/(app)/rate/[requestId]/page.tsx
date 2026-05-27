@@ -14,17 +14,34 @@ export default async function RatingPage({
   if (!isUuid(requestId)) redirect('/dashboard')
 
   const profile = await getCurrentProfile()
-  if (!profile || profile.role !== 'student') redirect('/dashboard')
+  if (!profile || (profile.role !== 'student' && profile.role !== 'tutor')) {
+    redirect('/dashboard')
+  }
 
   const session = await getSessionForRating(requestId)
   if (!session || session.status !== 'completed') redirect('/dashboard')
 
-  const alreadyRated = await hasRatingForSession(session.id)
+  // Sprawdź, czy zalogowany użytkownik jest uczestnikiem tej sesji
+  if (profile.role === 'student' && session.student_id !== profile.id) redirect('/dashboard')
+  if (profile.role === 'tutor'   && session.tutor_id   !== profile.id) redirect('/dashboard')
+
+  // Sprawdź, czy ta strona (rola) już wystawiła ocenę
+  const alreadyRated = await hasRatingForSession(session.id, profile.role)
   if (alreadyRated) redirect('/dashboard')
+
+  // Imię osoby ocenianej (kontekst w formularzu)
+  const otherPersonName =
+    profile.role === 'student'
+      ? (session.tutor?.full_name   ?? undefined)
+      : (session.student?.full_name ?? undefined)
 
   return (
     <div className="mx-auto max-w-lg">
-      <RatingForm requestId={requestId} />
+      <RatingForm
+        requestId={requestId}
+        role={profile.role}
+        otherPersonName={otherPersonName}
+      />
     </div>
   )
 }
