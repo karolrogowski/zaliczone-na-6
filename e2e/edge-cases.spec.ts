@@ -113,6 +113,11 @@ test('korepetytor kończy sesję zanim timer ucznia dobiegnie 0 — oboje trafia
 
   await studentCtx.close()
   await tutorCtx.close()
+
+  // Cleanup: przesuń sesję poza okno 4h blokady /rate, żeby nie blokować kolejnych testów
+  await db.from('sessions')
+    .update({ ended_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString() })
+    .eq('id', session.id)
 })
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -174,8 +179,8 @@ test('notatki z sesji zawierające kod HTML są wyświetlane jako tekst i nie s�
     daily_room_url: mockRoomUrl('xss-room'),
     host_room_url: mockHostUrl('xss-room'),
     status: 'completed',
-    started_at: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
-    ended_at: new Date().toISOString(),
+    started_at: new Date(Date.now() - 5 * 60 * 60 * 1000 - 30 * 60 * 1000).toISOString(),
+    ended_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // >4h temu → poza oknem blokady /rate
     duration_minutes: 30,
     notes: xssPayload,
   })

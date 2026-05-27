@@ -39,6 +39,21 @@ export default async function globalSetup() {
   await upsertUser(supabase, INCOMPLETE_TUTOR_EMAIL, 'tutor', 'Korepetytor Bez Profilu')
   await upsertUser(supabase, RESET_USER_EMAIL, 'student', 'Użytkownik Reset')
 
+  // Wyczyść dane z poprzednich uruchomień testów — auth schema (użytkownicy) przeżywa
+  // db:reset, więc sesje i oceny mogą blokować testy przez okno 4h blokady /rate.
+  const { data: sessions } = await supabase
+    .from('sessions')
+    .select('id')
+    .eq('student_id', student.id)
+  if (sessions?.length) {
+    const ids = sessions.map((s: { id: string }) => s.id)
+    await supabase.from('ratings').delete().in('session_id', ids)
+    await supabase.from('session_financials').delete().in('session_id', ids)
+  }
+  await supabase.from('sessions').delete().eq('student_id', student.id)
+  await supabase.from('sessions').delete().eq('tutor_id', tutor1.id)
+  await supabase.from('matching_requests').delete().eq('student_id', student.id)
+
   // Skonfiguruj profile korepetytorów pełnych (stawka + przedmiot + poziomy)
   for (const tutorId of [tutor1.id, tutor2.id]) {
     await supabase

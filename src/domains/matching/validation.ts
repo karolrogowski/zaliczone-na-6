@@ -38,7 +38,20 @@ export function validateSubmitRequest(fields: {
   return undefined
 }
 
-export function validateRatingComment(comment: string): string | null {
+export const MIN_COMMENT_LOW_SCORE = 50
+
+/**
+ * Waliduje komentarz do oceny.
+ * Gdy score <= 2, komentarz jest obowiązkowy i musi mieć co najmniej 50 znaków.
+ * Parametr score jest opcjonalny — bez niego sprawdzana jest tylko długość max.
+ */
+export function validateRatingComment(comment: string, score?: number): string | null {
+  if (score !== undefined && score <= 2) {
+    if (comment.length === 0)
+      return `Przy ocenie 1–2 gwiazdki komentarz jest obowiązkowy (minimum ${MIN_COMMENT_LOW_SCORE} znaków)`
+    if (comment.length < MIN_COMMENT_LOW_SCORE)
+      return `Komentarz jest za krótki — minimum ${MIN_COMMENT_LOW_SCORE} znaków (aktualnie: ${comment.length})`
+  }
   if (comment.length > MAX_COMMENT)
     return `Komentarz nie może być dłuższy niż ${MAX_COMMENT} znaków`
   return null

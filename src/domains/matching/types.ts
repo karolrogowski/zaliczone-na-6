@@ -69,6 +69,9 @@ export type TutorPublicProfile = {
   tutor_subjects: { subject_id: string; subjects: { label: string } | null }[]
 }
 
+export type RatedBy = 'student' | 'tutor'
+export type RatingPreference = 'want_again' | 'avoid'
+
 export type RatingFormState =
   | {
       errors?: { score?: string[]; comment?: string[] }

@@ -160,15 +160,23 @@ export async function submitRating(
   _state: RatingFormState,
   formData: FormData
 ): Promise<RatingFormState> {
-  const requestId = (formData.get('request_id') as string | null) ?? ''
-  const score = parseInt((formData.get('score') as string | null) ?? '0', 10)
-  const comment = (formData.get('comment') as string | null)?.trim() ?? ''
+  const requestId  = (formData.get('request_id') as string | null) ?? ''
+  const score      = parseInt((formData.get('score') as string | null) ?? '0', 10)
+  const comment    = (formData.get('comment')   as string | null)?.trim() ?? ''
+  const ratedByRaw = (formData.get('rated_by') as string | null) ?? 'student'
+  const ratedBy: 'student' | 'tutor' = ratedByRaw === 'tutor' ? 'tutor' : 'student'
+
+  // preference dotyczy tylko ucznia
+  const preferenceRaw = (formData.get('preference') as string | null) ?? ''
+  const preference: 'want_again' | 'avoid' | null =
+    preferenceRaw === 'want_again' ? 'want_again' :
+    preferenceRaw === 'avoid'      ? 'avoid'      : null
 
   if (!score || score < 1 || score > 5) {
     return { errors: { score: ['Wybierz ocenę od 1 do 5 gwiazdek'] } }
   }
 
-  const commentError = validateRatingComment(comment)
+  const commentError = validateRatingComment(comment, score)
   if (commentError) return { errors: { comment: [commentError] } }
 
   const user = await getCurrentUserOrNull()
@@ -178,19 +186,29 @@ export async function submitRating(
 
   const { data: session } = await supabase
     .from('sessions')
-    .select('id, tutor_id, status')
+    .select('id, student_id, tutor_id, status')
     .eq('matching_request_id', requestId)
     .maybeSingle()
 
   if (!session) return { message: 'Nie znaleziono sesji dla tego zlecenia.' }
   if (session.status !== 'completed') return { message: 'Sesja nie została jeszcze zakończona.' }
 
+  // Weryfikacja: użytkownik musi być odpowiednim uczestnikiem sesji
+  if (ratedBy === 'student' && session.student_id !== user.id) {
+    return { message: 'Brak uprawnień do wystawienia tej oceny.' }
+  }
+  if (ratedBy === 'tutor' && session.tutor_id !== user.id) {
+    return { message: 'Brak uprawnień do wystawienia tej oceny.' }
+  }
+
   const { error } = await supabase.from('ratings').insert({
     session_id: session.id,
-    student_id: user.id,
-    tutor_id: session.tutor_id,
+    student_id: session.student_id,
+    tutor_id:   session.tutor_id,
     score,
-    comment: comment || null,
+    comment:    comment || null,
+    rated_by:   ratedBy,
+    preference: ratedBy === 'student' ? preference : null,
   })
 
   if (error) {

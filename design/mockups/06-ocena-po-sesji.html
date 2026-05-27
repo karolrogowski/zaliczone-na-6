@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ocena po sesji — Zaliczone na 6</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; min-height: 100vh; padding: 32px 24px; }
+  .page { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  h2 { font-size: 13px; font-weight: 500; color: #888780; letter-spacing: 0.05em; text-transform: uppercase; }
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab-btn { padding: 7px 16px; border: 0.5px solid #b4b2a9; border-radius: 20px; font-size: 12px; color: #5f5e5a; cursor: pointer; background: white; transition: all 0.15s; }
+  .tab-btn:hover { border-color: #5f5e5a; }
+  .tab-btn.active { background: #2c2c2a; color: white; border-color: #2c2c2a; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Karta */
+  .card { background: white; border: 0.5px solid #d3d1c7; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+  .card-body { padding: 24px 28px; display: flex; flex-direction: column; gap: 20px; }
+  .card-footer { padding: 16px 28px; border-top: 0.5px solid #e8e6de; display: flex; align-items: center; justify-content: space-between; }
+
+  .title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .card-title { font-size: 17px; font-weight: 500; color: #2c2c2a; }
+  .card-sub { font-size: 12px; color: #888780; margin-top: 3px; }
+  .done-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; background: #EAF3DE; border-radius: 20px; font-size: 11px; font-weight: 500; color: #27500A; white-space: nowrap; flex-shrink: 0; }
+
+  .person-row { display: flex; align-items: center; gap: 14px; }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 500; flex-shrink: 0; }
+  .person-name { font-size: 15px; font-weight: 500; color: #2c2c2a; }
+  .person-meta { font-size: 12px; color: #888780; margin-top: 2px; }
+  .role-pill { display: inline-block; padding: 2px 9px; background: #f5f5f3; border-radius: 20px; font-size: 11px; color: #5f5e5a; margin-left: 8px; }
+
+  .stars-label { font-size: 13px; font-weight: 500; color: #2c2c2a; margin-bottom: 8px; }
+  .stars-row { display: flex; gap: 8px; margin-bottom: 6px; }
+  .star { font-size: 30px; cursor: pointer; color: #D3D1C7; transition: color 0.1s; user-select: none; }
+  .star.lit { color: #EF9F27; }
+  .stars-hint { font-size: 11px; color: #888780; min-height: 16px; }
+
+  label { font-size: 13px; font-weight: 500; color: #2c2c2a; display: block; margin-bottom: 4px; }
+  .sublabel { font-size: 11px; color: #888780; margin-bottom: 6px; display: block; }
+  .required-mark { color: #A32D2D; font-size: 11px; font-weight: 500; }
+  textarea { width: 100%; padding: 10px 13px; border: 0.5px solid #b4b2a9; border-radius: 8px; font-size: 13px; color: #2c2c2a; font-family: inherit; resize: none; line-height: 1.6; outline: none; transition: border-color 0.15s; }
+  textarea:focus { border-color: #185FA5; }
+  textarea::placeholder { color: #b4b2a9; }
+  textarea.error { border-color: #E24B4A; }
+  .word-count { font-size: 11px; text-align: right; margin-top: 4px; }
+  .word-count.ok { color: #3B6D11; }
+  .word-count.short { color: #A32D2D; }
+
+  .info-box { background: #E6F1FB; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #185FA5; line-height: 1.6; display: flex; gap: 10px; align-items: flex-start; }
+
+  .skip-btn { font-size: 12px; color: #5f5e5a; background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 0; }
+  .skip-btn:hover { color: #2c2c2a; }
+  .warning-label { font-size: 12px; color: #BA7517; display: flex; align-items: center; gap: 5px; }
+  .submit-btn { padding: 10px 24px; background: #185FA5; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s; }
+  .submit-btn:hover { background: #0C447C; }
+  .submit-btn:disabled { background: #b4b2a9; cursor: default; }
+
+  /* Ostrzeżenie */
+  .warn-bar { background: #FAEEDA; padding: 14px 28px; border-bottom: 0.5px solid #FAC775; display: flex; align-items: flex-start; gap: 12px; }
+  .warn-bar-icon { font-size: 20px; color: #BA7517; flex-shrink: 0; margin-top: 2px; }
+  .warn-bar-title { font-size: 14px; font-weight: 500; color: #633806; margin-bottom: 2px; }
+  .warn-bar-sub { font-size: 12px; color: #854F0B; }
+
+  /* Blokada */
+  .block-card { background: white; border: 0.5px solid #F7C1C1; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.05); }
+  .block-header { background: #FCEBEB; padding: 20px 28px; border-bottom: 0.5px solid #F7C1C1; display: flex; align-items: center; gap: 14px; }
+  .block-icon { width: 40px; height: 40px; border-radius: 50%; background: #F09595; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .block-title { font-size: 16px; font-weight: 500; color: #501313; margin-bottom: 3px; }
+  .block-sub { font-size: 12px; color: #791F1F; }
+  .block-body { padding: 24px 28px; display: flex; flex-direction: column; gap: 16px; }
+  .block-desc { font-size: 13px; color: #5f5e5a; line-height: 1.7; }
+  .pending-label { font-size: 11px; font-weight: 500; color: #888780; text-transform: uppercase; letter-spacing: 0.05em; }
+  .pending-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: #f5f5f3; border-radius: 8px; }
+  .pending-name { font-size: 13px; font-weight: 500; color: #2c2c2a; margin-bottom: 2px; }
+  .pending-date { font-size: 11px; color: #888780; }
+  .rate-btn { padding: 7px 16px; background: #185FA5; color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; white-space: nowrap; }
+  .rate-btn:hover { background: #0C447C; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h2>Ocena po sesji — cztery stany</h2>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="show('standard',this)">Ocena standardowa</button>
+    <button class="tab-btn" onclick="show('negative',this)">Ocena negatywna (&lt;4★)</button>
+    <button class="tab-btn" onclick="show('warning',this)">Ostrzeżenie (2 z 3)</button>
+    <button class="tab-btn" onclick="show('blocked',this)">Blokada konta</button>
+  </div>
+
+  <!-- 1. Standardowa -->
+  <div class="panel active" id="panel-standard">
+    <div class="card">
+      <div class="card-body">
+        <div class="title-row">
+          <div><p class="card-title">Jak oceniasz tę sesję?</p><p class="card-sub">Matematyka · całki · 60 min · dziś</p></div>
+          <span class="done-badge">✓ Sesja zakończona</span>
+        </div>
+        <div class="person-row">
+          <div class="avatar" style="background:#E1F5EE;color:#085041;">JW</div>
+          <div>
+            <p class="person-name">Jan Wiśniewski <span class="role-pill">korepetytor</span></p>
+            <p class="person-meta">Matematyka, Fizyka · 4.8★ średnia z 32 sesji</p>
+          </div>
+        </div>
+        <div>
+          <p class="stars-label">Twoja ocena</p>
+          <div class="stars-row" id="stars-s">
+            <span class="star" onclick="rate('s',1)">★</span><span class="star" onclick="rate('s',2)">★</span>
+            <span class="star" onclick="rate('s',3)">★</span><span class="star lit" onclick="rate('s',4)">★</span>
+            <span class="star lit" onclick="rate('s',5)">★</span>
+          </div>
+          <p class="stars-hint" id="hint-s">Dobra sesja</p>
+        </div>
+        <div>
+          <label>Komentarz <span style="color:#888780;font-weight:400;">(opcjonalny)</span></label>
+          <textarea rows="2" placeholder="Co poszło dobrze? Co mogłoby być lepiej?"></textarea>
+        </div>
+        <div class="info-box">
+          <span style="flex-shrink:0;margin-top:1px;">🔒</span>
+          <span>Jan zobaczy Twoją ocenę dopiero gdy sam wystawi Ci ocenę — lub po 48 godzinach. Dzięki temu oboje oceniacie szczerze.</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <button class="skip-btn" onclick="show('warning',document.querySelectorAll('.tab-btn')[2])">⏱ Oceń później (2 z 3 pominięte)</button>
+        <button class="submit-btn">Wyślij ocenę</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Negatywna -->
+  <div class="panel" id="panel-negative">
+    <div class="card">
+      <div class="card-body">
+        <div class="title-row">
+          <div><p class="card-title">Jak oceniasz tę sesję?</p><p class="card-sub">Matematyka · całki · 60 min · dziś</p></div>
+          <span class="done-badge">✓ Sesja zakończona</span>
+        </div>
+        <div class="person-row">
+          <div class="avatar" style="background:#E1F5EE;color:#085041;">JW</div>
+          <div>
+            <p class="person-name">Jan Wiśniewski <span class="role-pill">korepetytor</span></p>
+            <p class="person-meta">Matematyka, Fizyka · 4.8★ średnia</p>
+          </div>
+        </div>
+        <div>
+          <p class="stars-label">Twoja ocena</p>
+          <div class="stars-row" id="stars-n">
+            <span class="star lit" onclick="rate('n',1)">★</span><span class="star lit" onclick="rate('n',2)">★</span>
+            <span class="star" onclick="rate('n',3)">★</span><span class="star" onclick="rate('n',4)">★</span>
+            <span class="star" onclick="rate('n',5)">★</span>
+          </div>
+          <p class="stars-hint" id="hint-n" style="color:#A32D2D;">Wyjaśnienie wymagane — patrz poniżej</p>
+        </div>
+        <div>
+          <label>Dlaczego ta ocena? <span class="required-mark">Wymagane</span></label>
+          <span class="sublabel">Oceny poniżej 4★ wymagają wyjaśnienia (min. 50 słów). Twój opis pomaga nam dbać o jakość platformy.</span>
+          <textarea id="neg-text" rows="4" class="error" placeholder="Opisz konkretnie co nie zadziałało. Np. korepetytor spóźnił się 10 minut, nie potrafił wytłumaczyć metody podstawienia, ciągle przerywał i nie słuchał moich pytań..." oninput="countWords()"></textarea>
+          <p class="word-count short" id="wc">0 / min. 50 słów</p>
+        </div>
+        <div class="info-box">
+          <span style="flex-shrink:0;margin-top:1px;">🔒</span>
+          <span>Jan zobaczy Twoją ocenę dopiero gdy sam wystawi Ci ocenę — lub po 48 godzinach.</span>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span style="font-size:12px;color:#888780;">Oceny negatywnej nie możesz pominąć</span>
+        <button class="submit-btn" id="neg-submit" disabled>Wyślij ocenę</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Ostrzeżenie -->
+  <div class="panel" id="panel-warning">
+    <div class="card" style="border-color:#FAC775;">
+      <div class="warn-bar">
+        <span class="warn-bar-icon">⚠️</span>
+        <div>
+          <p class="warn-bar-title">Masz 2 nieocenione sesje — jeszcze jedna i konto zostanie zablokowane</p>
+          <p class="warn-bar-sub">Możliwość składania zleceń zostanie zablokowana do czasu wystawienia wszystkich brakujących ocen.</p>
+        </div>
+      </div>
+      <div class="card-body">
+        <div><p class="card-title">Oceń sesję zanim zapomnisz</p><p class="card-sub">Matematyka · całki · 60 min · dziś</p></div>
+        <div class="person-row">
+          <div class="avatar" style="background:#E1F5EE;color:#085041;">JW</div>
+          <div><p class="person-name">Jan Wiśniewski <span class="role-pill">korepetytor</span></p></div>
+        </div>
+        <div>
+          <p class="stars-label">Twoja ocena</p>
+          <div class="stars-row" id="stars-w">
+            <span class="star" onclick="rate('w',1)">★</span><span class="star" onclick="rate('w',2)">★</span>
+            <span class="star" onclick="rate('w',3)">★</span><span class="star" onclick="rate('w',4)">★</span>
+            <span class="star" onclick="rate('w',5)">★</span>
+          </div>
+          <p class="stars-hint" id="hint-w">Kliknij gwiazdkę</p>
+        </div>
+        <div>
+          <label>Komentarz <span style="color:#888780;font-weight:400;">(opcjonalny)</span></label>
+          <textarea rows="2" placeholder="Co poszło dobrze? Co mogłoby być lepiej?"></textarea>
+        </div>
+      </div>
+      <div class="card-footer">
+        <span class="warning-label">⚠️ Pominięte oceny: 2 z 3</span>
+        <button class="submit-btn">Wyślij i odblokuj konto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Blokada -->
+  <div class="panel" id="panel-blocked">
+    <div class="block-card">
+      <div class="block-header">
+        <div class="block-icon">🔒</div>
+        <div>
+          <p class="block-title">Konto tymczasowo zablokowane</p>
+          <p class="block-sub">Masz 3 nieocenione sesje. Wystaw brakujące oceny żeby odblokować konto.</p>
+        </div>
+      </div>
+      <div class="block-body">
+        <p class="block-desc">Oceny pomagają nam dbać o jakość platformy i chronić innych użytkowników. Nie możesz składać nowych zleceń dopóki nie wystawisz poniższych ocen.</p>
+        <p class="pending-label">Brakujące oceny</p>
+        <div class="pending-item">
+          <div><p class="pending-name">Jan Wiśniewski · Matematyka · 60 min</p><p class="pending-date">3 dni temu</p></div>
+          <button class="rate-btn" onclick="show('standard',document.querySelectorAll('.tab-btn')[0])">Oceń teraz</button>
+        </div>
+        <div class="pending-item">
+          <div><p class="pending-name">Marta Kowalska · Fizyka · 30 min</p><p class="pending-date">5 dni temu</p></div>
+          <button class="rate-btn">Oceń teraz</button>
+        </div>
+        <div class="pending-item">
+          <div><p class="pending-name">Piotr Nowak · Chemia · 60 min</p><p class="pending-date">7 dni temu</p></div>
+          <button class="rate-btn">Oceń teraz</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const labels = {1:'Bardzo słaba sesja',2:'Słaba sesja',3:'Przeciętna sesja',4:'Dobra sesja',5:'Świetna sesja!'};
+function rate(g, n) {
+  document.querySelectorAll('#stars-'+g+' .star').forEach((s,i) => s.classList.toggle('lit', i<n));
+  const h = document.getElementById('hint-'+g);
+  if (g==='n' && n<4) { h.textContent='Wyjaśnienie wymagane — patrz poniżej'; h.style.color='#A32D2D'; }
+  else { h.textContent=labels[n]; h.style.color=''; }
+}
+function countWords() {
+  const t = document.getElementById('neg-text');
+  const w = t.value.trim().split(/\s+/).filter(x=>x).length;
+  const wc = document.getElementById('wc');
+  wc.textContent = w + ' / min. 50 słów';
+  wc.className = 'word-count ' + (w>=50?'ok':'short');
+  document.getElementById('neg-submit').disabled = w < 50;
+  t.className = w>=50 ? '' : 'error';
+}
+function show(name, btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+</script>
+</body>
+</html>
