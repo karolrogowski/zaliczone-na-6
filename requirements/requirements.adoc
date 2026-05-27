@@ -101,6 +101,14 @@ Po zakończeniu wideorozmowy okno zamyka się i pojawia się prośba o ocenę 1-
     ** gdy to możliwe chcę się uczyć w przyszłości z tym nauczycielem
     ** nie polecaj mi tego nauczyciala
 
+UX ocen (dodane 2026-05-27):
+
+* Zakończenie sesji przez korepetytora wymaga potwierdzenia w modalnym oknie dialogowym (nie inline).
+* Po zapisaniu oceny obie strony widzą zielony baner potwierdzający sukces na dashboardzie.
+* Strona oceny (`/rate`) wyświetla baner wyjaśniający blokadę nawigacji — uczeń/korepetytor wiedzą, dlaczego nie mogą przejść dalej.
+* Historia sesji pokazuje oceny: uczeń widzi swoją ocenę korepetytora; korepetytor widzi ocenę ucznia o sobie oraz własną ocenę ucznia.
+* Oceny korepetytora o uczniu są ukryte przed uczniem — egzekwowane przez politykę RLS (`ratings_read`).
+
 === Algorytm priorytetyzacji powiadomień (The VIP Tier) — AFTER_MVP / P2
 
 Automatyzacja obiecana w pitchu. Skrypt opóźniający wysyłanie powiadomień o nowych zleceniach do korepetytorów z oceną poniżej 4.5. Ulubieni dostają informację od razu. "Elita" (4.5+) dostaje powiadomienie np. o 10 sekund później. Inni 30 sekund później. To tworzy asymetrię informacji promującą najwyższą jakość na platformie.

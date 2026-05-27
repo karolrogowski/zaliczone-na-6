@@ -210,40 +210,57 @@ export function VideoSession({
             />
           </div>
 
-          {confirming ? (
-            <div className="flex flex-col gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
-              <p className="text-sm font-medium text-red-700">Na pewno zakończyć sesję?</p>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleConfirm}
-                  disabled={isPending}
-                  className="cursor-pointer rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
-                >
-                  {isPending ? 'Kończenie...' : 'Tak, zakończ'}
-                </button>
-                <button
-                  onClick={handleCancel}
-                  className="cursor-pointer rounded-lg border border-zinc-200 bg-white px-4 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors"
-                >
-                  Anuluj
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              onClick={handleEndClick}
-              disabled={isPending}
-              className="cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
-            >
-              Zakończ sesję
-            </button>
-          )}
+          <button
+            onClick={handleEndClick}
+            disabled={isPending}
+            className="cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+          >
+            Zakończ sesję
+          </button>
         </div>
       ) : (
         <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3">
           <p className="text-sm text-zinc-500">
             Korepetytor może zakończyć sesję przed czasem.
           </p>
+        </div>
+      )}
+
+      {/* Modal potwierdzenia zakończenia sesji */}
+      {confirming && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-5">
+            <div>
+              <h3 className="text-lg font-semibold text-zinc-900">Zakończyć sesję?</h3>
+              <p className="mt-1 text-sm text-zinc-500">
+                Sesja zostanie zakończona, a uczeń zostanie poproszony o wystawienie oceny.
+              </p>
+            </div>
+
+            {notes.trim() && (
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
+                <p className="mb-1 text-xs font-medium text-zinc-500">Notatki, które zostaną zapisane:</p>
+                <p className="text-sm text-zinc-700 whitespace-pre-wrap line-clamp-4">{notes.trim()}</p>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleConfirm}
+                disabled={isPending}
+                className="cursor-pointer flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {isPending ? 'Kończenie...' : 'Tak, zakończ'}
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={isPending}
+                className="cursor-pointer rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 transition-colors"
+              >
+                Anuluj
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

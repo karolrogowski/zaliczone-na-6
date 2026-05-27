@@ -13,12 +13,38 @@ type RatingFormProps = {
 
 const STAR_LABELS = ['', 'Bardzo słabo', 'Słabo', 'Średnio', 'Dobrze', 'Doskonale']
 
+function InfoTooltip({ content }: { content: string }) {
+  return (
+    <span className="relative inline-flex group/tip">
+      <span
+        tabIndex={0}
+        role="button"
+        aria-label="Więcej informacji"
+        className="inline-flex h-4 w-4 cursor-default items-center justify-center rounded-full bg-zinc-200 text-[10px] font-bold text-zinc-500 hover:bg-zinc-300 focus:outline-none focus:ring-1 focus:ring-zinc-400 select-none"
+      >
+        i
+      </span>
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-64 -translate-x-1/2 rounded-xl bg-zinc-900 px-3 py-2.5 text-xs leading-relaxed text-zinc-100 opacity-0 shadow-lg transition-opacity group-hover/tip:opacity-100 group-focus-within/tip:opacity-100"
+      >
+        {content}
+        <span
+          className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-zinc-900"
+          aria-hidden="true"
+        />
+      </span>
+    </span>
+  )
+}
+
 export function RatingForm({ requestId, role, otherPersonName }: RatingFormProps) {
   const [state, formAction, isPending] = useActionState(submitRating, undefined)
-  const [hovered,  setHovered]  = useState(0)
-  const [selected, setSelected] = useState(0)
-  const [comment,  setComment]  = useState('')
-  const [preference, setPreference] = useState<'want_again' | 'avoid' | ''>('')
+  const [hovered,       setHovered]       = useState(0)
+  const [selected,      setSelected]      = useState(0)
+  const [comment,       setComment]       = useState('')
+  const [preference,    setPreference]    = useState<'want_again' | 'avoid' | ''>('')
+  const [tutorFlagged,  setTutorFlagged]  = useState(false)
 
   const isStudent    = role === 'student'
   const needsComment = selected > 0 && selected <= 2
@@ -33,15 +59,14 @@ export function RatingForm({ requestId, role, otherPersonName }: RatingFormProps
     ? 'Twoja ocena pomaga innym uczniom wybrać najlepszego korepetytora.'
     : 'Twoja ocena pomaga nam dbać o jakość społeczności uczniów na platformie.'
 
-  function togglePreference(value: 'want_again' | 'avoid') {
-    setPreference(prev => prev === value ? '' : value)
-  }
-
   return (
     <form action={formAction} className="flex flex-col gap-6">
       <input type="hidden" name="request_id" value={requestId} />
       <input type="hidden" name="rated_by"   value={role} />
-      <input type="hidden" name="preference" value={preference} />
+      {/* preference: dotyczy ucznia — 'want_again' | 'avoid' | '' */}
+      <input type="hidden" name="preference" value={isStudent ? preference : ''} />
+      {/* tutor_preference: dotyczy korepetytora — 'flag' | '' */}
+      <input type="hidden" name="tutor_preference" value={!isStudent && tutorFlagged ? 'flag' : ''} />
 
       {/* Nagłówek */}
       <div>
@@ -118,41 +143,82 @@ export function RatingForm({ requestId, role, otherPersonName }: RatingFormProps
         )}
       </div>
 
-      {/* Preferencje (tylko dla ucznia) */}
+      {/* Preferencje ucznia — radio buttons (wzajemnie wykluczające się) */}
       {isStudent && (
         <div className="flex flex-col gap-3">
           <p className="text-sm font-medium text-zinc-700">
             Preferencje <span className="font-normal text-zinc-400">(opcjonalnie)</span>
           </p>
 
-          <label className="flex items-start gap-3 cursor-pointer group">
-            <input
-              type="checkbox"
-              className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
-              checked={preference === 'want_again'}
-              onChange={() => togglePreference('want_again')}
-            />
-            <span className="text-sm text-zinc-700 group-hover:text-zinc-900">
-              <span className="font-medium">Chcę uczyć się z tym korepetytorem w przyszłości</span>
-              <br />
-              <span className="text-zinc-400 text-xs">
-                Korepetytor otrzyma powiadomienie o Twoim kolejnym zleceniu nieco wcześniej.
+          <div className="flex flex-col gap-2" role="radiogroup" aria-label="Preferencje dotyczące korepetytora">
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="radio"
+                name="preference_radio"
+                value="want_again"
+                checked={preference === 'want_again'}
+                onChange={() => setPreference('want_again')}
+                className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
+              />
+              <span className="text-sm text-zinc-700 group-hover:text-zinc-900">
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  Chcę uczyć się z tym korepetytorem w przyszłości
+                  <InfoTooltip content="Korepetytor zobaczy przy Twoim kolejnym zleceniu oznaczenie, że go preferujesz — może to zachęcić go do szybszej akceptacji. Preferencja pozostaje aktywna bezterminowo i możesz ją zmienić przy kolejnej ocenie." />
+                </span>
               </span>
-            </span>
-          </label>
+            </label>
 
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="radio"
+                name="preference_radio"
+                value="avoid"
+                checked={preference === 'avoid'}
+                onChange={() => setPreference('avoid')}
+                className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
+              />
+              <span className="text-sm text-zinc-700 group-hover:text-zinc-900">
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  Nie polecaj mi tego korepetytora
+                  <InfoTooltip content={'Korepetytor nie zobaczy żadnego Twojego przyszłego zlecenia i nie będzie mógł go zaakceptować. Blokadę możesz cofnąć w dowolnym momencie w Ustawieniach → sekcja „Zablokowani korepetytorzy”.'} />
+                </span>
+              </span>
+            </label>
+
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="radio"
+                name="preference_radio"
+                value=""
+                checked={preference === ''}
+                onChange={() => setPreference('')}
+                className="mt-0.5 h-4 w-4 border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
+              />
+              <span className="text-sm text-zinc-400 group-hover:text-zinc-600">
+                Brak preferencji
+              </span>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* Flaga korepetytora — checkbox (pojedynczy wybór) */}
+      {!isStudent && (
+        <div className="flex flex-col gap-3">
+          <p className="text-sm font-medium text-zinc-700">
+            Uwagi <span className="font-normal text-zinc-400">(opcjonalnie)</span>
+          </p>
           <label className="flex items-start gap-3 cursor-pointer group">
             <input
               type="checkbox"
+              checked={tutorFlagged}
+              onChange={(e) => setTutorFlagged(e.target.checked)}
               className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
-              checked={preference === 'avoid'}
-              onChange={() => togglePreference('avoid')}
             />
             <span className="text-sm text-zinc-700 group-hover:text-zinc-900">
-              <span className="font-medium">Nie polecaj mi tego korepetytora</span>
-              <br />
-              <span className="text-zinc-400 text-xs">
-                Ten korepetytor nie będzie pojawiał się w Twoim feedzie przy kolejnych zleceniach.
+              <span className="inline-flex items-center gap-1.5 font-medium">
+                Oznacz tego ucznia jako problematycznego
+                <InfoTooltip content="Przy kolejnych zleceniach od tego ucznia zobaczysz w karcie zlecenia znacznik ⚠️ jako prywatne przypomnienie. Uczeń nadal może zostać Ci przydzielony — to nie jest blokada, tylko notatka widoczna wyłącznie dla Ciebie." />
               </span>
             </span>
           </label>

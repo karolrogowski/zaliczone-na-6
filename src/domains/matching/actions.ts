@@ -172,6 +172,10 @@ export async function submitRating(
     preferenceRaw === 'want_again' ? 'want_again' :
     preferenceRaw === 'avoid'      ? 'avoid'      : null
 
+  // tutor_preference dotyczy tylko korepetytora
+  const tutorPreferenceRaw = (formData.get('tutor_preference') as string | null) ?? ''
+  const tutorPreference: 'flag' | null = tutorPreferenceRaw === 'flag' ? 'flag' : null
+
   if (!score || score < 1 || score > 5) {
     return { errors: { score: ['Wybierz ocenę od 1 do 5 gwiazdek'] } }
   }
@@ -207,8 +211,9 @@ export async function submitRating(
     tutor_id:   session.tutor_id,
     score,
     comment:    comment || null,
-    rated_by:   ratedBy,
-    preference: ratedBy === 'student' ? preference : null,
+    rated_by:         ratedBy,
+    preference:       ratedBy === 'student' ? preference       : null,
+    tutor_preference: ratedBy === 'tutor'   ? tutorPreference  : null,
   })
 
   if (error) {
@@ -216,7 +221,29 @@ export async function submitRating(
     return { message: 'Nie udało się zapisać oceny. Spróbuj ponownie.' }
   }
 
-  redirect('/dashboard')
+  redirect('/dashboard?ocena=zapisana')
+}
+
+/**
+ * Usuwa preferencję 'avoid' dla danego korepetytora.
+ * Aktualizuje WSZYSTKIE oceny ucznia dla tego korepetytora (może być wiele sesji),
+ * żeby filtr w getTutorPendingRequests przestał działać dla tej pary.
+ */
+export async function removeAvoidPreference(tutorId: string): Promise<void> {
+  const user = await getCurrentUserOrNull()
+  if (!user) return
+
+  const supabase = await createClient()
+
+  await supabase
+    .from('ratings')
+    .update({ preference: null })
+    .eq('rated_by', 'student')
+    .eq('preference', 'avoid')
+    .eq('student_id', user.id)
+    .eq('tutor_id', tutorId)
+
+  revalidatePath('/settings')
 }
 
 export async function toggleTutorAvailability(isAvailable: boolean): Promise<void> {

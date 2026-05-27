@@ -12,12 +12,21 @@ import {
   getTutorPendingRequests,
   getTutorProfileDetails,
   getTutorRecentRequests,
+  getTutorStudentInteractions,
+  getStudentPreviousRatingOfTutor,
 } from '@/domains/matching/queries'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ocena?: string }>
+}) {
   const profile = await getCurrentProfile()
 
   if (profile?.role === 'admin') redirect('/admin/dashboard')
+
+  const { ocena } = await searchParams
+  const ratingSuccess = ocena === 'zapisana'
 
   if (profile?.role === 'student') {
     const [activeRequest, stats, consultations] = await Promise.all([
@@ -26,9 +35,25 @@ export default async function DashboardPage() {
       getStudentRecentConsultations(),
     ])
 
+    // Pobierz poprzednią ocenę korepetytora tylko gdy zlecenie jest zaakceptowane
+    const tutorId = activeRequest?.status === 'accepted' ? activeRequest.tutor_id : null
+    const previousTutorRating = tutorId
+      ? await getStudentPreviousRatingOfTutor(tutorId)
+      : null
+
     return (
       <div className="mx-auto max-w-2xl flex flex-col gap-8">
-        {activeRequest && <StudentRequestStatus initialRequest={activeRequest} />}
+        {ratingSuccess && (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+            ✓ Ocena została zapisana. Dziękujemy za feedback!
+          </div>
+        )}
+        {activeRequest && (
+          <StudentRequestStatus
+            initialRequest={activeRequest}
+            previousTutorRating={previousTutorRating}
+          />
+        )}
         <StudentStatsSection stats={stats} hasActiveRequest={!!activeRequest} />
         <StudentConsultationsList consultations={consultations} />
       </div>
@@ -43,13 +68,25 @@ export default async function DashboardPage() {
       getTutorRecentRequests(),
     ])
 
+    // Pobierz historię interakcji z uczniami z aktualnych zleceń
+    const studentIds = [...new Set(pendingRequests.map((r) => r.student_id).filter(Boolean))] as string[]
+    const studentInteractions = await getTutorStudentInteractions(studentIds)
+
     return (
-      <TutorDashboard
-        initialRequests={pendingRequests}
-        tutorProfile={tutorProfile}
-        acceptedRequest={acceptedRequest}
-        recentRequests={recentRequests}
-      />
+      <div className="flex flex-col gap-6">
+        {ratingSuccess && (
+          <div className="mx-auto w-full max-w-2xl rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+            ✓ Ocena ucznia została zapisana. Dziękujemy!
+          </div>
+        )}
+        <TutorDashboard
+          initialRequests={pendingRequests}
+          tutorProfile={tutorProfile}
+          acceptedRequest={acceptedRequest}
+          recentRequests={recentRequests}
+          studentInteractions={studentInteractions}
+        />
+      </div>
     )
   }
 
