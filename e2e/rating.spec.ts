@@ -265,7 +265,7 @@ test('przy ocenie 1–2 gwiazdki komentarz jest wymagany (min. 50 znaków)', asy
 
 // ─── Test 10 ──────────────────────────────────────────────────────────────────
 
-test('uczeń widzi radio buttons preferencji, korepetytor ich nie widzi', async ({ page }) => {
+test('uczeń widzi przyciski preferencji, korepetytor ich nie widzi', async ({ page }) => {
   const ids = await getUserIds()
   const { request } = await createCompletedSession(ids)
 
@@ -273,8 +273,8 @@ test('uczeń widzi radio buttons preferencji, korepetytor ich nie widzi', async 
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/rate/${request.id}`)
   await expect(page.getByText('Preferencje')).toBeVisible()
-  await expect(page.getByText(/Chcę uczyć się z tym korepetytorem/)).toBeVisible()
-  await expect(page.getByText(/Nie polecaj mi tego korepetytora/)).toBeVisible()
+  await expect(page.getByRole('button', { name: /Chcę uczyć się z tym korepetytorem/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Nie polecaj mi tego korepetytora/ })).toBeVisible()
 
   // Wyloguj studenta — student ma pending rating, więc bez wyczyszczenia cookies
   // middleware przekierowuje z /login → /rate i loginAs nigdy nie widzi formularza.
@@ -290,33 +290,34 @@ test('uczeń widzi radio buttons preferencji, korepetytor ich nie widzi', async 
 
 // ─── Test 11 ──────────────────────────────────────────────────────────────────
 
-test('radio buttons preferencji ucznia są wzajemnie wykluczające się', async ({ page }) => {
+test('przyciski preferencji ucznia działają jak toggle: wzajemnie wykluczające się, ponowne kliknięcie odznacza', async ({ page }) => {
   const ids = await getUserIds()
   const { request } = await createCompletedSession(ids)
 
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  const wantAgainRadio = page.locator('input[name="preference_radio"][value="want_again"]')
-  const avoidRadio     = page.locator('input[name="preference_radio"][value="avoid"]')
-  const noneRadio      = page.locator('input[name="preference_radio"][value=""]')
+  const wantAgainBtn = page.getByRole('button', { name: /Chcę uczyć się z tym korepetytorem/ })
+  const avoidBtn     = page.getByRole('button', { name: /Nie polecaj mi tego korepetytora/ })
 
-  // Domyślnie "Brak preferencji" powinno być zaznaczone
-  await expect(noneRadio).toBeChecked()
-  await expect(wantAgainRadio).not.toBeChecked()
-  await expect(avoidRadio).not.toBeChecked()
+  // Domyślnie żaden przycisk nie jest wciśnięty
+  await expect(wantAgainBtn).toHaveAttribute('aria-pressed', 'false')
+  await expect(avoidBtn).toHaveAttribute('aria-pressed', 'false')
 
-  // Zaznaczamy "Chcę uczyć się z tym korepetytorem"
-  await wantAgainRadio.click()
-  await expect(wantAgainRadio).toBeChecked()
-  await expect(avoidRadio).not.toBeChecked()
-  await expect(noneRadio).not.toBeChecked()
+  // Kliknięcie "Chcę uczyć się z tym korepetytorem" — aktywuje
+  await wantAgainBtn.click()
+  await expect(wantAgainBtn).toHaveAttribute('aria-pressed', 'true')
+  await expect(avoidBtn).toHaveAttribute('aria-pressed', 'false')
 
-  // Zaznaczamy "Nie polecaj mi tego korepetytora" — automatycznie odznacza poprzednie
-  await avoidRadio.click()
-  await expect(avoidRadio).toBeChecked()
-  await expect(wantAgainRadio).not.toBeChecked()
-  await expect(noneRadio).not.toBeChecked()
+  // Kliknięcie "Nie polecaj mi tego korepetytora" — przełącza na avoid
+  await avoidBtn.click()
+  await expect(avoidBtn).toHaveAttribute('aria-pressed', 'true')
+  await expect(wantAgainBtn).toHaveAttribute('aria-pressed', 'false')
+
+  // Ponowne kliknięcie aktywnego przycisku — odznacza (brak preferencji)
+  await avoidBtn.click()
+  await expect(avoidBtn).toHaveAttribute('aria-pressed', 'false')
+  await expect(wantAgainBtn).toHaveAttribute('aria-pressed', 'false')
 })
 
 // ─── Test 12 ──────────────────────────────────────────────────────────────────
@@ -330,7 +331,7 @@ test('preferencja "avoid" zapisuje się w bazie po wysłaniu oceny', async ({ pa
 
   await page.locator('input[name="score"][value="4"]').evaluate(el => (el as HTMLInputElement).click())
   await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
-  await page.locator('input[name="preference_radio"][value="avoid"]').click()
+  await page.getByRole('button', { name: /Nie polecaj mi tego korepetytora/ }).click()
   await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
 
   await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
@@ -356,7 +357,7 @@ test('preferencja "want_again" zapisuje się w bazie po wysłaniu oceny', async 
 
   await page.locator('input[name="score"][value="5"]').evaluate(el => (el as HTMLInputElement).click())
   await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
-  await page.locator('input[name="preference_radio"][value="want_again"]').click()
+  await page.getByRole('button', { name: /Chcę uczyć się z tym korepetytorem/ }).click()
   await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
 
   await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
