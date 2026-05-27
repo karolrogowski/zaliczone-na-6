@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getCurrentProfile } from '@/domains/auth/queries'
-import { getSessionDetail } from '@/domains/matching/queries'
+import { getSessionDetail, getRatingsForSession } from '@/domains/matching/queries'
+import type { SessionRating } from '@/domains/matching/queries'
 import { isUuid } from '@/shared/validation/uuid'
 
 function formatDate(isoStr: string): string {
@@ -10,6 +11,31 @@ function formatDate(isoStr: string): string {
     month: 'long',
     year: 'numeric',
   }).format(new Date(isoStr))
+}
+
+function Stars({ score }: { score: number }) {
+  return (
+    <span aria-label={`${score} z 5 gwiazdek`}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <span key={i} className={i < score ? 'text-yellow-400' : 'text-zinc-200'}>★</span>
+      ))}
+    </span>
+  )
+}
+
+function RatingCard({ rating, label }: { rating: SessionRating; label: string }) {
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white px-5 py-4 flex flex-col gap-2">
+      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{label}</p>
+      <div className="flex items-center gap-2">
+        <Stars score={rating.score} />
+        <span className="text-sm font-medium text-zinc-700">{rating.score}/5</span>
+      </div>
+      {rating.comment && (
+        <p className="text-sm text-zinc-600 italic">&ldquo;{rating.comment}&rdquo;</p>
+      )}
+    </div>
+  )
 }
 
 export default async function SessionDetailPage({
@@ -40,6 +66,16 @@ export default async function SessionDetailPage({
   const notes = Array.isArray(request.session)
     ? request.session[0]?.notes
     : request.session?.notes
+
+  const sessionId = Array.isArray(request.session)
+    ? request.session[0]?.id
+    : request.session?.id
+
+  // Pobierz oceny — RLS automatycznie filtruje widoczność per rola
+  const ratings = sessionId ? await getRatingsForSession(sessionId) : []
+
+  const studentRating = ratings.find((r) => r.rated_by === 'student') ?? null
+  const tutorRating   = ratings.find((r) => r.rated_by === 'tutor')   ?? null
 
   const otherPersonLabel = isStudent
     ? request.tutor_profile?.full_name
@@ -93,7 +129,47 @@ export default async function SessionDetailPage({
           </div>
         </div>
       ) : (
-        <p className="text-sm text-zinc-400">Więcej szczegółów wkrótce.</p>
+        <p className="text-sm text-zinc-400">Brak notatek z sesji.</p>
+      )}
+
+      {/* Sekcja ocen */}
+      {(studentRating || tutorRating) && (
+        <>
+          <hr className="border-zinc-200" />
+          <div className="flex flex-col gap-3">
+            <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">Oceny</h2>
+
+            {/* Uczeń widzi tylko swoją ocenę korepetytora */}
+            {isStudent && studentRating && (
+              <RatingCard
+                rating={studentRating}
+                label={`Twoja ocena korepetytora${request.tutor_profile?.full_name ? ` (${request.tutor_profile.full_name})` : ''}`}
+              />
+            )}
+
+            {/* Korepetytor widzi: ocenę ucznia o nim + swoją ocenę ucznia */}
+            {isTutor && studentRating && (
+              <RatingCard
+                rating={studentRating}
+                label={`Ocena wystawiona przez ucznia${request.student_profile?.full_name ? ` (${request.student_profile.full_name})` : ''}`}
+              />
+            )}
+            {isTutor && tutorRating && (
+              <RatingCard
+                rating={tutorRating}
+                label={`Twoja ocena ucznia${request.student_profile?.full_name ? ` (${request.student_profile.full_name})` : ''}`}
+              />
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Brak ocen — tylko jeśli sesja ukończona */}
+      {request.status === 'completed' && !studentRating && !tutorRating && (
+        <>
+          <hr className="border-zinc-200" />
+          <p className="text-sm text-zinc-400">Brak ocen dla tej sesji.</p>
+        </>
       )}
     </div>
   )

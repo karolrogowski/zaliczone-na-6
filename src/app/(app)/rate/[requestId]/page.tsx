@@ -36,7 +36,12 @@ export default async function RatingPage({
       : (session.student?.full_name ?? undefined)
 
   return (
-    <div className="mx-auto max-w-lg">
+    <div className="mx-auto max-w-lg flex flex-col gap-5">
+      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <span className="font-semibold">Ocena jest wymagana przed przejściem dalej.</span>{' '}
+        Platforma tymczasowo blokuje nawigację do innych stron — to celowe zachowanie, nie błąd.
+        Wyślij ocenę, aby odblokować dostęp do platformy.
+      </div>
       <RatingForm
         requestId={requestId}
         role={profile.role}

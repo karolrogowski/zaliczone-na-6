@@ -10,8 +10,10 @@ import type { MatchingRequestWithSubject } from '../types'
 
 export function StudentRequestStatus({
   initialRequest,
+  previousTutorRating,
 }: {
   initialRequest: MatchingRequestWithSubject
+  previousTutorRating?: { score: number; preference: string | null } | null
 }) {
   const request = useStudentRequest(initialRequest)
   const [isPending, startTransition] = useTransition()
@@ -57,6 +59,26 @@ export function StudentRequestStatus({
           )}
           <strong>{request.subjects?.label ?? request.subject_id}</strong>.
         </p>
+
+        {/* Poprzednia interakcja z tym korepetytorem */}
+        {previousTutorRating && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            <span className="rounded-full bg-white/70 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
+              Poprzednia ocena: {previousTutorRating.score}★
+            </span>
+            {previousTutorRating.preference === 'want_again' && (
+              <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+                ⭐ Twój preferowany korepetytor
+              </span>
+            )}
+            {previousTutorRating.preference === 'avoid' && (
+              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                ⚠️ Poprzednio oznaczono jako niepolecany
+              </span>
+            )}
+          </div>
+        )}
+
         {hasRoom && sessionId ? (
           <a
             href={`/session/${sessionId}`}

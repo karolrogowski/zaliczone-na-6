@@ -34,6 +34,8 @@ export type TutorProfileDetails = {
   hourly_rate_grosz: number | null
   levels: string[]
   tutor_subjects: { subject_id: string }[]
+  rating_avg: number | null
+  rating_count: number
 }
 
 export type SubmitRequestFormState =
@@ -71,6 +73,25 @@ export type TutorPublicProfile = {
 
 export type RatedBy = 'student' | 'tutor'
 export type RatingPreference = 'want_again' | 'avoid'
+export type TutorPreference = 'flag'
+
+/**
+ * Poprzednia interakcja korepetytora z danym uczniem.
+ * Używane do wyświetlania odznak w kartach zleceń.
+ */
+export type TutorStudentInteraction = {
+  studentId: string
+  /** Uczeń zaznaczył "chcę ponownie tego korepetytora" */
+  wantAgain: boolean
+  /** Korepetytor uczył już tego ucznia (istnieje poprzednia ocena) */
+  hasPreviousSession: boolean
+  /** Ostatnia ocena korepetytora dla tego ucznia */
+  tutorLastScore: number | null
+  /** Ostatnia ocena ucznia wystawiona korepetytorowi */
+  studentLastScore: number | null
+  /** Korepetytor oznaczył tego ucznia jako problematycznego */
+  tutorFlagged: boolean
+}
 
 export type RatingFormState =
   | {

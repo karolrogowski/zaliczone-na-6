@@ -7,18 +7,20 @@ import { useTutorRequests } from '../hooks/useTutorRequests'
 import { useCountdown } from '../hooks/useCountdown'
 import { TutorRequestHistory } from './TutorRequestHistory'
 import { getSessionData } from '../sessionUtils'
-import type { MatchingRequestWithSubject, TutorProfileDetails } from '../types'
+import type { MatchingRequestWithSubject, TutorProfileDetails, TutorStudentInteraction } from '../types'
 
 export function TutorDashboard({
   initialRequests,
   tutorProfile,
   acceptedRequest,
   recentRequests,
+  studentInteractions,
 }: {
   initialRequests: MatchingRequestWithSubject[]
   tutorProfile: TutorProfileDetails | null
   acceptedRequest: MatchingRequestWithSubject | null
   recentRequests: MatchingRequestWithSubject[]
+  studentInteractions: Record<string, TutorStudentInteraction>
 }) {
   const requests = useTutorRequests(initialRequests)
   const [isPending, startTransition] = useTransition()
@@ -110,9 +112,12 @@ export function TutorDashboard({
     )
   }
 
+  const ratingAvg = tutorProfile?.rating_avg ?? null
+  const ratingCount = tutorProfile?.rating_count ?? 0
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-semibold text-zinc-900">Dostępność</h2>
@@ -139,6 +144,52 @@ export function TutorDashboard({
             />
           </button>
         </div>
+
+        <div className="border-t border-zinc-100 pt-4">
+          <div className="mb-1.5 flex items-center gap-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">Twoja ocena</p>
+            {ratingAvg !== null && ratingCount >= 5 && ratingAvg >= 4.5 && (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
+                ⭐ VIP
+              </span>
+            )}
+          </div>
+          {ratingAvg !== null && ratingCount > 0 ? (
+            <div className="flex items-center gap-2">
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((i) => {
+                  const full = Math.floor(ratingAvg)
+                  const half = ratingAvg - full >= 0.5
+                  return (
+                    <span
+                      key={i}
+                      className={`text-lg leading-none ${
+                        i <= full
+                          ? 'text-yellow-400'
+                          : i === full + 1 && half
+                            ? 'text-yellow-200'
+                            : 'text-zinc-200'
+                      }`}
+                    >
+                      ★
+                    </span>
+                  )
+                })}
+              </div>
+              <span className="text-sm font-semibold text-zinc-700">{ratingAvg.toFixed(1)}</span>
+              <span className="text-sm text-zinc-400">
+                ({ratingCount} {ratingCount === 1 ? 'ocena' : ratingCount < 5 ? 'oceny' : 'ocen'})
+              </span>
+              {ratingCount < 5 && (
+                <span className="text-xs text-zinc-400">
+                  — jeszcze {5 - ratingCount} {5 - ratingCount === 1 ? 'ocena' : 'ocen'} do VIP
+                </span>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-400">Brak ocen — pojawią się po pierwszej sesji.</p>
+          )}
+        </div>
       </div>
 
       {optimisticAvailable && (
@@ -159,7 +210,12 @@ export function TutorDashboard({
             </div>
           ) : (
             requests.map((req) => (
-              <RequestCard key={req.id} request={req} onRaceError={showRaceError} />
+              <RequestCard
+                key={req.id}
+                request={req}
+                onRaceError={showRaceError}
+                interaction={studentInteractions[req.student_id]}
+              />
             ))
           )}
         </div>
@@ -173,9 +229,11 @@ export function TutorDashboard({
 function RequestCard({
   request,
   onRaceError,
+  interaction,
 }: {
   request: MatchingRequestWithSubject
   onRaceError: (msg: string) => void
+  interaction?: TutorStudentInteraction
 }) {
   const [isPending, startTransition] = useTransition()
   const secondsLeft = useCountdown(request.expires_at)
@@ -194,8 +252,8 @@ function RequestCard({
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4">
-      <div className="mb-3 flex items-start justify-between gap-4">
+    <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-4">
         <div>
           <p className="font-medium text-zinc-900">
             {request.subjects?.label ?? request.subject_id}
@@ -213,6 +271,37 @@ function RequestCard({
           <span suppressHydrationWarning>{minutes}:{String(seconds).padStart(2, '0')}</span>
         </span>
       </div>
+
+      {/* Odznaki poprzedniej interakcji z uczniem */}
+      {interaction && (
+        <div className="flex flex-wrap gap-1.5">
+          {interaction.wantAgain && (
+            <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
+              ⭐ Uczeń preferuje Cię
+            </span>
+          )}
+          {interaction.tutorFlagged && (
+            <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">
+              ⚠️ Oznaczono wcześniej
+            </span>
+          )}
+          {interaction.hasPreviousSession && !interaction.wantAgain && !interaction.tutorFlagged && (
+            <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
+              Uczyłeś już tego ucznia
+            </span>
+          )}
+          {interaction.hasPreviousSession && interaction.studentLastScore !== null && (
+            <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
+              Uczeń ocenił Cię: {interaction.studentLastScore}★
+            </span>
+          )}
+          {interaction.hasPreviousSession && interaction.tutorLastScore !== null && (
+            <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
+              Twoja ocena ucznia: {interaction.tutorLastScore}★
+            </span>
+          )}
+        </div>
+      )}
 
       <button
         onClick={handleAccept}

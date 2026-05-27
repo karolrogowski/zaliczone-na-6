@@ -126,7 +126,7 @@ test('historia sesji bez notatek: widoczny komunikat zastępczy', async ({ page 
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/history/${request.id}`)
 
-  await expect(page.getByText('Więcej szczegółów wkrótce.')).toBeVisible()
+  await expect(page.getByText('Brak notatek z sesji.')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Notatki z sesji' })).not.toBeVisible()
 })
 
@@ -176,10 +176,9 @@ test('uczeń nie może zobaczyć szczegółów cudzej sesji (tutor2)', async ({ 
   // Tworzymy sesję dla tutor2 — uczeń testowy nie jest jej uczestnikiem
   const { byEmail } = await getTestUserIds()
   const tutor2Id = byEmail(TUTOR2_EMAIL)!
-  const studentId = byEmail(STUDENT_EMAIL)!
 
   // Wstawiamy sesję dla INNEGO ucznia (używamy tutor2Id jako "inny uczeń" — uprość test)
-  // W praktyce: używamy studentId ale zmieniamy właściciela w request
+  // Zalogowany student (STUDENT_EMAIL) nie jest uczestnikiem tej sesji
   const db = adminClient()
   const { data: request } = await db
     .from('matching_requests')
@@ -217,4 +216,103 @@ test('uczeń nie może zobaczyć szczegółów cudzej sesji (tutor2)', async ({ 
   // Posprzątaj
   await db.from('sessions').delete().eq('student_id', tutor2Id)
   await db.from('matching_requests').delete().eq('id', request.id)
+})
+
+// ─── Oceny w historii ─────────────────────────────────────────────────────────
+
+test('uczeń widzi własną ocenę korepetytora w szczegółach sesji', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request, session } = await createCompletedSession(ids)
+
+  // Wstaw ocenę ucznia
+  await adminClient().from('ratings').insert({
+    session_id: session.id,
+    student_id: ids.studentId,
+    tutor_id: ids.tutor1Id,
+    score: 4,
+    rated_by: 'student',
+  })
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/history/${request.id}`)
+
+  await expect(page.getByText('Oceny')).toBeVisible()
+  await expect(page.getByText(/Twoja ocena korepetytora/)).toBeVisible()
+  await expect(page.getByText('4/5')).toBeVisible()
+})
+
+test('uczeń nie widzi oceny wystawionej mu przez korepetytora (RLS)', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request, session } = await createCompletedSession(ids)
+
+  // Unikalne wartości: uczeń ocenił na 4★, korepetytor na 2★
+  await adminClient().from('ratings').insert([
+    {
+      session_id: session.id,
+      student_id: ids.studentId,
+      tutor_id: ids.tutor1Id,
+      score: 4,
+      rated_by: 'student',
+    },
+    {
+      session_id: session.id,
+      student_id: ids.studentId,
+      tutor_id: ids.tutor1Id,
+      score: 2,
+      rated_by: 'tutor',
+    },
+  ])
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/history/${request.id}`)
+
+  // Uczeń widzi swoją ocenę (4★)
+  await expect(page.getByText('4/5')).toBeVisible()
+  // Uczeń NIE widzi prywatnej oceny korepetytora (2★)
+  await expect(page.getByText('2/5')).not.toBeVisible()
+})
+
+test('korepetytor widzi obie oceny w historii sesji', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request, session } = await createCompletedSession(ids)
+
+  // Unikalne wartości: uczeń ocenił na 5★, korepetytor na 3★
+  await adminClient().from('ratings').insert([
+    {
+      session_id: session.id,
+      student_id: ids.studentId,
+      tutor_id: ids.tutor1Id,
+      score: 5,
+      rated_by: 'student',
+    },
+    {
+      session_id: session.id,
+      student_id: ids.studentId,
+      tutor_id: ids.tutor1Id,
+      score: 3,
+      rated_by: 'tutor',
+    },
+  ])
+
+  // Sesja jest stara (>4h) → korepetytor nie jest blokowany przez /rate
+  await loginAs(page, TUTOR1_EMAIL)
+  await page.goto(`/history/${request.id}`)
+
+  await expect(page.getByText('Oceny')).toBeVisible()
+  // Ocena ucznia o korepetytorze
+  await expect(page.getByText(/Ocena wystawiona przez ucznia/)).toBeVisible()
+  await expect(page.getByText('5/5')).toBeVisible()
+  // Własna ocena korepetytora o uczniu
+  await expect(page.getByText(/Twoja ocena ucznia/)).toBeVisible()
+  await expect(page.getByText('3/5')).toBeVisible()
+})
+
+test('sesja bez ocen pokazuje komunikat "Brak ocen dla tej sesji."', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request } = await createCompletedSession(ids)
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/history/${request.id}`)
+
+  await expect(page.getByText('Brak ocen dla tej sesji.')).toBeVisible()
 })

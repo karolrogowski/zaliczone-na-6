@@ -85,13 +85,29 @@ export const getTutorPendingRequests = cache(
     const supabase = await createClient()
     // Lazy expiry: oznacza przeterminowane zlecenia przed pobraniem listy
     await supabase.rpc('expire_pending_requests')
+
+    // Pobierz student_ids, którzy oznaczyli bieżącego korepetytora jako 'avoid'.
+    // RLS automatycznie filtruje ratings do wierszy z tutor_id = auth.uid().
+    const { data: avoidedData } = await supabase
+      .from('ratings')
+      .select('student_id')
+      .eq('rated_by', 'student')
+      .eq('preference', 'avoid')
+
+    const avoidedIds = (avoidedData ?? []).map((r) => r.student_id).filter(Boolean) as string[]
+
     const now = new Date().toISOString()
-    const { data } = await supabase
+    let query = supabase
       .from('matching_requests')
       .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name)')
       .eq('status', 'pending')
       .gt('expires_at', now)
-      .order('created_at', { ascending: true })
+
+    if (avoidedIds.length > 0) {
+      query = query.not('student_id', 'in', `(${avoidedIds.join(',')})`)
+    }
+
+    const { data } = await query.order('created_at', { ascending: true })
     return (data ?? []) as MatchingRequestWithSubject[]
   }
 )
@@ -223,6 +239,111 @@ export const getTutorAllSessions = cache(
   }
 )
 
+export type SessionRating = {
+  score: number
+  comment: string | null
+  rated_by: 'student' | 'tutor'
+}
+
+/**
+ * Zwraca oceny powiązane z sesją.
+ * RLS gwarantuje, że:
+ *   - uczeń widzi tylko oceny rated_by = 'student' (swoje oceny korepetytora)
+ *   - korepetytor widzi obie strony (rated_by = 'student' i rated_by = 'tutor')
+ */
+export const getRatingsForSession = cache(
+  async (sessionId: string): Promise<SessionRating[]> => {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('ratings')
+      .select('score, comment, rated_by')
+      .eq('session_id', sessionId)
+    return (data ?? []) as SessionRating[]
+  }
+)
+
+/**
+ * Zwraca historię interakcji bieżącego korepetytora z podanymi uczniami.
+ * Używane do wyświetlania odznak w kartach zleceń na dashboardzie.
+ * RLS: korepetytor widzi tylko oceny z własnych sesji.
+ */
+export const getTutorStudentInteractions = cache(
+  async (studentIds: string[]): Promise<Record<string, import('./types').TutorStudentInteraction>> => {
+    if (studentIds.length === 0) return {}
+    const supabase = await createClient()
+
+    const { data } = await supabase
+      .from('ratings')
+      .select('student_id, score, rated_by, preference, tutor_preference, created_at')
+      .in('student_id', studentIds)
+      .order('created_at', { ascending: false })
+
+    const result: Record<string, import('./types').TutorStudentInteraction> = {}
+
+    for (const studentId of studentIds) {
+      const rows = (data ?? []).filter((r) => r.student_id === studentId)
+      const byStudent = rows.filter((r) => r.rated_by === 'student')
+      const byTutor   = rows.filter((r) => r.rated_by === 'tutor')
+
+      result[studentId] = {
+        studentId,
+        wantAgain:          byStudent.some((r) => r.preference === 'want_again'),
+        hasPreviousSession: rows.length > 0,
+        tutorLastScore:     byTutor[0]?.score   ?? null,
+        studentLastScore:   byStudent[0]?.score  ?? null,
+        tutorFlagged:       byTutor.some((r) => r.tutor_preference === 'flag'),
+      }
+    }
+
+    return result
+  }
+)
+
+/**
+ * Zwraca ostatnią ocenę ucznia wystawioną danemu korepetytorowi.
+ * Używane na dashboardzie ucznia, gdy korepetytor akceptuje zlecenie.
+ */
+/**
+ * Zwraca listę korepetytorów oznaczonych przez ucznia jako 'avoid'.
+ * Deduplikuje: jeśli uczeń miał wiele sesji z tym samym korepetytorem
+ * i każdą oznaczył jako avoid, na liście pojawia się raz.
+ */
+export const getStudentAvoidedTutors = cache(
+  async (): Promise<Array<{ tutorId: string; tutorName: string }>> => {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('ratings')
+      .select('tutor_id, tutor:profiles!tutor_id(full_name)')
+      .eq('rated_by', 'student')
+      .eq('preference', 'avoid')
+
+    if (!data) return []
+
+    const seen = new Set<string>()
+    return data
+      .filter((r) => r.tutor_id && !seen.has(r.tutor_id) && seen.add(r.tutor_id))
+      .map((r) => ({
+        tutorId: r.tutor_id as string,
+        tutorName: (r.tutor as unknown as { full_name: string } | null)?.full_name ?? 'Korepetytor',
+      }))
+  }
+)
+
+export const getStudentPreviousRatingOfTutor = cache(
+  async (tutorId: string): Promise<{ score: number; preference: string | null } | null> => {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('ratings')
+      .select('score, preference')
+      .eq('tutor_id', tutorId)
+      .eq('rated_by', 'student')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    return data
+  }
+)
+
 export const getTutorProfileDetails = cache(
   async (): Promise<TutorProfileDetails | null> => {
     const supabase = await createClient()
@@ -233,7 +354,7 @@ export const getTutorProfileDetails = cache(
 
     const { data } = await supabase
       .from('tutor_profiles')
-      .select('is_available, hourly_rate_grosz, levels, tutor_subjects(subject_id)')
+      .select('is_available, hourly_rate_grosz, levels, rating_avg, rating_count, tutor_subjects(subject_id)')
       .eq('id', user.id)
       .single()
     return data as TutorProfileDetails | null

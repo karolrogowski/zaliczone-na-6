@@ -55,6 +55,8 @@ async function cleanupRatingTests() {
   await db.from('ratings').delete().eq('tutor_id', ids.tutor1Id)
   await db.from('sessions').delete().eq('student_id', ids.studentId)
   await db.from('matching_requests').delete().eq('student_id', ids.studentId)
+  // Zresetuj dostępność korepetytora (może być zmieniona przez test filtra avoid)
+  await db.from('tutor_profiles').update({ is_available: false }).eq('id', ids.tutor1Id)
 }
 
 test.beforeEach(cleanupRatingTests)
@@ -70,7 +72,7 @@ test('uczeń widzi formularz oceny po zakończonej sesji', async ({ page }) => {
   await page.goto(`/rate/${request.id}`)
 
   await expect(page.getByText(/Oceń korepetytora/)).toBeVisible()
-  await expect(page.getByText('Wyślij ocenę')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeVisible()
   await expect(page.locator('input[name="score"]')).toHaveCount(5)
 })
 
@@ -83,12 +85,12 @@ test('uczeń może wystawić ocenę i wraca do dashboardu', async ({ page }) => 
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  await page.locator('label:has(input[name="score"][value="5"])').click()
+  await page.locator('input[name="score"][value="5"]').evaluate(el => (el as HTMLInputElement).click())
+  await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
   await page.fill('textarea[name="comment"]', 'Świetna sesja, wszystko jasno wytłumaczone.')
   await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
 
-  // Weryfikujemy w DB niezależnie od redirect — obejście potencjalnego problemu z auth w form POST
-  await page.waitForTimeout(3_000)
+  await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
   const { data: rating } = await adminClient()
     .from('ratings')
     .select('id, score, comment, rated_by')
@@ -134,7 +136,7 @@ test('korepetytor widzi formularz oceny ucznia po zakończonej sesji', async ({ 
 
   // Korepetytor powinien widzieć swój formularz
   await expect(page.getByText(/Oceń ucznia/)).toBeVisible()
-  await expect(page.getByText('Wyślij ocenę')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeVisible()
   await expect(page.locator('input[name="score"]')).toHaveCount(5)
   // Korepetytor nie widzi checkboxów preferencji
   await expect(page.getByText('Preferencje')).not.toBeVisible()
@@ -149,10 +151,11 @@ test('korepetytor może wystawić ocenę uczniowi', async ({ page }) => {
   await loginAs(page, TUTOR1_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  await page.locator('label:has(input[name="score"][value="4"])').click()
+  await page.locator('input[name="score"][value="4"]').evaluate(el => (el as HTMLInputElement).click())
+  await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
   await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
 
-  await page.waitForTimeout(3_000)
+  await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
   const { data: rating } = await adminClient()
     .from('ratings')
     .select('id, score, rated_by')
@@ -229,7 +232,7 @@ test('przycisk "Wyślij ocenę" jest wyłączony bez gwiazdki i aktywuje się po
   await expect(submitBtn).toBeDisabled()
 
   // Po kliknięciu gwiazdki 4 przycisk aktywuje się (score >= 3 → komentarz opcjonalny)
-  await page.locator('label:has(input[name="score"][value="4"])').click()
+  await page.locator('input[name="score"][value="4"]').evaluate(el => (el as HTMLInputElement).click())
   await expect(submitBtn).toBeEnabled({ timeout: 3_000 })
 
   // Etykieta opisująca ocenę 4 powinna być widoczna
@@ -248,7 +251,7 @@ test('przy ocenie 1–2 gwiazdki komentarz jest wymagany (min. 50 znaków)', asy
   const submitBtn = page.getByRole('button', { name: 'Wyślij ocenę' })
 
   // Wybór 1 gwiazdki — przycisk zablokowany, bo komentarz pusty
-  await page.locator('label:has(input[name="score"][value="1"])').click()
+  await page.locator('input[name="score"][value="1"]').evaluate(el => (el as HTMLInputElement).click())
   await expect(submitBtn).toBeDisabled({ timeout: 3_000 })
 
   // Krótki komentarz (< 50 znaków) — wciąż zablokowany
@@ -262,7 +265,7 @@ test('przy ocenie 1–2 gwiazdki komentarz jest wymagany (min. 50 znaków)', asy
 
 // ─── Test 10 ──────────────────────────────────────────────────────────────────
 
-test('uczeń widzi checkboxy preferencji, korepetytor ich nie widzi', async ({ page }) => {
+test('uczeń widzi radio buttons preferencji, korepetytor ich nie widzi', async ({ page }) => {
   const ids = await getUserIds()
   const { request } = await createCompletedSession(ids)
 
@@ -283,4 +286,222 @@ test('uczeń widzi checkboxy preferencji, korepetytor ich nie widzi', async ({ p
   await loginAs(page, TUTOR1_EMAIL)
   await page.goto(`/rate/${request.id}`)
   await expect(page.getByText('Preferencje')).not.toBeVisible()
+})
+
+// ─── Test 11 ──────────────────────────────────────────────────────────────────
+
+test('radio buttons preferencji ucznia są wzajemnie wykluczające się', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request } = await createCompletedSession(ids)
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  const wantAgainRadio = page.locator('input[name="preference_radio"][value="want_again"]')
+  const avoidRadio     = page.locator('input[name="preference_radio"][value="avoid"]')
+  const noneRadio      = page.locator('input[name="preference_radio"][value=""]')
+
+  // Domyślnie "Brak preferencji" powinno być zaznaczone
+  await expect(noneRadio).toBeChecked()
+  await expect(wantAgainRadio).not.toBeChecked()
+  await expect(avoidRadio).not.toBeChecked()
+
+  // Zaznaczamy "Chcę uczyć się z tym korepetytorem"
+  await wantAgainRadio.click()
+  await expect(wantAgainRadio).toBeChecked()
+  await expect(avoidRadio).not.toBeChecked()
+  await expect(noneRadio).not.toBeChecked()
+
+  // Zaznaczamy "Nie polecaj mi tego korepetytora" — automatycznie odznacza poprzednie
+  await avoidRadio.click()
+  await expect(avoidRadio).toBeChecked()
+  await expect(wantAgainRadio).not.toBeChecked()
+  await expect(noneRadio).not.toBeChecked()
+})
+
+// ─── Test 12 ──────────────────────────────────────────────────────────────────
+
+test('preferencja "avoid" zapisuje się w bazie po wysłaniu oceny', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request, session } = await createCompletedSession(ids)
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  await page.locator('input[name="score"][value="4"]').evaluate(el => (el as HTMLInputElement).click())
+  await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
+  await page.locator('input[name="preference_radio"][value="avoid"]').click()
+  await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
+
+  await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
+
+  const { data: rating } = await adminClient()
+    .from('ratings')
+    .select('preference')
+    .eq('session_id', session.id)
+    .eq('rated_by', 'student')
+    .maybeSingle()
+
+  expect(rating?.preference).toBe('avoid')
+})
+
+// ─── Test 13 ──────────────────────────────────────────────────────────────────
+
+test('preferencja "want_again" zapisuje się w bazie po wysłaniu oceny', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request, session } = await createCompletedSession(ids)
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  await page.locator('input[name="score"][value="5"]').evaluate(el => (el as HTMLInputElement).click())
+  await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
+  await page.locator('input[name="preference_radio"][value="want_again"]').click()
+  await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
+
+  await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
+
+  const { data: rating } = await adminClient()
+    .from('ratings')
+    .select('preference')
+    .eq('session_id', session.id)
+    .eq('rated_by', 'student')
+    .maybeSingle()
+
+  expect(rating?.preference).toBe('want_again')
+})
+
+// ─── Test 14 ──────────────────────────────────────────────────────────────────
+
+test('korepetytor może oznaczyć ucznia flagą (tutor_preference = "flag")', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request, session } = await createCompletedSession(ids)
+
+  await loginAs(page, TUTOR1_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  await page.locator('input[name="score"][value="4"]').evaluate(el => (el as HTMLInputElement).click())
+  await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
+  // Checkbox "Oznacz tego ucznia jako problematycznego"
+  await page.getByRole('checkbox').click()
+  await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
+
+  await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
+
+  const { data: rating } = await adminClient()
+    .from('ratings')
+    .select('tutor_preference')
+    .eq('session_id', session.id)
+    .eq('rated_by', 'tutor')
+    .maybeSingle()
+
+  expect(rating?.tutor_preference).toBe('flag')
+})
+
+// ─── Test 15 ──────────────────────────────────────────────────────────────────
+
+test('po wystawieniu oceny pojawia się baner sukcesu na dashboardzie', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request } = await createCompletedSession(ids)
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  await page.locator('input[name="score"][value="5"]').evaluate(el => (el as HTMLInputElement).click())
+  await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
+  await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
+
+  // Czekamy na redirect do /dashboard?ocena=zapisana
+  await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
+  await expect(page.getByText(/Ocena została zapisana/)).toBeVisible()
+})
+
+// ─── Test 16 ──────────────────────────────────────────────────────────────────
+
+test('na stronie /rate widoczny jest baner informacyjny o wymaganiu oceny', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request } = await createCompletedSession(ids)
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  await expect(page.getByText(/Ocena jest wymagana przed przejściem dalej/)).toBeVisible()
+})
+
+// ─── Test 17 ──────────────────────────────────────────────────────────────────
+
+test('korepetytor nie widzi zleceń od ucznia, który oznaczył go jako "avoid"', async ({ page }) => {
+  const ids = await getUserIds()
+  const db = adminClient()
+
+  // 1. Stara sesja (>4h) — korepetytor poza oknem blokady /rate
+  const { data: oldRequest } = await db
+    .from('matching_requests')
+    .insert({
+      student_id: ids.studentId,
+      tutor_id: ids.tutor1Id,
+      subject_id: 'matematyka',
+      status: 'completed',
+    })
+    .select()
+    .single()
+
+  const { data: oldSession } = await db
+    .from('sessions')
+    .insert({
+      matching_request_id: oldRequest.id,
+      student_id: ids.studentId,
+      tutor_id: ids.tutor1Id,
+      daily_room_name: 'test-room-avoid',
+      daily_room_url: mockRoomUrl('test-room-avoid'),
+      host_room_url: mockHostUrl('test-room-avoid'),
+      status: 'completed',
+      started_at: new Date(Date.now() - 5 * 60 * 60 * 1000 - 30 * 60 * 1000).toISOString(),
+      ended_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      duration_minutes: 30,
+    })
+    .select()
+    .single()
+
+  // Ocena ucznia z preferencją "avoid"
+  await db.from('ratings').insert({
+    session_id: oldSession.id,
+    student_id: ids.studentId,
+    tutor_id: ids.tutor1Id,
+    score: 3,
+    rated_by: 'student',
+    preference: 'avoid',
+  })
+
+  // Ocena korepetytora — żeby nie był blokowany przez 4h okno
+  await db.from('ratings').insert({
+    session_id: oldSession.id,
+    student_id: ids.studentId,
+    tutor_id: ids.tutor1Id,
+    score: 4,
+    rated_by: 'tutor',
+  })
+
+  // 2. Nowe oczekujące zlecenie od ucznia (wygaśnięcie za 1h)
+  await db.from('matching_requests').insert({
+    student_id: ids.studentId,
+    subject_id: 'matematyka',
+    status: 'pending',
+    expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+  })
+
+  // 3. Korepetytor musi być dostępny, żeby RLS pokazało pending requests
+  await db.from('tutor_profiles').update({ is_available: true }).eq('id', ids.tutor1Id)
+
+  // 4. Logujemy jako korepetytor
+  await loginAs(page, TUTOR1_EMAIL)
+
+  // 5. Sekcja "Oczekujące zlecenia" powinna być widoczna (is_available=true)
+  await expect(page.getByText('Oczekujące zlecenia')).toBeVisible({ timeout: 5_000 })
+
+  // 6. Zlecenie od ucznia z "avoid" NIE powinno być widoczne
+  //    Jedyne oczekujące zlecenie to od unikniętego ucznia → lista jest pusta
+  await expect(
+    page.getByText('Brak zleceń w Twoich przedmiotach. Czekamy na uczniów...')
+  ).toBeVisible({ timeout: 5_000 })
 })
