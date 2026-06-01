@@ -168,7 +168,7 @@ test('uczeń anuluje zlecenie i wraca do dashboardu bez aktywnego zlecenia', asy
   await page.getByText('Anuluj zlecenie').click()
 
   await expect(page.getByText('Szukamy korepetytora...')).not.toBeVisible({ timeout: 10_000 })
-  await expect(page.getByRole('link', { name: /Złóż pierwsze zlecenie/ })).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByRole('link', { name: 'Nowe zlecenie' }).first()).toBeVisible({ timeout: 10_000 })
 })
 
 test('uczeń widzi w czasie rzeczywistym że korepetytor zaakceptował', async ({ browser }) => {

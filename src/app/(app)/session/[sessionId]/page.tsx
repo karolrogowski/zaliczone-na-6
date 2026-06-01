@@ -3,6 +3,7 @@ import { getCurrentProfile } from '@/domains/auth/queries'
 import { getSessionById, getSessionHostRoomUrl } from '@/domains/sessions/queries'
 import { VideoSession } from '@/domains/sessions/components/VideoSession'
 import { isUuid } from '@/shared/validation/uuid'
+import { PageContainer } from '../../components/PageContainer'
 
 export default async function SessionPage({
   params,
@@ -40,7 +41,7 @@ export default async function SessionPage({
     : session.daily_room_url
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <PageContainer><div className="mx-auto max-w-5xl">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-zinc-900">Sesja wideo</h1>
         <a
@@ -58,6 +59,6 @@ export default async function SessionPage({
         durationMinutes={durationMinutes}
         isTutor={isTutor}
       />
-    </div>
+    </div></PageContainer>
   )
 }

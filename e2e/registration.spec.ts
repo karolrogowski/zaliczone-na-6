@@ -33,7 +33,7 @@ async function fillRegisterForm(
   await page.fill('input[name="full_name"]', options.fullName ?? 'Jan Testowy')
   await page.fill('input[name="email"]', email)
   await page.fill('input[name="password"]', options.password ?? STRONG_PASSWORD)
-  await page.locator(`input[name="role"][value="${role}"]`).check()
+  await page.getByRole('button', { name: role === 'student' ? 'Szukam korepetytora' : 'Chcę uczyć' }).click()
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -42,7 +42,7 @@ async function fillRegisterForm(
 
 test('rejestracja jako uczeń przekierowuje na stronę potwierdzenia emaila', async ({ page }) => {
   await fillRegisterForm(page, NEW_STUDENT_EMAIL, 'student')
-  await page.getByRole('button', { name: 'Zarejestruj się' }).click()
+  await page.getByRole('button', { name: /Załóż konto/ }).click()
 
   await page.waitForURL('/check-email', { timeout: 10_000 })
   await expect(page.getByRole('heading', { name: 'Sprawdź skrzynkę mailową' })).toBeVisible()
@@ -55,7 +55,7 @@ test('rejestracja jako uczeń przekierowuje na stronę potwierdzenia emaila', as
 
 test('rejestracja jako korepetytor przekierowuje na stronę potwierdzenia emaila', async ({ page }) => {
   await fillRegisterForm(page, NEW_TUTOR_EMAIL, 'tutor')
-  await page.getByRole('button', { name: 'Zarejestruj się' }).click()
+  await page.getByRole('button', { name: /Załóż konto/ }).click()
 
   await page.waitForURL('/check-email', { timeout: 10_000 })
   await expect(page.getByRole('heading', { name: 'Sprawdź skrzynkę mailową' })).toBeVisible()
@@ -71,7 +71,7 @@ test('rejestracja jako korepetytor przekierowuje na stronę potwierdzenia emaila
 test('rejestracja z istniejącym emailem zachowuje się jak nowa rejestracja (user enumeration defense)', async ({ page }) => {
   // STUDENT_EMAIL już istnieje w bazie (tworzony przez global-setup)
   await fillRegisterForm(page, STUDENT_EMAIL, 'student')
-  await page.getByRole('button', { name: 'Zarejestruj się' }).click()
+  await page.getByRole('button', { name: /Załóż konto/ }).click()
 
   await page.waitForURL('/check-email', { timeout: 10_000 })
   await expect(page.getByRole('heading', { name: 'Sprawdź skrzynkę mailową' })).toBeVisible()
@@ -83,7 +83,7 @@ test('rejestracja z istniejącym emailem zachowuje się jak nowa rejestracja (us
 
 test('rejestracja ze zbyt krótkim hasłem wyświetla błąd walidacji', async ({ page }) => {
   await fillRegisterForm(page, 'walidacja@test.zaliczone.local', 'student', { password: 'abc123' })
-  await page.getByRole('button', { name: 'Zarejestruj się' }).click()
+  await page.getByRole('button', { name: /Załóż konto/ }).click()
 
   await expect(page.getByText('Hasło musi mieć co najmniej 10 znaków')).toBeVisible({ timeout: 10_000 })
   expect(page.url()).toContain('/register')

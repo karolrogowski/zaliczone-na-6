@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/domains/auth/queries'
 import { SettingsForm } from '@/domains/auth/components/SettingsForm'
+import { PageContainer } from '../components/PageContainer'
 import { getStudentAvoidedTutors, getStudentFavoriteTutors } from '@/domains/matching/queries'
 import { AvoidedTutorsList } from '@/domains/matching/components/AvoidedTutorsList'
 import { FavoriteTutorsList } from '@/domains/matching/components/FavoriteTutorsList'
@@ -14,7 +15,7 @@ export default async function SettingsPage() {
     : [[], []]
 
   return (
-    <div className="mx-auto max-w-xl flex flex-col gap-8">
+    <PageContainer><div className="mx-auto max-w-xl flex flex-col gap-8">
       <SettingsForm profile={profile} />
 
       {profile.role === 'student' && (
@@ -42,6 +43,6 @@ export default async function SettingsPage() {
           </div>
         </>
       )}
-    </div>
+    </div></PageContainer>
   )
 }

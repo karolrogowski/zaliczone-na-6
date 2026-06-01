@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/domains/auth/queries'
 import { getTutorPublicProfile } from '@/domains/matching/queries'
 import { TutorPublicProfileView } from '@/domains/matching/components/TutorPublicProfileView'
+import { PageContainer } from '../../components/PageContainer'
 
 export default async function TutorProfilePage({
   params,
@@ -19,13 +20,13 @@ export default async function TutorProfilePage({
   if (!tutorProfile) redirect('/dashboard')
 
   return (
-    <div className="mx-auto max-w-xl">
+    <PageContainer><div className="mx-auto max-w-xl">
       <div className="mb-6">
         <a href="/dashboard" className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">
           ← Powrót
         </a>
       </div>
       <TutorPublicProfileView profile={tutorProfile} />
-    </div>
+    </div></PageContainer>
   )
 }

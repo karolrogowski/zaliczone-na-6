@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/domains/auth/queries'
 import { getStudentActiveRequest, getSubjects } from '@/domains/matching/queries'
 import { RequestForm } from '@/domains/matching/components/RequestForm'
+import { PageContainer } from '../components/PageContainer'
 
 export default async function RequestPage() {
   const profile = await getCurrentProfile()
@@ -13,8 +14,8 @@ export default async function RequestPage() {
   const subjects = await getSubjects()
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <PageContainer><div className="mx-auto max-w-2xl">
       <RequestForm subjects={subjects} />
-    </div>
+    </div></PageContainer>
   )
 }

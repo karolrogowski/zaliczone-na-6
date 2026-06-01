@@ -3,6 +3,7 @@ import { getCurrentProfile } from '@/domains/auth/queries'
 import { getSessionForRating, hasRatingForSession, getEditableRatingForSession } from '@/domains/matching/queries'
 import { RatingForm } from '@/domains/matching/components/RatingForm'
 import { isUuid } from '@/shared/validation/uuid'
+import { PageContainer } from '../../components/PageContainer'
 
 export default async function RatingPage({
   params,
@@ -35,7 +36,7 @@ export default async function RatingPage({
 
     const otherPersonName = session.tutor?.full_name ?? undefined
     return (
-      <div className="mx-auto max-w-lg flex flex-col gap-5">
+      <PageContainer><div className="mx-auto max-w-lg flex flex-col gap-5">
         <RatingForm
           requestId={requestId}
           role={profile.role}
@@ -50,7 +51,7 @@ export default async function RatingPage({
             editableUntil:       editableRating.editable_until,
           }}
         />
-      </div>
+      </div></PageContainer>
     )
   }
 
