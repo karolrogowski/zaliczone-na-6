@@ -234,6 +234,27 @@ export async function submitRating(
 }
 
 /**
+ * Usuwa korepetytora z listy ulubionych ucznia.
+ * Aktualizuje WSZYSTKIE oceny ucznia dla tego korepetytora (może być wiele sesji).
+ */
+export async function removeFavoriteTutor(tutorId: string): Promise<void> {
+  const user = await getCurrentUserOrNull()
+  if (!user) return
+
+  const supabase = await createClient()
+
+  await supabase
+    .from('ratings')
+    .update({ preference: null })
+    .eq('rated_by', 'student')
+    .eq('preference', 'want_again')
+    .eq('student_id', user.id)
+    .eq('tutor_id', tutorId)
+
+  revalidatePath('/settings')
+}
+
+/**
  * Usuwa preferencję 'avoid' dla danego korepetytora.
  * Aktualizuje WSZYSTKIE oceny ucznia dla tego korepetytora (może być wiele sesji),
  * żeby filtr w getTutorPendingRequests przestał działać dla tej pary.

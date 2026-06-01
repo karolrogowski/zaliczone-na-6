@@ -309,6 +309,27 @@ export const getTutorStudentInteractions = cache(
  * Deduplikuje: jeśli uczeń miał wiele sesji z tym samym korepetytorem
  * i każdą oznaczył jako avoid, na liście pojawia się raz.
  */
+export const getStudentFavoriteTutors = cache(
+  async (): Promise<Array<{ tutorId: string; tutorName: string }>> => {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('ratings')
+      .select('tutor_id, tutor:profiles!tutor_id(full_name)')
+      .eq('rated_by', 'student')
+      .eq('preference', 'want_again')
+
+    if (!data) return []
+
+    const seen = new Set<string>()
+    return data
+      .filter((r) => r.tutor_id && !seen.has(r.tutor_id) && seen.add(r.tutor_id))
+      .map((r) => ({
+        tutorId: r.tutor_id as string,
+        tutorName: (r.tutor as unknown as { full_name: string } | null)?.full_name ?? 'Korepetytor',
+      }))
+  }
+)
+
 export const getStudentAvoidedTutors = cache(
   async (): Promise<Array<{ tutorId: string; tutorName: string }>> => {
     const supabase = await createClient()

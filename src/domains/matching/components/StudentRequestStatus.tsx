@@ -68,7 +68,7 @@ export function StudentRequestStatus({
             </span>
             {previousTutorRating.preference === 'want_again' && (
               <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
-                ⭐ Twój preferowany korepetytor
+                ⭐ Ulubiony korepetytor
               </span>
             )}
             {previousTutorRating.preference === 'avoid' && (
