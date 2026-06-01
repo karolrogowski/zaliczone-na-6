@@ -47,19 +47,30 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
-const { data, error } = await supabase.auth.admin.createUser({
+// Po db:reset kontenery restartują — czekamy aż auth service zwróci 200 na /health
+const authUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+for (let i = 0; i < 30; i++) {
+  try {
+    const r = await fetch(`${authUrl}/auth/v1/health`)
+    if (r.ok) break
+  } catch { /* sieć jeszcze niedostępna */ }
+  await new Promise(r => setTimeout(r, 1000))
+}
+
+let data, error
+;({ data, error } = await supabase.auth.admin.createUser({
   email,
   password,
   user_metadata: { role: 'admin', full_name: fullName },
   email_confirm: true,
-})
+}))
 
 if (error) {
   if (error.message?.includes('already registered')) {
     console.log(`ℹ️  Konto admina (${email}) już istnieje — pomijam.`)
     process.exit(0)
   }
-  console.error('❌ Błąd:', error.message)
+  console.error('❌ Błąd:', JSON.stringify(error))
   process.exit(1)
 }
 

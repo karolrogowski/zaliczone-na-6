@@ -60,3 +60,29 @@ export async function getEmailLink(toEmail: string, hrefPattern: string): Promis
 export async function clearMailpit() {
   await fetch(`${MAILPIT_URL}/api/v1/messages`, { method: 'DELETE' })
 }
+
+/**
+ * Klika gwiazdki we wszystkich 3 wymiarach formularza oceny ucznia.
+ * Wszystkie wymiary ustawiane na ten sam `value` (1–5).
+ */
+export async function selectAllStars(page: Page, value: number) {
+  for (const name of ['score_knowledge', 'score_organization', 'score_communication']) {
+    await page.locator(`input[name="${name}"][value="${value}"]`).evaluate(
+      (el) => (el as HTMLInputElement).click()
+    )
+  }
+}
+
+/**
+ * Buduje obiekt oceny ucznia z 3 wymiarami (do bezpośredniego insertu w DB).
+ * Wszystkie wymiary ustawiane na `score`.
+ */
+export function student3DRating(score: number, extra: Record<string, unknown> = {}) {
+  return {
+    score_knowledge:     score,
+    score_organization:  score,
+    score_communication: score,
+    rated_by: 'student',
+    ...extra,
+  }
+}

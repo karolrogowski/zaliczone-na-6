@@ -4,7 +4,7 @@ import {
   TUTOR1_EMAIL,
   adminClient,
 } from './global-setup'
-import { loginAs, getTestUserIds } from './helpers'
+import { loginAs, getTestUserIds, student3DRating } from './helpers'
 import { mockRoomUrl, mockHostUrl } from './video-fixtures'
 
 async function getUserIds() {
@@ -53,14 +53,12 @@ async function createOldSessionWithRatings(
     .select()
     .single()
 
-  // Ocena ucznia
+  // Ocena ucznia (3 wymiary)
   await db.from('ratings').insert({
     session_id: session.id,
     student_id: ids.studentId,
     tutor_id: ids.tutor1Id,
-    score: 4,
-    rated_by: 'student',
-    ...(opts?.studentPreference ? { preference: opts.studentPreference } : {}),
+    ...student3DRating(4, opts?.studentPreference ? { preference: opts.studentPreference } : {}),
   })
 
   // Ocena korepetytora — żeby nie był blokowany przez 4h okno (score = null)
@@ -68,7 +66,6 @@ async function createOldSessionWithRatings(
     session_id: session.id,
     student_id: ids.studentId,
     tutor_id: ids.tutor1Id,
-    score: null,
     rated_by: 'tutor',
   })
 
@@ -289,9 +286,7 @@ test('zmiana preferencji z ulubionego na avoid przenosi korepetytora z ulubionyc
     session_id: session2.id,
     student_id: ids.studentId,
     tutor_id: ids.tutor1Id,
-    score: 2,
-    rated_by: 'student',
-    preference: 'avoid',
+    ...student3DRating(2, { preference: 'avoid' }),
   })
 
   await loginAs(page, STUDENT_EMAIL)

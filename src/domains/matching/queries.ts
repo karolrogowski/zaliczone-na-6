@@ -250,9 +250,17 @@ export const getTutorAllSessions = cache(
 )
 
 export type SessionRating = {
-  score: number
+  score_knowledge:    number | null
+  score_organization: number | null
+  score_communication: number | null
   comment: string | null
   rated_by: 'student' | 'tutor'
+  tutor_preference: string | null
+}
+
+export function avgScore(r: Pick<SessionRating, 'score_knowledge' | 'score_organization' | 'score_communication'>): number | null {
+  if (r.score_knowledge == null || r.score_organization == null || r.score_communication == null) return null
+  return Math.round(((r.score_knowledge + r.score_organization + r.score_communication) / 3) * 10) / 10
 }
 
 /**
@@ -266,7 +274,7 @@ export const getRatingsForSession = cache(
     const supabase = await createClient()
     const { data } = await supabase
       .from('ratings')
-      .select('score, comment, rated_by')
+      .select('score_knowledge, score_organization, score_communication, comment, rated_by, tutor_preference')
       .eq('session_id', sessionId)
     return (data ?? []) as SessionRating[]
   }
@@ -284,7 +292,7 @@ export const getTutorStudentInteractions = cache(
 
     const { data } = await supabase
       .from('ratings')
-      .select('student_id, score, rated_by, preference, tutor_preference, comment, created_at')
+      .select('student_id, score_knowledge, score_organization, score_communication, rated_by, preference, tutor_preference, comment, created_at')
       .in('student_id', studentIds)
       .order('created_at', { ascending: false })
 
@@ -295,12 +303,19 @@ export const getTutorStudentInteractions = cache(
       const byStudent = rows.filter((r) => r.rated_by === 'student')
       const byTutor   = rows.filter((r) => r.rated_by === 'tutor')
       const flagRow   = byTutor.find((r) => r.tutor_preference === 'flag')
+      const lastStudentRow = byStudent[0]
+
+      const lastAvg = lastStudentRow?.score_knowledge != null
+        && lastStudentRow?.score_organization != null
+        && lastStudentRow?.score_communication != null
+        ? Math.round(((lastStudentRow.score_knowledge + lastStudentRow.score_organization + lastStudentRow.score_communication) / 3) * 10) / 10
+        : null
 
       result[studentId] = {
         studentId,
         wantAgain:          byStudent.some((r) => r.preference === 'want_again'),
         hasPreviousSession: rows.length > 0,
-        studentLastScore:   byStudent[0]?.score  ?? null,
+        studentLastScore:   lastAvg,
         tutorFlagged:       flagRow !== undefined,
         tutorNote:          flagRow?.comment ?? null,
       }
@@ -356,17 +371,48 @@ export const getStudentAvoidedTutors = cache(
 )
 
 export const getStudentPreviousRatingOfTutor = cache(
-  async (tutorId: string): Promise<{ score: number; preference: string | null } | null> => {
+  async (tutorId: string): Promise<{
+    score_knowledge: number | null
+    score_organization: number | null
+    score_communication: number | null
+    preference: string | null
+  } | null> => {
     const supabase = await createClient()
     const { data } = await supabase
       .from('ratings')
-      .select('score, preference')
+      .select('score_knowledge, score_organization, score_communication, preference')
       .eq('tutor_id', tutorId)
       .eq('rated_by', 'student')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
     return data
+  }
+)
+
+/**
+ * Zwraca ocenę ucznia dla sesji jeśli istnieje i nadal jest edytowalna (editable_until > now).
+ * Używane przez stronę /rate do renderowania trybu edycji.
+ */
+export const getEditableRatingForSession = cache(
+  async (sessionId: string, ratedBy: 'student' | 'tutor'): Promise<{
+    score_knowledge: number
+    score_organization: number
+    score_communication: number
+    comment: string | null
+    justification_category: string | null
+    preference: string | null
+    editable_until: string
+  } | null> => {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('ratings')
+      .select('score_knowledge, score_organization, score_communication, comment, justification_category, preference, editable_until')
+      .eq('session_id', sessionId)
+      .eq('rated_by', ratedBy)
+      .gt('editable_until', new Date().toISOString())
+      .maybeSingle()
+    return data as typeof data
   }
 )
 

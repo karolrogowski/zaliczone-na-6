@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/domains/auth/queries'
-import { getSessionForRating, hasRatingForSession } from '@/domains/matching/queries'
+import { getSessionForRating, hasRatingForSession, getEditableRatingForSession } from '@/domains/matching/queries'
 import { RatingForm } from '@/domains/matching/components/RatingForm'
 import { isUuid } from '@/shared/validation/uuid'
 
@@ -21,15 +21,39 @@ export default async function RatingPage({
   const session = await getSessionForRating(requestId)
   if (!session || session.status !== 'completed') redirect('/dashboard')
 
-  // Sprawdź, czy zalogowany użytkownik jest uczestnikiem tej sesji
   if (profile.role === 'student' && session.student_id !== profile.id) redirect('/dashboard')
   if (profile.role === 'tutor'   && session.tutor_id   !== profile.id) redirect('/dashboard')
 
-  // Sprawdź, czy ta strona (rola) już wystawiła ocenę
+  // Sprawdź ocenę: brak → nowa; istnieje + w oknie 15 min → edycja; po oknie → dashboard
   const alreadyRated = await hasRatingForSession(session.id, profile.role)
-  if (alreadyRated) redirect('/dashboard')
+  if (alreadyRated) {
+    // Tylko uczniowie mogą edytować w oknie 15 min (korepetytorzy nie mają editable_until)
+    if (profile.role === 'tutor') redirect('/dashboard')
 
-  // Imię osoby ocenianej (kontekst w formularzu)
+    const editableRating = await getEditableRatingForSession(session.id, profile.role)
+    if (!editableRating) redirect('/dashboard')
+
+    const otherPersonName = session.tutor?.full_name ?? undefined
+    return (
+      <div className="mx-auto max-w-lg flex flex-col gap-5">
+        <RatingForm
+          requestId={requestId}
+          role={profile.role}
+          otherPersonName={otherPersonName}
+          existingRating={{
+            score_knowledge:     editableRating.score_knowledge,
+            score_organization:  editableRating.score_organization,
+            score_communication: editableRating.score_communication,
+            comment:             editableRating.comment,
+            justification_category: editableRating.justification_category,
+            preference:          editableRating.preference,
+            editableUntil:       editableRating.editable_until,
+          }}
+        />
+      </div>
+    )
+  }
+
   const otherPersonName =
     profile.role === 'student'
       ? (session.tutor?.full_name   ?? undefined)
