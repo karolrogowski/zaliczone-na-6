@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getCurrentProfile } from '@/domains/auth/queries'
 import { getStudentAllSessions, getTutorAllSessions } from '@/domains/matching/queries'
 import { STATUS_LABELS, STATUS_LABEL_FALLBACK } from '@/domains/matching/status'
+import { PageContainer } from '../components/PageContainer'
 import { formatDate } from '@/shared/utils/formatDate'
 import type { MatchingRequestWithSubject } from '@/domains/matching/types'
 
@@ -63,6 +64,7 @@ export default async function HistoryPage() {
     : await getTutorAllSessions()
 
   return (
+    <PageContainer>
     <div className="mx-auto max-w-2xl flex flex-col gap-6">
       <h1 className="text-2xl font-bold text-zinc-900">Historia sesji</h1>
 
@@ -80,5 +82,6 @@ export default async function HistoryPage() {
         </div>
       )}
     </div>
+    </PageContainer>
   )
 }

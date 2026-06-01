@@ -136,7 +136,7 @@ test('dashboard ucznia zawiera link do historii po pierwszej zakończonej sesji'
 
   await loginAs(page, STUDENT_EMAIL)
 
-  await expect(page.getByRole('link', { name: /Pokaż całą historię/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Cała historia/ })).toBeVisible()
 })
 
 // ─── Historia korepetytora ────────────────────────────────────────────────────

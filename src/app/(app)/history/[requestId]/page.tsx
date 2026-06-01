@@ -4,6 +4,7 @@ import { getCurrentProfile } from '@/domains/auth/queries'
 import { getSessionDetail, getRatingsForSession, avgScore } from '@/domains/matching/queries'
 import type { SessionRating } from '@/domains/matching/queries'
 import { isUuid } from '@/shared/validation/uuid'
+import { PageContainer } from '../../components/PageContainer'
 
 function formatDate(isoStr: string): string {
   return new Intl.DateTimeFormat('pl-PL', {
@@ -65,7 +66,7 @@ function TutorRatingCard({ rating, label }: { rating: SessionRating; label: stri
       {isFlagged && (
         <p className="text-sm text-red-700">⚠️ Uczeń oznaczony jako problematyczny</p>
       )}
-      {!isFlagged && <p className="text-sm text-zinc-400">Brak uwag</p>}
+      {!isFlagged && !rating.comment && <p className="text-sm text-zinc-400">Brak uwag</p>}
       {rating.comment && (
         <p className="text-sm text-zinc-600 italic">&ldquo;{rating.comment}&rdquo;</p>
       )}
@@ -121,7 +122,7 @@ export default async function SessionDetailPage({
       : null
 
   return (
-    <div className="mx-auto max-w-2xl flex flex-col gap-6">
+    <PageContainer><div className="mx-auto max-w-2xl flex flex-col gap-6">
       <Link
         href="/history"
         className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
@@ -206,6 +207,6 @@ export default async function SessionDetailPage({
           <p className="text-sm text-zinc-400">Brak ocen dla tej sesji.</p>
         </>
       )}
-    </div>
+    </div></PageContainer>
   )
 }

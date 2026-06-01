@@ -35,27 +35,71 @@ export default async function DashboardPage({
       getStudentRecentConsultations(),
     ])
 
-    // Pobierz poprzednią ocenę korepetytora tylko gdy zlecenie jest zaakceptowane
     const tutorId = activeRequest?.status === 'accepted' ? activeRequest.tutor_id : null
-    const previousTutorRating = tutorId
-      ? await getStudentPreviousRatingOfTutor(tutorId)
-      : null
+    const previousTutorRating = tutorId ? await getStudentPreviousRatingOfTutor(tutorId) : null
+
+    const firstName = profile.full_name?.split(' ')[0] ?? 'cześć'
 
     return (
-      <div className="mx-auto max-w-2xl flex flex-col gap-8">
-        {ratingSuccess && (
-          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-            ✓ Ocena została zapisana. Dziękujemy za feedback!
+      <div className="flex flex-col h-full">
+
+        {/* Content header */}
+        <div className="shrink-0 bg-white border-b border-[#e8e6de] px-[26px] py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-[16px] font-medium text-[#2c2c2a]">Dashboard</h1>
+            <p className="text-[11px] text-[#888780] mt-[1px]">Twoja przestrzeń nauki</p>
           </div>
-        )}
-        {activeRequest && (
-          <StudentRequestStatus
-            initialRequest={activeRequest}
-            previousTutorRating={previousTutorRating}
-          />
-        )}
-        <StudentStatsSection stats={stats} hasActiveRequest={!!activeRequest} />
-        <StudentConsultationsList consultations={consultations} />
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-auto p-[22px_26px] flex flex-col gap-5">
+
+          {ratingSuccess && (
+            <div className="rounded-[10px] border border-[#b8e0c5] bg-[#EAF3DE] px-4 py-3 text-[13px] font-medium text-[#27500A]">
+              ✓ Ocena została zapisana. Dziękujemy za feedback!
+            </div>
+          )}
+
+          {/* Hero */}
+          <div className="bg-white border border-[#e8e6de] rounded-[12px] p-5 flex items-center gap-6">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-[18px] font-medium text-[#2c2c2a] mb-1">Cześć {firstName} 👋</h2>
+              <p className="text-[13px] text-[#5f5e5a] leading-[1.6]">
+                {stats.totalCompleted === 0
+                  ? 'Witaj na platformie. Złóż pierwsze zlecenie kiedy będziesz potrzebować pomocy — szukamy korepetytora w kilka minut.'
+                  : activeRequest
+                  ? 'Masz aktywne zlecenie. Korepetytor niedługo dołączy do sesji.'
+                  : 'Złóż nowe zlecenie gdy będziesz potrzebować pomocy — szukamy w kilka minut.'}
+              </p>
+            </div>
+            {!activeRequest && (
+              <a
+                href="/request"
+                className="shrink-0 flex items-center gap-2 px-[22px] py-[11px] bg-[#185FA5] text-white text-[13px] font-medium rounded-[9px] hover:bg-[#0C447C] transition-colors"
+                style={{ boxShadow: '0 1px 0 rgba(12,68,124,0.3)' }}
+              >
+                <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Nowe zlecenie
+              </a>
+            )}
+          </div>
+
+          {activeRequest && (
+            <StudentRequestStatus
+              initialRequest={activeRequest}
+              previousTutorRating={previousTutorRating}
+            />
+          )}
+
+          {/* 2-col grid */}
+          <div className="grid gap-4 items-start" style={{ gridTemplateColumns: '1.5fr 1fr' }}>
+            <StudentConsultationsList consultations={consultations} />
+            <StudentStatsSection stats={stats} />
+          </div>
+
+        </div>
       </div>
     )
   }
@@ -68,14 +112,13 @@ export default async function DashboardPage({
       getTutorRecentRequests(),
     ])
 
-    // Pobierz historię interakcji z uczniami z aktualnych zleceń
     const studentIds = [...new Set(pendingRequests.map((r) => r.student_id).filter(Boolean))] as string[]
     const studentInteractions = await getTutorStudentInteractions(studentIds)
 
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex-1 overflow-auto p-[22px_26px]">
         {ratingSuccess && (
-          <div className="mx-auto w-full max-w-2xl rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+          <div className="mb-5 rounded-[10px] border border-[#b8e0c5] bg-[#EAF3DE] px-4 py-3 text-[13px] font-medium text-[#27500A]">
             ✓ Ocena ucznia została zapisana. Dziękujemy!
           </div>
         )}
