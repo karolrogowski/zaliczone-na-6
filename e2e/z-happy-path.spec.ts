@@ -10,7 +10,7 @@ import {
   TUTOR1_EMAIL,
   adminClient,
 } from './global-setup'
-import { loginAs, getTestUserIds } from './helpers'
+import { loginAs, getTestUserIds, selectAllStars } from './helpers'
 import { mockRoomUrl, mockHostUrl } from './video-fixtures'
 
 async function getUserIds() {
@@ -90,23 +90,30 @@ test('pełny przepływ: oczekiwanie → akceptacja → sesja → zakończenie �
   // ── Etap 6: Uczeń wykrywa zakończenie i trafia na ocenę ───────────────────
   await studentPage.waitForURL(/\/rate\//, { timeout: 20_000 })
   await expect(studentPage.getByText('Oceń korepetytora')).toBeVisible()
-  await expect(studentPage.locator('input[name="score"]')).toHaveCount(5)
+  await expect(studentPage.locator('input[name="score_knowledge"]')).toHaveCount(5)
 
-  // ── Etap 7: Uczeń wystawia ocenę ──────────────────────────────────────────
-  await studentPage.locator('label:has(input[name="score"][value="5"])').click()
+  // ── Etap 7: Uczeń wystawia ocenę (3 wymiary) ──────────────────────────────
+  await selectAllStars(studentPage, 5)
   await studentPage.fill('textarea[name="comment"]', 'Doskonała sesja!')
   await studentPage.getByRole('button', { name: 'Wyślij ocenę' }).click()
 
-  // Poczekaj na zapis przez polling DB (unikamy waitForTimeout który może przekroczyć test timeout)
+  // Poczekaj na zapis przez polling DB
   let rating = null
   for (let i = 0; i < 10; i++) {
-    const { data } = await db.from('ratings').select('id, score').eq('session_id', session!.id).maybeSingle()
+    const { data } = await db
+      .from('ratings')
+      .select('id, score_knowledge, score_organization, score_communication')
+      .eq('session_id', session!.id)
+      .eq('rated_by', 'student')
+      .maybeSingle()
     if (data) { rating = data; break }
     await new Promise(r => setTimeout(r, 500))
   }
 
   expect(rating).not.toBeNull()
-  expect(rating?.score).toBe(5)
+  expect(rating?.score_knowledge).toBe(5)
+  expect(rating?.score_organization).toBe(5)
+  expect(rating?.score_communication).toBe(5)
 
   // ── Etap 8: Sesja jest oznaczona jako zakończona w DB ─────────────────────
   const { data: completedSession } = await db

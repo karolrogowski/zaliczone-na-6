@@ -13,7 +13,12 @@ export function StudentRequestStatus({
   previousTutorRating,
 }: {
   initialRequest: MatchingRequestWithSubject
-  previousTutorRating?: { score: number; preference: string | null } | null
+  previousTutorRating?: {
+    score_knowledge: number | null
+    score_organization: number | null
+    score_communication: number | null
+    preference: string | null
+  } | null
 }) {
   const request = useStudentRequest(initialRequest)
   const [isPending, startTransition] = useTransition()
@@ -64,7 +69,11 @@ export function StudentRequestStatus({
         {previousTutorRating && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             <span className="rounded-full bg-white/70 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
-              Poprzednia ocena: {previousTutorRating.score}★
+              {(() => {
+                const { score_knowledge: k, score_organization: o, score_communication: c } = previousTutorRating
+                if (k == null || o == null || c == null) return null
+                return `Poprzednia ocena: ⌀ ${(Math.round(((k + o + c) / 3) * 10) / 10).toFixed(1)}★`
+              })()}
             </span>
             {previousTutorRating.preference === 'want_again' && (
               <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">

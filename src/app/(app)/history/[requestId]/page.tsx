@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { getCurrentProfile } from '@/domains/auth/queries'
-import { getSessionDetail, getRatingsForSession } from '@/domains/matching/queries'
+import { getSessionDetail, getRatingsForSession, avgScore } from '@/domains/matching/queries'
 import type { SessionRating } from '@/domains/matching/queries'
 import { isUuid } from '@/shared/validation/uuid'
 
@@ -14,23 +14,58 @@ function formatDate(isoStr: string): string {
 }
 
 function Stars({ score }: { score: number }) {
+  const full = Math.floor(score)
   return (
-    <span aria-label={`${score} z 5 gwiazdek`}>
+    <span aria-label={`${score.toFixed(1)} z 5 gwiazdek`}>
       {Array.from({ length: 5 }, (_, i) => (
-        <span key={i} className={i < score ? 'text-yellow-400' : 'text-zinc-200'}>★</span>
+        <span key={i} className={i < full ? 'text-yellow-400' : i < score ? 'text-yellow-200' : 'text-zinc-200'}>★</span>
       ))}
     </span>
   )
 }
 
-function RatingCard({ rating, label }: { rating: SessionRating; label: string }) {
+function DimensionRow({ label, score }: { label: string; score: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-28 text-xs text-zinc-500">{label}</span>
+      <Stars score={score} />
+      <span className="text-xs text-zinc-600">{score}/5</span>
+    </div>
+  )
+}
+
+function StudentRatingCard({ rating, label }: { rating: SessionRating; label: string }) {
+  const avg = avgScore(rating)
+  return (
+    <div className="rounded-xl border border-zinc-200 bg-white px-5 py-4 flex flex-col gap-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{label}</p>
+      {avg !== null && (
+        <div className="flex items-center gap-2">
+          <Stars score={avg} />
+          <span className="text-sm font-medium text-zinc-700">⌀ {avg.toFixed(1)}/5</span>
+        </div>
+      )}
+      <div className="flex flex-col gap-1">
+        {rating.score_knowledge    != null && <DimensionRow label="Merytoryka"  score={rating.score_knowledge} />}
+        {rating.score_organization != null && <DimensionRow label="Organizacja" score={rating.score_organization} />}
+        {rating.score_communication != null && <DimensionRow label="Komunikacja" score={rating.score_communication} />}
+      </div>
+      {rating.comment && (
+        <p className="text-sm text-zinc-600 italic">&ldquo;{rating.comment}&rdquo;</p>
+      )}
+    </div>
+  )
+}
+
+function TutorRatingCard({ rating, label }: { rating: SessionRating; label: string }) {
+  const isFlagged = rating.tutor_preference === 'flag'
   return (
     <div className="rounded-xl border border-zinc-200 bg-white px-5 py-4 flex flex-col gap-2">
       <p className="text-xs font-medium uppercase tracking-wide text-zinc-500">{label}</p>
-      <div className="flex items-center gap-2">
-        <Stars score={rating.score} />
-        <span className="text-sm font-medium text-zinc-700">{rating.score}/5</span>
-      </div>
+      {isFlagged && (
+        <p className="text-sm text-red-700">⚠️ Uczeń oznaczony jako problematyczny</p>
+      )}
+      {!isFlagged && <p className="text-sm text-zinc-400">Brak uwag</p>}
       {rating.comment && (
         <p className="text-sm text-zinc-600 italic">&ldquo;{rating.comment}&rdquo;</p>
       )}
@@ -141,7 +176,7 @@ export default async function SessionDetailPage({
 
             {/* Uczeń widzi tylko swoją ocenę korepetytora */}
             {isStudent && studentRating && (
-              <RatingCard
+              <StudentRatingCard
                 rating={studentRating}
                 label={`Twoja ocena korepetytora${request.tutor_profile?.full_name ? ` (${request.tutor_profile.full_name})` : ''}`}
               />
@@ -149,13 +184,13 @@ export default async function SessionDetailPage({
 
             {/* Korepetytor widzi: ocenę ucznia o nim + swoją ocenę ucznia */}
             {isTutor && studentRating && (
-              <RatingCard
+              <StudentRatingCard
                 rating={studentRating}
                 label={`Ocena wystawiona przez ucznia${request.student_profile?.full_name ? ` (${request.student_profile.full_name})` : ''}`}
               />
             )}
             {isTutor && tutorRating && (
-              <RatingCard
+              <TutorRatingCard
                 rating={tutorRating}
                 label={`Twoja ocena ucznia${request.student_profile?.full_name ? ` (${request.student_profile.full_name})` : ''}`}
               />

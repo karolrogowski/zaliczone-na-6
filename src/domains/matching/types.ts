@@ -93,9 +93,22 @@ export type TutorStudentInteraction = {
   tutorNote: string | null
 }
 
+export type JustificationCategory =
+  | 'late_or_cancelled'
+  | 'unprepared'
+  | 'low_quality'
+  | 'communication'
+  | 'misconduct'
+  | 'other'
+
 export type RatingFormState =
   | {
-      errors?: { score?: string[]; comment?: string[] }
+      errors?: {
+        score_knowledge?: string[]
+        score_organization?: string[]
+        score_communication?: string[]
+        comment?: string[]
+      }
       message?: string
     }
   | undefined

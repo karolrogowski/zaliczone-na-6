@@ -5,7 +5,7 @@ import {
   TUTOR2_EMAIL,
   adminClient,
 } from './global-setup'
-import { loginAs, getTestUserIds } from './helpers'
+import { loginAs, getTestUserIds, student3DRating } from './helpers'
 import { mockRoomUrl, mockHostUrl } from './video-fixtures'
 
 async function getUserIds() {
@@ -224,13 +224,12 @@ test('uczeń widzi własną ocenę korepetytora w szczegółach sesji', async ({
   const ids = await getUserIds()
   const { request, session } = await createCompletedSession(ids)
 
-  // Wstaw ocenę ucznia
+  // Wstaw ocenę ucznia (3 wymiary)
   await adminClient().from('ratings').insert({
     session_id: session.id,
     student_id: ids.studentId,
     tutor_id: ids.tutor1Id,
-    score: 4,
-    rated_by: 'student',
+    ...student3DRating(4),
   })
 
   await loginAs(page, STUDENT_EMAIL)
@@ -238,59 +237,57 @@ test('uczeń widzi własną ocenę korepetytora w szczegółach sesji', async ({
 
   await expect(page.getByText('Oceny')).toBeVisible()
   await expect(page.getByText(/Twoja ocena korepetytora/)).toBeVisible()
-  await expect(page.getByText('4/5')).toBeVisible()
+  // Średnia 3×4 = 4.0, wyświetlana jako ⌀ 4.0/5
+  await expect(page.getByText('⌀ 4.0/5')).toBeVisible()
 })
 
 test('uczeń nie widzi oceny wystawionej mu przez korepetytora (RLS)', async ({ page }) => {
   const ids = await getUserIds()
   const { request, session } = await createCompletedSession(ids)
 
-  // Unikalne wartości: uczeń ocenił na 4★, korepetytor na 2★
   await adminClient().from('ratings').insert([
     {
       session_id: session.id,
       student_id: ids.studentId,
       tutor_id: ids.tutor1Id,
-      score: 4,
-      rated_by: 'student',
+      ...student3DRating(4),
     },
     {
       session_id: session.id,
       student_id: ids.studentId,
       tutor_id: ids.tutor1Id,
-      score: 2,
       rated_by: 'tutor',
+      tutor_preference: 'flag',
     },
   ])
 
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/history/${request.id}`)
 
-  // Uczeń widzi swoją ocenę (4★)
-  await expect(page.getByText('4/5')).toBeVisible()
-  // Uczeń NIE widzi prywatnej oceny korepetytora (2★)
-  await expect(page.getByText('2/5')).not.toBeVisible()
+  // Uczeń widzi swoją ocenę korepetytora
+  await expect(page.getByText(/Twoja ocena korepetytora/)).toBeVisible()
+  // Uczeń NIE widzi sekcji oceny wystawionej mu przez korepetytora
+  await expect(page.getByText(/Twoja ocena ucznia/)).not.toBeVisible()
 })
 
 test('korepetytor widzi obie oceny w historii sesji', async ({ page }) => {
   const ids = await getUserIds()
   const { request, session } = await createCompletedSession(ids)
 
-  // Unikalne wartości: uczeń ocenił na 5★, korepetytor na 3★
+  // Uczeń ocenił na 5★, korepetytor oznaczył ucznia jako problematycznego
   await adminClient().from('ratings').insert([
     {
       session_id: session.id,
       student_id: ids.studentId,
       tutor_id: ids.tutor1Id,
-      score: 5,
-      rated_by: 'student',
+      ...student3DRating(5),
     },
     {
       session_id: session.id,
       student_id: ids.studentId,
       tutor_id: ids.tutor1Id,
-      score: 3,
       rated_by: 'tutor',
+      tutor_preference: 'flag',
     },
   ])
 
@@ -299,12 +296,12 @@ test('korepetytor widzi obie oceny w historii sesji', async ({ page }) => {
   await page.goto(`/history/${request.id}`)
 
   await expect(page.getByText('Oceny')).toBeVisible()
-  // Ocena ucznia o korepetytorze
+  // Ocena ucznia o korepetytorze (śr. 5×3/3 = 5.0)
   await expect(page.getByText(/Ocena wystawiona przez ucznia/)).toBeVisible()
-  await expect(page.getByText('5/5')).toBeVisible()
-  // Własna ocena korepetytora o uczniu
+  await expect(page.getByText('⌀ 5.0/5')).toBeVisible()
+  // Własna ocena korepetytora o uczniu — bez gwiazdek, z flagą
   await expect(page.getByText(/Twoja ocena ucznia/)).toBeVisible()
-  await expect(page.getByText('3/5')).toBeVisible()
+  await expect(page.getByText(/Uczeń oznaczony jako problematyczny/)).toBeVisible()
 })
 
 test('sesja bez ocen pokazuje komunikat "Brak ocen dla tej sesji."', async ({ page }) => {

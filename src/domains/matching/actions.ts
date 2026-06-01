@@ -175,22 +175,30 @@ export async function submitRating(
   const tutorPreferenceRaw = (formData.get('tutor_preference') as string | null) ?? ''
   const tutorPreference: 'flag' | null = tutorPreferenceRaw === 'flag' ? 'flag' : null
 
-  // Score wymagany tylko dla ucznia
-  const scoreRaw = ratedBy === 'student'
-    ? parseInt((formData.get('score') as string | null) ?? '0', 10)
-    : null
-
-  if (ratedBy === 'student' && (!scoreRaw || scoreRaw < 1 || scoreRaw > 5)) {
-    return { errors: { score: ['Wybierz ocenę od 1 do 5 gwiazdek'] } }
+  // 3 wymiary wymagane tylko dla ucznia
+  const parseScore = (name: string) => {
+    const v = parseInt((formData.get(name) as string | null) ?? '0', 10)
+    return v >= 1 && v <= 5 ? v : null
   }
+  const scoreK = ratedBy === 'student' ? parseScore('score_knowledge')    : null
+  const scoreO = ratedBy === 'student' ? parseScore('score_organization')  : null
+  const scoreC = ratedBy === 'student' ? parseScore('score_communication') : null
 
   if (ratedBy === 'student') {
-    const commentError = validateRatingComment(comment, scoreRaw!)
+    if (!scoreK) return { errors: { score_knowledge:    ['Wybierz ocenę merytoryki (1–5)'] } }
+    if (!scoreO) return { errors: { score_organization: ['Wybierz ocenę organizacji (1–5)'] } }
+    if (!scoreC) return { errors: { score_communication:['Wybierz ocenę komunikacji (1–5)'] } }
+
+    const avg = (scoreK + scoreO + scoreC) / 3
+    const commentError = validateRatingComment(comment, avg)
     if (commentError) return { errors: { comment: [commentError] } }
   } else {
     const commentError = validateRatingComment(comment)
     if (commentError) return { errors: { comment: [commentError] } }
   }
+
+  // justification_category: opcjonalne, ale przekazywane gdy wypełnione
+  const justificationCategory = (formData.get('justification_category') as string | null) || null
 
   const user = await getCurrentUserOrNull()
   if (!user) return { message: 'Nie jesteś zalogowany.' }
@@ -215,11 +223,16 @@ export async function submitRating(
   }
 
   const { error } = await supabase.from('ratings').insert({
-    session_id: session.id,
-    student_id: session.student_id,
-    tutor_id:   session.tutor_id,
-    score:      scoreRaw,
-    comment:    comment || null,
+    session_id:  session.id,
+    student_id:  session.student_id,
+    tutor_id:    session.tutor_id,
+    score_knowledge:     scoreK,
+    score_organization:  scoreO,
+    score_communication: scoreC,
+    justification_category: ratedBy === 'student' ? justificationCategory : null,
+    comment:     comment || null,
+    editable_until: ratedBy === 'student' ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null,
+    payment_confirmed: true,
     rated_by:         ratedBy,
     preference:       ratedBy === 'student' ? preference       : null,
     tutor_preference: ratedBy === 'tutor'   ? tutorPreference  : null,
@@ -237,6 +250,85 @@ export async function submitRating(
  * Usuwa korepetytora z listy ulubionych ucznia.
  * Aktualizuje WSZYSTKIE oceny ucznia dla tego korepetytora (może być wiele sesji).
  */
+/**
+ * Aktualizuje ocenę ucznia w oknie 15 minut od wystawienia.
+ * RLS: ratings_student_update_preference pozwala uczniowi UPDATE własnych ocen.
+ * Dodatkowo sprawdzamy editable_until po stronie serwera.
+ */
+export async function updateRating(
+  _state: RatingFormState,
+  formData: FormData
+): Promise<RatingFormState> {
+  const requestId  = (formData.get('request_id') as string | null) ?? ''
+  const comment    = (formData.get('comment')   as string | null)?.trim() ?? ''
+  const preferenceRaw = (formData.get('preference') as string | null) ?? ''
+  const preference: 'want_again' | 'avoid' | null =
+    preferenceRaw === 'want_again' ? 'want_again' :
+    preferenceRaw === 'avoid'      ? 'avoid'      : null
+
+  const parseScore = (name: string) => {
+    const v = parseInt((formData.get(name) as string | null) ?? '0', 10)
+    return v >= 1 && v <= 5 ? v : null
+  }
+  const scoreK = parseScore('score_knowledge')
+  const scoreO = parseScore('score_organization')
+  const scoreC = parseScore('score_communication')
+
+  if (!scoreK) return { errors: { score_knowledge:    ['Wybierz ocenę merytoryki (1–5)'] } }
+  if (!scoreO) return { errors: { score_organization: ['Wybierz ocenę organizacji (1–5)'] } }
+  if (!scoreC) return { errors: { score_communication:['Wybierz ocenę komunikacji (1–5)'] } }
+
+  const avg = (scoreK + scoreO + scoreC) / 3
+  const commentError = validateRatingComment(comment, avg)
+  if (commentError) return { errors: { comment: [commentError] } }
+
+  const justificationCategory = (formData.get('justification_category') as string | null) || null
+
+  const user = await getCurrentUserOrNull()
+  if (!user) return { message: 'Nie jesteś zalogowany.' }
+
+  const supabase = await createClient()
+
+  const { data: session } = await supabase
+    .from('sessions')
+    .select('id, student_id')
+    .eq('matching_request_id', requestId)
+    .maybeSingle()
+
+  if (!session || session.student_id !== user.id) {
+    return { message: 'Brak uprawnień.' }
+  }
+
+  // Weryfikuj okno edycji po stronie serwera
+  const { data: existing } = await supabase
+    .from('ratings')
+    .select('id, editable_until')
+    .eq('session_id', session.id)
+    .eq('rated_by', 'student')
+    .maybeSingle()
+
+  if (!existing) return { message: 'Nie znaleziono oceny.' }
+  if (!existing.editable_until || new Date(existing.editable_until) <= new Date()) {
+    return { message: 'Okno edycji minęło — ocena jest zablokowana.' }
+  }
+
+  const { error } = await supabase
+    .from('ratings')
+    .update({
+      score_knowledge:     scoreK,
+      score_organization:  scoreO,
+      score_communication: scoreC,
+      justification_category: justificationCategory,
+      comment:    comment || null,
+      preference: preference,
+    })
+    .eq('id', existing.id)
+
+  if (error) return { message: 'Nie udało się zaktualizować oceny. Spróbuj ponownie.' }
+
+  redirect('/dashboard?ocena=zaktualizowana')
+}
+
 export async function removeFavoriteTutor(tutorId: string): Promise<void> {
   const user = await getCurrentUserOrNull()
   if (!user) return

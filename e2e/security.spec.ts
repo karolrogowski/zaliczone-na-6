@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { adminClient, TEST_PASSWORD, STUDENT_EMAIL, TUTOR1_EMAIL, TUTOR2_EMAIL } from './global-setup'
-import { loginAs, getTestUserIds } from './helpers'
+import { loginAs, getTestUserIds, student3DRating } from './helpers'
 
 const ADMIN_NO_MFA_EMAIL = 'sec-admin-nomfa@test.zaliczone.local'
 const ATTACKER_EMAIL = 'sec-attacker-admin@test.zaliczone.local'
@@ -757,8 +757,7 @@ test('uczeń nie może podstawić obcego tutor_id w insert do ratings', async ()
       session_id: sess!.id,
       student_id: studentId!,
       tutor_id: otherTutorId!,
-      score: 1,
-      comment: 'sabotaż',
+      ...student3DRating(1, { comment: 'sabotaż' }),
     })
     expect(attempt.error).not.toBeNull()
 
@@ -767,8 +766,7 @@ test('uczeń nie może podstawić obcego tutor_id w insert do ratings', async ()
       session_id: sess!.id,
       student_id: studentId!,
       tutor_id: tutorId!,
-      score: 5,
-      comment: 'OK',
+      ...student3DRating(5, { comment: 'OK' }),
     })
     expect(ok.error).toBeNull()
 

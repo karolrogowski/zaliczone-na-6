@@ -4,7 +4,7 @@ import {
   TUTOR1_EMAIL,
   adminClient,
 } from './global-setup'
-import { loginAs, getTestUserIds } from './helpers'
+import { loginAs, getTestUserIds, selectAllStars, student3DRating } from './helpers'
 import { mockRoomUrl, mockHostUrl } from './video-fixtures'
 
 async function getUserIds() {
@@ -73,7 +73,10 @@ test('uczeń widzi formularz oceny po zakończonej sesji', async ({ page }) => {
 
   await expect(page.getByText(/Oceń korepetytora/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeVisible()
-  await expect(page.locator('input[name="score"]')).toHaveCount(5)
+  // 3 wymiary × 5 gwiazdek = 15 inputów radio dla ucznia
+  await expect(page.locator('input[name="score_knowledge"]')).toHaveCount(5)
+  await expect(page.locator('input[name="score_organization"]')).toHaveCount(5)
+  await expect(page.locator('input[name="score_communication"]')).toHaveCount(5)
 })
 
 // ─── Test 2 ──────────────────────────────────────────────────────────────────
@@ -85,7 +88,7 @@ test('uczeń może wystawić ocenę i wraca do dashboardu', async ({ page }) => 
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  await page.locator('input[name="score"][value="5"]').evaluate(el => (el as HTMLInputElement).click())
+  await selectAllStars(page, 5)
   await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
   await page.fill('textarea[name="comment"]', 'Świetna sesja, wszystko jasno wytłumaczone.')
   await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
@@ -93,13 +96,15 @@ test('uczeń może wystawić ocenę i wraca do dashboardu', async ({ page }) => 
   await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
   const { data: rating } = await adminClient()
     .from('ratings')
-    .select('id, score, comment, rated_by')
+    .select('id, score_knowledge, score_organization, score_communication, comment, rated_by')
     .eq('session_id', session.id)
     .eq('rated_by', 'student')
     .maybeSingle()
 
   expect(rating).not.toBeNull()
-  expect(rating?.score).toBe(5)
+  expect(rating?.score_knowledge).toBe(5)
+  expect(rating?.score_organization).toBe(5)
+  expect(rating?.score_communication).toBe(5)
   expect(rating?.rated_by).toBe('student')
 })
 
@@ -109,19 +114,18 @@ test('uczeń nie może ocenić tej samej sesji dwa razy', async ({ page }) => {
   const ids = await getUserIds()
   const { request, session } = await createCompletedSession(ids)
 
-  // Wstaw ocenę ucznia bezpośrednio w DB
+  // Wstaw ocenę ucznia bezpośrednio w DB (3 wymiary)
   await adminClient().from('ratings').insert({
     session_id: session.id,
     student_id: ids.studentId,
     tutor_id: ids.tutor1Id,
-    score: 4,
-    rated_by: 'student',
+    ...student3DRating(4),
   })
 
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  // Już oceniona przez ucznia → redirect do /dashboard
+  // Już oceniona przez ucznia i editable_until minęło → redirect do /dashboard
   await expect(page).toHaveURL('/dashboard')
 })
 
@@ -138,7 +142,7 @@ test('korepetytor widzi formularz oceny ucznia po zakończonej sesji', async ({ 
   await expect(page.getByText(/Oceń ucznia/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeVisible()
   // Korepetytor nie widzi gwiazdek — brak systemu ocen dla uczniów
-  await expect(page.locator('input[name="score"]')).toHaveCount(0)
+  await expect(page.locator('input[name="score_knowledge"]')).toHaveCount(0)
   // Korepetytor nie widzi checkboxów preferencji
   await expect(page.getByText('Preferencje')).not.toBeVisible()
 })
@@ -159,13 +163,12 @@ test('korepetytor może wystawić ocenę uczniowi (bez gwiazdek, opcjonalna flag
   await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
   const { data: rating } = await adminClient()
     .from('ratings')
-    .select('id, score, rated_by')
+    .select('id, rated_by, tutor_preference')
     .eq('session_id', session.id)
     .eq('rated_by', 'tutor')
     .maybeSingle()
 
   expect(rating).not.toBeNull()
-  expect(rating?.score).toBeNull()
   expect(rating?.rated_by).toBe('tutor')
 })
 
@@ -229,15 +232,20 @@ test('przycisk "Wyślij ocenę" jest wyłączony bez gwiazdki i aktywuje się po
 
   const submitBtn = page.getByRole('button', { name: 'Wyślij ocenę' })
 
-  // Bez wyboru gwiazdki przycisk powinien być wyłączony (disabled={selected === 0})
+  // Bez wyboru gwiazdki przycisk powinien być wyłączony
   await expect(submitBtn).toBeDisabled()
 
-  // Po kliknięciu gwiazdki 4 przycisk aktywuje się (score >= 3 → komentarz opcjonalny)
-  await page.locator('input[name="score"][value="4"]').evaluate(el => (el as HTMLInputElement).click())
+  // Wybór tylko 2 z 3 wymiarów — wciąż wyłączony
+  await page.locator('input[name="score_knowledge"][value="4"]').evaluate(el => (el as HTMLInputElement).click())
+  await page.locator('input[name="score_organization"][value="4"]').evaluate(el => (el as HTMLInputElement).click())
+  await expect(submitBtn).toBeDisabled()
+
+  // Po kliknięciu wszystkich 3 wymiarów ≥ 4 (avg ≥ 4 → komentarz opcjonalny) przycisk aktywuje się
+  await page.locator('input[name="score_communication"][value="4"]').evaluate(el => (el as HTMLInputElement).click())
   await expect(submitBtn).toBeEnabled({ timeout: 3_000 })
 
-  // Etykieta opisująca ocenę 4 powinna być widoczna
-  await expect(page.getByText('Dobrze')).toBeVisible()
+  // Etykieta "Dobrze" pojawia się dla każdego wymiaru ustawionego na 4 (3 razy)
+  await expect(page.getByText('Dobrze').first()).toBeVisible()
 })
 
 // ─── Test 9 ──────────────────────────────────────────────────────────────────
@@ -251,8 +259,8 @@ test('przy ocenie 1–2 gwiazdki komentarz jest wymagany (min. 50 znaków)', asy
 
   const submitBtn = page.getByRole('button', { name: 'Wyślij ocenę' })
 
-  // Wybór 1 gwiazdki — przycisk zablokowany, bo komentarz pusty
-  await page.locator('input[name="score"][value="1"]').evaluate(el => (el as HTMLInputElement).click())
+  // Wybór wszystkich 3 wymiarów na 1 (avg = 1 < 4) — przycisk zablokowany, bo komentarz pusty
+  await selectAllStars(page, 1)
   await expect(submitBtn).toBeDisabled({ timeout: 3_000 })
 
   // Krótki komentarz (< 50 znaków) — wciąż zablokowany
@@ -330,7 +338,7 @@ test('preferencja "avoid" zapisuje się w bazie po wysłaniu oceny', async ({ pa
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  await page.locator('input[name="score"][value="4"]').evaluate(el => (el as HTMLInputElement).click())
+  await selectAllStars(page, 4)
   await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
   await page.getByRole('button', { name: /Nie polecaj mi tego korepetytora/ }).click()
   await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
@@ -356,7 +364,7 @@ test('preferencja "want_again" zapisuje się w bazie po wysłaniu oceny', async 
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  await page.locator('input[name="score"][value="5"]').evaluate(el => (el as HTMLInputElement).click())
+  await selectAllStars(page, 5)
   await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
   await page.getByRole('button', { name: /Dodaj do ulubionych/ }).click()
   await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
@@ -409,7 +417,7 @@ test('po wystawieniu oceny pojawia się baner sukcesu na dashboardzie', async ({
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  await page.locator('input[name="score"][value="5"]').evaluate(el => (el as HTMLInputElement).click())
+  await selectAllStars(page, 5)
   await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
   await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
 
@@ -465,14 +473,12 @@ test('korepetytor nie widzi zleceń od ucznia, który oznaczył go jako "avoid"'
     .select()
     .single()
 
-  // Ocena ucznia z preferencją "avoid"
+  // Ocena ucznia z preferencją "avoid" (3 wymiary)
   await db.from('ratings').insert({
     session_id: oldSession.id,
     student_id: ids.studentId,
     tutor_id: ids.tutor1Id,
-    score: 3,
-    rated_by: 'student',
-    preference: 'avoid',
+    ...student3DRating(3, { preference: 'avoid' }),
   })
 
   // Ocena korepetytora — żeby nie był blokowany przez 4h okno (score = null od teraz)
@@ -480,7 +486,6 @@ test('korepetytor nie widzi zleceń od ucznia, który oznaczył go jako "avoid"'
     session_id: oldSession.id,
     student_id: ids.studentId,
     tutor_id: ids.tutor1Id,
-    score: null,
     rated_by: 'tutor',
   })
 
@@ -577,14 +582,12 @@ test('prywatna notatka korepetytora widoczna jest na karcie zlecenia przy kolejn
     session_id: oldSession.id,
     student_id: ids.studentId,
     tutor_id: ids.tutor1Id,
-    score: 4,
-    rated_by: 'student',
+    ...student3DRating(4),
   })
   await db.from('ratings').insert({
     session_id: oldSession.id,
     student_id: ids.studentId,
     tutor_id: ids.tutor1Id,
-    score: null,
     rated_by: 'tutor',
     tutor_preference: 'flag',
     comment: 'Uczeń spóźnił się 20 minut i był nieprzygotowany.',

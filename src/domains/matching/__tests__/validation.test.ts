@@ -72,31 +72,33 @@ describe('validateRatingComment', () => {
     expect(validateRatingComment('x'.repeat(MAX_COMMENT + 1))).not.toBeNull()
   })
 
-  it('zwraca null dla pustego komentarza przy score >= 3', () => {
-    expect(validateRatingComment('', 3)).toBeNull()
+  it('zwraca null dla pustego komentarza gdy avgScore >= 4', () => {
     expect(validateRatingComment('', 4)).toBeNull()
+    expect(validateRatingComment('', 4.5)).toBeNull()
     expect(validateRatingComment('', 5)).toBeNull()
   })
 
-  it('zwraca błąd dla pustego komentarza przy score <= 2', () => {
+  it('zwraca błąd dla pustego komentarza gdy avgScore < 4', () => {
     expect(validateRatingComment('', 1)).not.toBeNull()
     expect(validateRatingComment('', 2)).not.toBeNull()
+    expect(validateRatingComment('', 3)).not.toBeNull()
+    expect(validateRatingComment('', 3.9)).not.toBeNull()
   })
 
-  it(`zwraca błąd gdy komentarz jest krótszy niż ${MIN_COMMENT_LOW_SCORE} znaków przy score <= 2`, () => {
+  it(`zwraca błąd gdy komentarz jest krótszy niż ${MIN_COMMENT_LOW_SCORE} znaków przy avgScore < 4`, () => {
     const shortComment = 'Za krótki'
     expect(shortComment.length).toBeLessThan(MIN_COMMENT_LOW_SCORE)
     expect(validateRatingComment(shortComment, 1)).not.toBeNull()
-    expect(validateRatingComment(shortComment, 2)).not.toBeNull()
+    expect(validateRatingComment(shortComment, 3)).not.toBeNull()
   })
 
-  it(`zwraca null gdy komentarz ma dokładnie ${MIN_COMMENT_LOW_SCORE} znaków przy score <= 2`, () => {
+  it(`zwraca null gdy komentarz ma dokładnie ${MIN_COMMENT_LOW_SCORE} znaków przy avgScore < 4`, () => {
     const exactComment = 'x'.repeat(MIN_COMMENT_LOW_SCORE)
     expect(validateRatingComment(exactComment, 1)).toBeNull()
-    expect(validateRatingComment(exactComment, 2)).toBeNull()
+    expect(validateRatingComment(exactComment, 3)).toBeNull()
   })
 
-  it('zwraca null dla długiego komentarza przy score <= 2 (spełnia minimum)', () => {
+  it('zwraca null dla długiego komentarza przy avgScore < 4 (spełnia minimum)', () => {
     const goodComment = 'Korepetytor nie był przygotowany do zajęć i nie wyjaśnił żadnego z moich pytań.'
     expect(goodComment.length).toBeGreaterThanOrEqual(MIN_COMMENT_LOW_SCORE)
     expect(validateRatingComment(goodComment, 1)).toBeNull()
