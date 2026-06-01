@@ -119,7 +119,7 @@ async function createSession({
   daysAgo: days, duration,
   notes,
   studentScore, studentComment, studentPreference,
-  tutorScore, tutorComment, tutorFlagged,
+  tutorComment, tutorFlagged,
 }) {
   const room = roomName(subject)
   const times = ago(days, duration)
@@ -171,12 +171,12 @@ async function createSession({
   })
   if (rStudErr) throw new Error(`rating student (${subject}): ${rStudErr.message}`)
 
-  // 4. Ocena korepetytora
+  // 4. Ocena korepetytora (bez score — korepetytor nie wystawia gwiazdek uczniowi)
   const { error: rTutErr } = await db.from('ratings').insert({
     session_id:       session.id,
     student_id:       studentId,
     tutor_id:         tutorId,
-    score:            tutorScore,
+    score:            null,
     comment:          tutorComment ?? null,
     rated_by:         'tutor',
     tutor_preference: tutorFlagged ? 'flag' : null,
@@ -253,7 +253,6 @@ async function main() {
       studentScore:      5,
       studentComment:    'Pani Anna świetnie tłumaczy — bez problemu nadążałem za materiałem. Polecam!',
       studentPreference: 'want_again',
-      tutorScore:        5,
     },
     {
       // #2 — 14 dni temu | fizyka | 30 min | 5★
@@ -266,7 +265,6 @@ async function main() {
       studentScore:      5,
       studentComment:    'Bardzo jasne wyjaśnienia, teraz rozumiem skąd biorą się te wzory.',
       studentPreference: null,
-      tutorScore:        4,
     },
     {
       // #3 — 3 dni temu | matematyka | 60 min | 4★ (najnowsza)
@@ -279,7 +277,6 @@ async function main() {
       studentScore:      4,
       studentComment:    'Bardzo dobra sesja, choć trochę za szybkie tempo na samym początku.',
       studentPreference: null,
-      tutorScore:        4,
     },
     {
       // #4 — 20 dni temu | matematyka | 30 min | 2★ avoid (Marek Nowak)
@@ -292,7 +289,6 @@ async function main() {
       studentScore:      2,
       studentComment:    'Korepetytor był nieprzygotowany i nie odpowiedział na moje pytania dotyczące równania okręgu. Nie polecam — szkoda czasu i pieniędzy.',
       studentPreference: 'avoid',
-      tutorScore:        3,
     },
     {
       // #5 — 5 dni temu | chemia | 45 min | 5★ want_again
@@ -305,7 +301,6 @@ async function main() {
       studentScore:      5,
       studentComment:    'Polecam z całego serca — pani Anna zawsze jest świetnie przygotowana.',
       studentPreference: 'want_again',
-      tutorScore:        5,
     },
     {
       // #6 — 10 dni temu | fizyka | 30 min | 4★
@@ -318,7 +313,6 @@ async function main() {
       studentScore:      4,
       studentComment:    null,
       studentPreference: null,
-      tutorScore:        4,
     },
     {
       // #7 — 25 dni temu | matematyka | 60 min | 4★ (najstarsza)
@@ -331,7 +325,6 @@ async function main() {
       studentScore:      4,
       studentComment:    null,
       studentPreference: null,
-      tutorScore:        4,
     },
   ]
 
@@ -339,7 +332,7 @@ async function main() {
   for (const def of sessionDefs) {
     try {
       await createSession({ studentId: student.id, ...def })
-      const label = `  ✓ ${def.subject.padEnd(12)} ${def.daysAgo} dni temu  ${def.studentScore}★ (uczeń) / ${def.tutorScore}★ (korepetytor)${def.studentPreference ? '  →  ' + def.studentPreference : ''}`
+      const label = `  ✓ ${def.subject.padEnd(12)} ${def.daysAgo} dni temu  ${def.studentScore}★ (uczeń)${def.studentPreference ? '  →  ' + def.studentPreference : ''}`
       console.log(label)
       ok++
     } catch (e) {

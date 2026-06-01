@@ -85,12 +85,12 @@ export type TutorStudentInteraction = {
   wantAgain: boolean
   /** Korepetytor uczył już tego ucznia (istnieje poprzednia ocena) */
   hasPreviousSession: boolean
-  /** Ostatnia ocena korepetytora dla tego ucznia */
-  tutorLastScore: number | null
   /** Ostatnia ocena ucznia wystawiona korepetytorowi */
   studentLastScore: number | null
   /** Korepetytor oznaczył tego ucznia jako problematycznego */
   tutorFlagged: boolean
+  /** Prywatna notatka korepetytora o uczniu (widoczna tylko temu korepetytorowi) */
+  tutorNote: string | null
 }
 
 export type RatingFormState =

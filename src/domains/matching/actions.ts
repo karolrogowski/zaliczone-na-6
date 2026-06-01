@@ -161,10 +161,9 @@ export async function submitRating(
   formData: FormData
 ): Promise<RatingFormState> {
   const requestId  = (formData.get('request_id') as string | null) ?? ''
-  const score      = parseInt((formData.get('score') as string | null) ?? '0', 10)
-  const comment    = (formData.get('comment')   as string | null)?.trim() ?? ''
   const ratedByRaw = (formData.get('rated_by') as string | null) ?? 'student'
   const ratedBy: 'student' | 'tutor' = ratedByRaw === 'tutor' ? 'tutor' : 'student'
+  const comment    = (formData.get('comment')   as string | null)?.trim() ?? ''
 
   // preference dotyczy tylko ucznia
   const preferenceRaw = (formData.get('preference') as string | null) ?? ''
@@ -176,12 +175,22 @@ export async function submitRating(
   const tutorPreferenceRaw = (formData.get('tutor_preference') as string | null) ?? ''
   const tutorPreference: 'flag' | null = tutorPreferenceRaw === 'flag' ? 'flag' : null
 
-  if (!score || score < 1 || score > 5) {
+  // Score wymagany tylko dla ucznia
+  const scoreRaw = ratedBy === 'student'
+    ? parseInt((formData.get('score') as string | null) ?? '0', 10)
+    : null
+
+  if (ratedBy === 'student' && (!scoreRaw || scoreRaw < 1 || scoreRaw > 5)) {
     return { errors: { score: ['Wybierz ocenę od 1 do 5 gwiazdek'] } }
   }
 
-  const commentError = validateRatingComment(comment, score)
-  if (commentError) return { errors: { comment: [commentError] } }
+  if (ratedBy === 'student') {
+    const commentError = validateRatingComment(comment, scoreRaw!)
+    if (commentError) return { errors: { comment: [commentError] } }
+  } else {
+    const commentError = validateRatingComment(comment)
+    if (commentError) return { errors: { comment: [commentError] } }
+  }
 
   const user = await getCurrentUserOrNull()
   if (!user) return { message: 'Nie jesteś zalogowany.' }
@@ -209,7 +218,7 @@ export async function submitRating(
     session_id: session.id,
     student_id: session.student_id,
     tutor_id:   session.tutor_id,
-    score,
+    score:      scoreRaw,
     comment:    comment || null,
     rated_by:         ratedBy,
     preference:       ratedBy === 'student' ? preference       : null,

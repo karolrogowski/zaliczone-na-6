@@ -274,7 +274,7 @@ export const getTutorStudentInteractions = cache(
 
     const { data } = await supabase
       .from('ratings')
-      .select('student_id, score, rated_by, preference, tutor_preference, created_at')
+      .select('student_id, score, rated_by, preference, tutor_preference, comment, created_at')
       .in('student_id', studentIds)
       .order('created_at', { ascending: false })
 
@@ -284,14 +284,15 @@ export const getTutorStudentInteractions = cache(
       const rows = (data ?? []).filter((r) => r.student_id === studentId)
       const byStudent = rows.filter((r) => r.rated_by === 'student')
       const byTutor   = rows.filter((r) => r.rated_by === 'tutor')
+      const flagRow   = byTutor.find((r) => r.tutor_preference === 'flag')
 
       result[studentId] = {
         studentId,
         wantAgain:          byStudent.some((r) => r.preference === 'want_again'),
         hasPreviousSession: rows.length > 0,
-        tutorLastScore:     byTutor[0]?.score   ?? null,
         studentLastScore:   byStudent[0]?.score  ?? null,
-        tutorFlagged:       byTutor.some((r) => r.tutor_preference === 'flag'),
+        tutorFlagged:       flagRow !== undefined,
+        tutorNote:          flagRow?.comment ?? null,
       }
     }
 
