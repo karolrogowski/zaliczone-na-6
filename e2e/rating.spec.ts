@@ -137,21 +137,22 @@ test('korepetytor widzi formularz oceny ucznia po zakończonej sesji', async ({ 
   // Korepetytor powinien widzieć swój formularz
   await expect(page.getByText(/Oceń ucznia/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeVisible()
-  await expect(page.locator('input[name="score"]')).toHaveCount(5)
+  // Korepetytor nie widzi gwiazdek — brak systemu ocen dla uczniów
+  await expect(page.locator('input[name="score"]')).toHaveCount(0)
   // Korepetytor nie widzi checkboxów preferencji
   await expect(page.getByText('Preferencje')).not.toBeVisible()
 })
 
 // ─── Test 5 ──────────────────────────────────────────────────────────────────
 
-test('korepetytor może wystawić ocenę uczniowi', async ({ page }) => {
+test('korepetytor może wystawić ocenę uczniowi (bez gwiazdek, opcjonalna flaga)', async ({ page }) => {
   const ids = await getUserIds()
   const { request, session } = await createCompletedSession(ids)
 
   await loginAs(page, TUTOR1_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  await page.locator('input[name="score"][value="4"]').evaluate(el => (el as HTMLInputElement).click())
+  // Korepetytor nie wybiera gwiazdek — przycisk jest od razu aktywny
   await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
   await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
 
@@ -164,7 +165,7 @@ test('korepetytor może wystawić ocenę uczniowi', async ({ page }) => {
     .maybeSingle()
 
   expect(rating).not.toBeNull()
-  expect(rating?.score).toBe(4)
+  expect(rating?.score).toBeNull()
   expect(rating?.rated_by).toBe('tutor')
 })
 
@@ -381,7 +382,7 @@ test('korepetytor może oznaczyć ucznia flagą (tutor_preference = "flag")', as
   await loginAs(page, TUTOR1_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  await page.locator('input[name="score"][value="4"]').evaluate(el => (el as HTMLInputElement).click())
+  // Korepetytor nie wybiera gwiazdek — przycisk od razu aktywny
   await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
   // Checkbox "Oznacz tego ucznia jako problematycznego"
   await page.getByRole('checkbox').click()
@@ -474,12 +475,12 @@ test('korepetytor nie widzi zleceń od ucznia, który oznaczył go jako "avoid"'
     preference: 'avoid',
   })
 
-  // Ocena korepetytora — żeby nie był blokowany przez 4h okno
+  // Ocena korepetytora — żeby nie był blokowany przez 4h okno (score = null od teraz)
   await db.from('ratings').insert({
     session_id: oldSession.id,
     student_id: ids.studentId,
     tutor_id: ids.tutor1Id,
-    score: 4,
+    score: null,
     rated_by: 'tutor',
   })
 

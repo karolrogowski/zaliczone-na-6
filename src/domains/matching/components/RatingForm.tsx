@@ -49,7 +49,7 @@ export function RatingForm({ requestId, role, otherPersonName }: RatingFormProps
   const isStudent    = role === 'student'
   const needsComment = selected > 0 && selected <= 2
   const commentTooShort = needsComment && comment.length < MIN_COMMENT_LOW_SCORE
-  const submitDisabled = isPending || selected === 0 || commentTooShort
+  const submitDisabled = isPending || (isStudent && selected === 0) || (isStudent && commentTooShort)
 
   const heading = isStudent
     ? (otherPersonName ? `Oceń korepetytora ${otherPersonName}` : 'Oceń korepetytora')
@@ -74,74 +74,78 @@ export function RatingForm({ requestId, role, otherPersonName }: RatingFormProps
         <p className="text-sm text-zinc-500">{subheading}</p>
       </div>
 
-      {/* Gwiazdki */}
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium text-zinc-700">Ocena</p>
-        <div className="flex gap-2">
-          {[1, 2, 3, 4, 5].map((star) => (
-            <label
-              key={star}
-              className="cursor-pointer"
-              onMouseEnter={() => setHovered(star)}
-              onMouseLeave={() => setHovered(0)}
-            >
-              <input
-                type="radio"
-                name="score"
-                value={star}
-                className="sr-only"
-                onChange={() => setSelected(star)}
-              />
-              <span
-                className={`text-4xl leading-none transition-colors select-none ${
-                  star <= (hovered || selected) ? 'text-yellow-400' : 'text-zinc-200'
-                }`}
+      {/* Gwiazdki — tylko dla ucznia */}
+      {isStudent && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-medium text-zinc-700">Ocena</p>
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((star) => (
+              <label
+                key={star}
+                className="cursor-pointer"
+                onMouseEnter={() => setHovered(star)}
+                onMouseLeave={() => setHovered(0)}
               >
-                ★
-              </span>
-            </label>
-          ))}
-        </div>
-        {selected > 0 && (
-          <p className="text-xs text-zinc-400">{STAR_LABELS[selected]}</p>
-        )}
-        {state?.errors?.score && (
-          <p className="text-sm text-red-600">{state.errors.score[0]}</p>
-        )}
-      </div>
-
-      {/* Komentarz */}
-      <div className="flex flex-col gap-2">
-        <label htmlFor="comment" className="text-sm font-medium text-zinc-700">
-          Komentarz{' '}
-          {needsComment ? (
-            <span className="font-normal text-red-600">(wymagany przy ocenie 1–2★)</span>
-          ) : (
-            <span className="font-normal text-zinc-400">(opcjonalnie)</span>
+                <input
+                  type="radio"
+                  name="score"
+                  value={star}
+                  className="sr-only"
+                  onChange={() => setSelected(star)}
+                />
+                <span
+                  className={`text-4xl leading-none transition-colors select-none ${
+                    star <= (hovered || selected) ? 'text-yellow-400' : 'text-zinc-200'
+                  }`}
+                >
+                  ★
+                </span>
+              </label>
+            ))}
+          </div>
+          {selected > 0 && (
+            <p className="text-xs text-zinc-400">{STAR_LABELS[selected]}</p>
           )}
-        </label>
-        <textarea
-          id="comment"
-          name="comment"
-          rows={3}
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          placeholder={
-            needsComment
-              ? `Opisz powód niskiej oceny (min. ${MIN_COMMENT_LOW_SCORE} znaków)...`
-              : 'Co sądzisz o tej sesji?'
-          }
-          className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
-        />
-        {needsComment && (
-          <p className={`text-xs ${commentTooShort ? 'text-red-500' : 'text-zinc-400'}`}>
-            {comment.length} / {MIN_COMMENT_LOW_SCORE} znaków minimum
-          </p>
-        )}
-        {state?.errors?.comment && (
-          <p className="text-sm text-red-600">{state.errors.comment[0]}</p>
-        )}
-      </div>
+          {state?.errors?.score && (
+            <p className="text-sm text-red-600">{state.errors.score[0]}</p>
+          )}
+        </div>
+      )}
+
+      {/* Komentarz — tylko dla ucznia */}
+      {isStudent && (
+        <div className="flex flex-col gap-2">
+          <label htmlFor="comment" className="text-sm font-medium text-zinc-700">
+            Komentarz{' '}
+            {needsComment ? (
+              <span className="font-normal text-red-600">(wymagany przy ocenie 1–2★)</span>
+            ) : (
+              <span className="font-normal text-zinc-400">(opcjonalnie)</span>
+            )}
+          </label>
+          <textarea
+            id="comment"
+            name="comment"
+            rows={3}
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder={
+              needsComment
+                ? `Opisz powód niskiej oceny (min. ${MIN_COMMENT_LOW_SCORE} znaków)...`
+                : 'Co sądzisz o tej sesji?'
+            }
+            className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
+          />
+          {needsComment && (
+            <p className={`text-xs ${commentTooShort ? 'text-red-500' : 'text-zinc-400'}`}>
+              {comment.length} / {MIN_COMMENT_LOW_SCORE} znaków minimum
+            </p>
+          )}
+          {state?.errors?.comment && (
+            <p className="text-sm text-red-600">{state.errors.comment[0]}</p>
+          )}
+        </div>
+      )}
 
       {/* Preferencje ucznia — toggle chips (kliknięcie aktywnego = odznacza) */}
       {isStudent && (
@@ -188,7 +192,7 @@ export function RatingForm({ requestId, role, otherPersonName }: RatingFormProps
         </div>
       )}
 
-      {/* Flaga korepetytora — checkbox (pojedynczy wybór) */}
+      {/* Flaga korepetytora + prywatna notatka */}
       {!isStudent && (
         <div className="flex flex-col gap-3">
           <p className="text-sm font-medium text-zinc-700">
@@ -198,7 +202,10 @@ export function RatingForm({ requestId, role, otherPersonName }: RatingFormProps
             <input
               type="checkbox"
               checked={tutorFlagged}
-              onChange={(e) => setTutorFlagged(e.target.checked)}
+              onChange={(e) => {
+                setTutorFlagged(e.target.checked)
+                if (!e.target.checked) setComment('')
+              }}
               className="mt-0.5 h-4 w-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
             />
             <span className="text-sm text-zinc-700 group-hover:text-zinc-900">
@@ -208,6 +215,26 @@ export function RatingForm({ requestId, role, otherPersonName }: RatingFormProps
               </span>
             </span>
           </label>
+          {tutorFlagged && (
+            <div className="flex flex-col gap-1.5 ml-7">
+              <label htmlFor="tutor-note" className="text-sm text-zinc-600">
+                Prywatna notatka{' '}
+                <span className="text-zinc-400">(opcjonalnie, widoczna tylko dla Ciebie)</span>
+              </label>
+              <textarea
+                id="tutor-note"
+                name="comment"
+                rows={3}
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Co chcesz zapamiętać o tej sesji lub uczniu?"
+                className="rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none"
+              />
+              {state?.errors?.comment && (
+                <p className="text-sm text-red-600">{state.errors.comment[0]}</p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
