@@ -191,7 +191,10 @@ alter table ratings
   add column editable_until     timestamptz,
   add column admin_weight       numeric(3,1) not null default 1.0
     check (admin_weight in (0, 0.5, 1.0)),
-  add column admin_note         text;
+  add column admin_note         text,
+  -- payment_confirmed: domyślnie true dla wszystkich ocen MVP;
+  -- logika filtrowania (false = nie liczy się do rankingu) aktywowana przy wdrożeniu płatności
+  add column payment_confirmed  boolean not null default true;
 
 -- tutor_profiles
 alter table tutor_profiles
@@ -233,6 +236,18 @@ alter table tutor_profiles
 - Dropdown kategorii + pole tekstowe pojawiają się gdy S < 4 (warunkowy render)
 - Countdown edycji widoczny w pierwszych 15 minutach po wysłaniu
 - Walidacja: tekst w "Inne" wymagany ≥ 50 znaków, blokada aaaaa... patternów
+
+### Komponent `StudentRequestStatus` — wyświetlanie poprzedniej oceny
+
+Gdy korepetytor akceptuje zlecenie, uczeń widzi badge z poprzednią oceną. Po migracji na 3D:
+
+```
+Poprzednia ocena: ⌀ X.X★
+```
+
+gdzie `X.X = round((score_knowledge + score_organization + score_communication) / 3, 1)`.
+
+Zaokrąglenie do 1 miejsca dziesiętnego (nie do 0.5) — wartości 4.3★ i 4.7★ to różnica odczuwalna przez ucznia.
 
 ### Parametry konfiguracyjne (tabela `platform_config`)
 

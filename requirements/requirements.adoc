@@ -94,20 +94,43 @@ Kiedy aplikacja potrafi zrealizować zlecenie, trzeba zadbać o utrzymanie pozio
 
 === Dwustronny system ocen (Rating System) — DONE / P1
 
-Po zakończeniu wideorozmowy okno zamyka się i pojawia się prośba o ocenę 1-5 gwiazdek. Uczeń ocenia korepetytora (klarowność tłumaczenia), a korepetytor ucznia (kultura, przygotowanie). Na etapie MVP oceny ucznia służą tylko do wyłapywania toksycznych użytkowników, oceny korepetytora wchodzą do profilu. Użytkownik może
+Po zakończeniu wideorozmowy okno zamyka się i pojawia się prośba o ocenę. Formularz jest asymetryczny — inna funkcja dla każdej strony.
 
-* ocenić od 1 do 5 gwiazdek
-* wybrać jedną z opcji bonusowych
-    ** gdy to możliwe chcę się uczyć w przyszłości z tym nauczycielem
-    ** nie polecaj mi tego nauczyciala
+*Uczeń ocenia korepetytora:*
 
-UX ocen (dodane 2026-05-27):
+* Ocena 1–5 gwiazdek (jedna skala); przy 1–2★ komentarz obowiązkowy (min. 50 znaków).
+* Opcje preferencji (opcjonalne, wzajemnie wykluczające się):
+** *Dodaj do ulubionych* — korepetytor trafia na listę ulubionych ucznia; zarządzanie w Ustawieniach.
+** *Nie polecaj mi tego korepetytora* — korepetytor nie widzi przyszłych zleceń ucznia; blokadę można cofnąć w Ustawieniach → „Zablokowani korepetytorzy".
+
+*Korepetytor ocenia ucznia (bez gwiazdek):*
+
+* Checkbox *Oznacz jako problematycznego* — przy kolejnych zleceniach od tego ucznia widoczny prywatny znacznik ⚠️ na karcie zlecenia.
+* Pole notatki prywatnej — pojawia się tylko po zaznaczeniu checkboxa; widoczne wyłącznie dla tego korepetytora; treść wyświetlana przy kolejnym zleceniu od danego ucznia.
+
+*Mechanika blokady:*
+
+* Blokada 4h — jeśli użytkownik zamknął aplikację przed oceną, middleware przekierowuje na `/rate` przy każdej próbie nawigacji aż do wystawienia oceny lub upływu okna.
+* Po 4h sesja oznaczana jako `unrated`; ocena retroaktywna niemożliwa.
+
+*Ustawienia ucznia:*
+
+* Sekcja *Ulubieni korepetytorzy* — lista korepetytorów dodanych do ulubionych; przycisk „Usuń z ulubionych".
+* Sekcja *Zablokowani korepetytorzy* — lista korepetytorów oznaczonych jako avoid; przycisk „Usuń blokadę".
+
+*UX (dodane 2026-05-27 / 2026-06-01):*
 
 * Zakończenie sesji przez korepetytora wymaga potwierdzenia w modalnym oknie dialogowym (nie inline).
 * Po zapisaniu oceny obie strony widzą zielony baner potwierdzający sukces na dashboardzie.
-* Strona oceny (`/rate`) wyświetla baner wyjaśniający blokadę nawigacji — uczeń/korepetytor wiedzą, dlaczego nie mogą przejść dalej.
-* Historia sesji pokazuje oceny: uczeń widzi swoją ocenę korepetytora; korepetytor widzi ocenę ucznia o sobie oraz własną ocenę ucznia.
+* Strona oceny (`/rate`) wyświetla baner wyjaśniający blokadę nawigacji.
+* Historia sesji pokazuje oceny: uczeń widzi swoją ocenę korepetytora; korepetytor widzi ocenę ucznia o sobie i prywatną notatkę.
 * Oceny korepetytora o uczniu są ukryte przed uczniem — egzekwowane przez politykę RLS (`ratings_read`).
+
+Po MVP (ADR-007, status: zaakceptowany, nieimplementowany):
+
+* Trójwymiarowa ocena ucznia (merytoryka / organizacja / komunikacja) zamiast jednej gwiazdki. — AFTER_MVP / P1
+* Bayesowska średnia ważona z decay czasowym i wagą ucznia zamiast Wilson score. — AFTER_MVP / P1
+* Okno edycji oceny (15 min) i kategorie uzasadnienia niskiej oceny. — AFTER_MVP / P1
 
 === Algorytm priorytetyzacji powiadomień (The VIP Tier) — AFTER_MVP / P2
 

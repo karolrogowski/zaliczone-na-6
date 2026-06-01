@@ -507,3 +507,102 @@ test('korepetytor nie widzi zleceń od ucznia, który oznaczył go jako "avoid"'
     page.getByText('Brak zleceń w Twoich przedmiotach. Czekamy na uczniów...')
   ).toBeVisible({ timeout: 5_000 })
 })
+
+// ─── Test 18 ──────────────────────────────────────────────────────────────────
+
+test('korepetytor może dodać prywatną notatkę przy flagowaniu ucznia — zapisuje się w DB', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request, session } = await createCompletedSession(ids)
+
+  await loginAs(page, TUTOR1_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  // Zaznaczenie flagi ujawnia pole notatki
+  await page.getByRole('checkbox').click()
+  await expect(page.getByLabel(/Prywatna notatka/)).toBeVisible()
+
+  // Wpisanie notatki
+  await page.getByLabel(/Prywatna notatka/).fill('Uczeń przyszedł nieprzygotowany, warto pamiętać.')
+  await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
+
+  await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
+
+  const { data: rating } = await adminClient()
+    .from('ratings')
+    .select('tutor_preference, comment')
+    .eq('session_id', session.id)
+    .eq('rated_by', 'tutor')
+    .maybeSingle()
+
+  expect(rating?.tutor_preference).toBe('flag')
+  expect(rating?.comment).toBe('Uczeń przyszedł nieprzygotowany, warto pamiętać.')
+})
+
+// ─── Test 19 ──────────────────────────────────────────────────────────────────
+
+test('prywatna notatka korepetytora widoczna jest na karcie zlecenia przy kolejnej sesji z uczniem', async ({ page }) => {
+  const ids = await getUserIds()
+  const db = adminClient()
+
+  // 1. Stara sesja (>4h) — korepetytor flaguje ucznia z notatką
+  const { data: oldRequest } = await db
+    .from('matching_requests')
+    .insert({
+      student_id: ids.studentId,
+      tutor_id: ids.tutor1Id,
+      subject_id: 'matematyka',
+      status: 'completed',
+    })
+    .select()
+    .single()
+
+  const { data: oldSession } = await db
+    .from('sessions')
+    .insert({
+      matching_request_id: oldRequest.id,
+      student_id: ids.studentId,
+      tutor_id: ids.tutor1Id,
+      daily_room_name: 'test-room-note',
+      daily_room_url: mockRoomUrl('test-room-note'),
+      host_room_url: mockHostUrl('test-room-note'),
+      status: 'completed',
+      started_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
+      ended_at: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+      duration_minutes: 30,
+    })
+    .select()
+    .single()
+
+  await db.from('ratings').insert({
+    session_id: oldSession.id,
+    student_id: ids.studentId,
+    tutor_id: ids.tutor1Id,
+    score: 4,
+    rated_by: 'student',
+  })
+  await db.from('ratings').insert({
+    session_id: oldSession.id,
+    student_id: ids.studentId,
+    tutor_id: ids.tutor1Id,
+    score: null,
+    rated_by: 'tutor',
+    tutor_preference: 'flag',
+    comment: 'Uczeń spóźnił się 20 minut i był nieprzygotowany.',
+  })
+
+  // 2. Nowe oczekujące zlecenie od tego samego ucznia
+  await db.from('matching_requests').insert({
+    student_id: ids.studentId,
+    subject_id: 'matematyka',
+    status: 'pending',
+    expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+  })
+  await db.from('tutor_profiles').update({ is_available: true }).eq('id', ids.tutor1Id)
+
+  // 3. Korepetytor wchodzi na dashboard — powinien widzieć flagę i notatkę
+  await loginAs(page, TUTOR1_EMAIL)
+  await page.goto('/dashboard')
+
+  await expect(page.getByText('⚠️ Oznaczono wcześniej')).toBeVisible({ timeout: 5_000 })
+  await expect(page.getByText(/Uczeń spóźnił się 20 minut/)).toBeVisible({ timeout: 5_000 })
+})
