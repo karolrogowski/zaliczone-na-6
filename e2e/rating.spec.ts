@@ -55,8 +55,11 @@ async function cleanupRatingTests() {
   await db.from('ratings').delete().eq('tutor_id', ids.tutor1Id)
   await db.from('sessions').delete().eq('student_id', ids.studentId)
   await db.from('matching_requests').delete().eq('student_id', ids.studentId)
-  // Zresetuj dostępność korepetytora (może być zmieniona przez test filtra avoid)
-  await db.from('tutor_profiles').update({ is_available: false }).eq('id', ids.tutor1Id)
+  // Zresetuj profil korepetytora — trigger nie odpala się przy DELETE, więc
+  // denormalizowane pola (rating_count, bayesian_score) wymagają ręcznego resetu.
+  await db.from('tutor_profiles')
+    .update({ is_available: false, rating_count: 0, rating_avg: null, bayesian_score: null })
+    .eq('id', ids.tutor1Id)
 }
 
 test.beforeEach(cleanupRatingTests)
@@ -608,4 +611,126 @@ test('prywatna notatka korepetytora widoczna jest na karcie zlecenia przy kolejn
 
   await expect(page.getByText('⚠️ Oznaczono wcześniej')).toBeVisible({ timeout: 5_000 })
   await expect(page.getByText(/Uczeń spóźnił się 20 minut/)).toBeVisible({ timeout: 5_000 })
+})
+
+// ─── Test 20 ─────────────────────────────────────────────────────────────────
+
+test('dropdown kategorii pojawia się gdy średnia < 4, znika gdy ≥ 4', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request } = await createCompletedSession(ids)
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  // Bez gwiazdek — dropdown nie widoczny
+  await expect(page.locator('select[name="justification_category"]')).not.toBeVisible()
+
+  // Wszystkie 3 wymiary na 3 (avg = 3 < 4) — dropdown pojawia się
+  await selectAllStars(page, 3)
+  await expect(page.locator('select[name="justification_category"]')).toBeVisible({ timeout: 3_000 })
+
+  // Zmiana na 4 (avg = 4 ≥ 4) — dropdown znika
+  await selectAllStars(page, 4)
+  await expect(page.locator('select[name="justification_category"]')).not.toBeVisible()
+})
+
+// ─── Test 21 ─────────────────────────────────────────────────────────────────
+
+test('payment_confirmed = true zapisuje się w DB po wystawieniu oceny', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request, session } = await createCompletedSession(ids)
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  await selectAllStars(page, 5)
+  await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
+  await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
+
+  const { data: rating } = await adminClient()
+    .from('ratings')
+    .select('payment_confirmed')
+    .eq('session_id', session.id)
+    .eq('rated_by', 'student')
+    .maybeSingle()
+
+  expect(rating?.payment_confirmed).toBe(true)
+})
+
+// ─── Test 22 ─────────────────────────────────────────────────────────────────
+
+test('bayesian_score aktualizuje się w tutor_profiles po wystawieniu oceny', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request } = await createCompletedSession(ids)
+
+  const { data: before } = await adminClient()
+    .from('tutor_profiles')
+    .select('bayesian_score, rating_count')
+    .eq('id', ids.tutor1Id)
+    .single()
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+  await selectAllStars(page, 5)
+  await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
+  await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
+
+  const { data: after } = await adminClient()
+    .from('tutor_profiles')
+    .select('bayesian_score, rating_count')
+    .eq('id', ids.tutor1Id)
+    .single()
+
+  expect(after?.rating_count).toBe((before?.rating_count ?? 0) + 1)
+  expect(after?.bayesian_score).not.toBeNull()
+})
+
+// ─── Test 23 ─────────────────────────────────────────────────────────────────
+
+test('powrót na /rate w oknie 15 min pokazuje formularz edycji z wypełnionymi wartościami', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request, session } = await createCompletedSession(ids)
+
+  // Wstaw ocenę z aktywnym oknem edycji (editable_until = teraz + 10 min)
+  await adminClient().from('ratings').insert({
+    session_id: session.id,
+    student_id: ids.studentId,
+    tutor_id: ids.tutor1Id,
+    ...student3DRating(4),
+    editable_until: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+  })
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  // Zamiast redirectu do /dashboard — powinien widzieć formularz edycji
+  await expect(page.getByText(/Edytuj ocenę/)).toBeVisible({ timeout: 3_000 })
+  // Odliczanie powinno być widoczne
+  await expect(page.getByText(/Możesz edytować ocenę jeszcze przez/)).toBeVisible()
+  // Wartości wypełnione (gwiazdka 4 zaznaczona dla każdego wymiaru)
+  await expect(page.locator('input[name="score_knowledge"][value="4"]')).toBeChecked()
+  await expect(page.locator('input[name="score_organization"][value="4"]')).toBeChecked()
+  await expect(page.locator('input[name="score_communication"][value="4"]')).toBeChecked()
+})
+
+// ─── Test 24 ─────────────────────────────────────────────────────────────────
+
+test('po upływie okna edycji /rate przekierowuje do /dashboard', async ({ page }) => {
+  const ids = await getUserIds()
+  const { request, session } = await createCompletedSession(ids)
+
+  // Wstaw ocenę z wygasłym oknem edycji
+  await adminClient().from('ratings').insert({
+    session_id: session.id,
+    student_id: ids.studentId,
+    tutor_id: ids.tutor1Id,
+    ...student3DRating(4),
+    editable_until: new Date(Date.now() - 60 * 1000).toISOString(),
+  })
+
+  await loginAs(page, STUDENT_EMAIL)
+  await page.goto(`/rate/${request.id}`)
+
+  // Ocena istnieje ale okno minęło → redirect
+  await expect(page).toHaveURL('/dashboard', { timeout: 5_000 })
 })

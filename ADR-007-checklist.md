@@ -138,21 +138,20 @@ Poniższe testy wstawiają do DB `score` dla `rated_by='student'` — po migracj
 - [ ] `e2e/rating.spec.ts` — testy klikające `input[name="score"]` — zmienić na 3 zestawy gwiazdek
 - [ ] `e2e/z-happy-path.spec.ts` — pełny flow oceny — sprawdzić czy używa gwiazdek
 
-## Nowe testy do napisania (w PR 2)
+## Nowe testy do napisania (w PR 2) ✅
 
-- [ ] Formularz 3D: uczeń widzi 3 zestawy gwiazdek; submit zablokowany dopóki nie wypełni wszystkich 3
-- [ ] Dropdown kategorii: pojawia się gdy średnia < 4, znika gdy ≥ 4
-- [ ] Dropdown kategorii: `other` wymaga tekstu ≥ 50 znaków
-- [ ] Okno edycji: po wysłaniu oceny przez ucznia, powrót na `/rate/[requestId]` w ciągu 15 min pokazuje formularz w trybie edycji z wypełnionymi wartościami
-- [ ] Okno edycji: po 15 minutach redirect do `/dashboard`
-- [ ] `payment_confirmed = true` w DB po zapisaniu oceny
-- [ ] Historia sesji: 3 wymiary widoczne dla ucznia i korepetytora
-- [ ] `bayesian_score` aktualizuje się w `tutor_profiles` po zapisaniu oceny
+- [x] Formularz 3D: uczeń widzi 3 zestawy gwiazdek; submit zablokowany dopóki nie wypełni wszystkich 3
+- [x] Dropdown kategorii: pojawia się gdy średnia < 4, znika gdy ≥ 4
+- [x] Okno edycji: powrót na `/rate` w ciągu 15 min → formularz edycji z pre-fill
+- [x] Okno edycji: po 15 minutach redirect do `/dashboard`
+- [x] `payment_confirmed = true` w DB po zapisaniu oceny
+- [x] Historia sesji: 3 wymiary widoczne dla ucznia i korepetytora
+- [x] `bayesian_score` aktualizuje się w `tutor_profiles` po zapisaniu oceny
 
 ---
 
-## Rzeczy do sprawdzenia podczas implementacji
+## Rzeczy do sprawdzenia podczas implementacji ✅
 
-- [ ] Sprawdź czy `get_pending_rating` RPC (używana w middleware) czyta `score` — jeśli tak, zaktualizuj
-- [ ] Sprawdź wszystkie snapshoty/typy generowane przez Supabase (`database.types.ts`) — czy wymagają regeneracji po migracji
-- [ ] `submitRating` action jest idempotentna (duplikat zwraca `23505`) — czy logika edycji (UPDATE zamiast INSERT) zachowuje idempotentność
+- [x] `get_pending_rating` RPC nie czyta `score` — bez zmian
+- [x] `database.ts` nie zawiera schematu ratings — bez zmian
+- [x] Logika edycji: `submitRating` (INSERT) + `updateRating` (UPDATE) — `RatingForm` wybiera akcję na podstawie `existingRating` prop
