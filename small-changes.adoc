@@ -1,8 +1,0 @@
-- testy e2e po wszystkich audytach security
-- testy e2e po wszystkich zabawach z env
-- testy rate limiting
-- testy konfiguracji sentry
-
-Przyciski:
-- zakończenie sesji przez korepetytora - potwierdzenie lepiej by wyglądało jako modal
-- będąc na ekranie z historią, nie wiadomo jak wrócić do głównego ekranu

@@ -65,7 +65,7 @@ function TutorRatingCard({ rating, label }: { rating: SessionRating; label: stri
       {isFlagged && (
         <p className="text-sm text-red-700">⚠️ Uczeń oznaczony jako problematyczny</p>
       )}
-      {!isFlagged && <p className="text-sm text-zinc-400">Brak uwag</p>}
+      {!isFlagged && !rating.comment && <p className="text-sm text-zinc-400">Brak uwag</p>}
       {rating.comment && (
         <p className="text-sm text-zinc-600 italic">&ldquo;{rating.comment}&rdquo;</p>
       )}
