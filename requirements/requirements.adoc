@@ -96,9 +96,11 @@ Kiedy aplikacja potrafi zrealizować zlecenie, trzeba zadbać o utrzymanie pozio
 
 Po zakończeniu wideorozmowy okno zamyka się i pojawia się prośba o ocenę. Formularz jest asymetryczny — inna funkcja dla każdej strony.
 
-*Uczeń ocenia korepetytora:*
+*Uczeń ocenia korepetytora (ADR-007):*
 
-* Ocena 1–5 gwiazdek (jedna skala); przy 1–2★ komentarz obowiązkowy (min. 50 znaków).
+* Trzy oddzielne skale 1–5★: *Merytoryka*, *Organizacja*, *Komunikacja*; wszystkie trzy wymagane do wysłania.
+* Gdy średnia < 4: komentarz obowiązkowy (min. 50 znaków) + opcjonalny dropdown kategorii (spóźnienie, brak przygotowania, niska jakość, komunikacja, zachowanie, inne).
+* Okno edycji 15 minut — powrót na `/rate/[requestId]` w tym czasie pokazuje formularz z wypełnionymi wartościami.
 * Opcje preferencji (opcjonalne, wzajemnie wykluczające się):
 ** *Dodaj do ulubionych* — korepetytor trafia na listę ulubionych ucznia; zarządzanie w Ustawieniach.
 ** *Nie polecaj mi tego korepetytora* — korepetytor nie widzi przyszłych zleceń ucznia; blokadę można cofnąć w Ustawieniach → „Zablokowani korepetytorzy".
@@ -126,11 +128,16 @@ Po zakończeniu wideorozmowy okno zamyka się i pojawia się prośba o ocenę. F
 * Historia sesji pokazuje oceny: uczeń widzi swoją ocenę korepetytora; korepetytor widzi ocenę ucznia o sobie i prywatną notatkę.
 * Oceny korepetytora o uczniu są ukryte przed uczniem — egzekwowane przez politykę RLS (`ratings_read`).
 
-Po MVP (ADR-007, status: zaakceptowany, nieimplementowany):
+Po MVP (ADR-007, status: DONE — zaimplementowane 2026-06-01):
 
-* Trójwymiarowa ocena ucznia (merytoryka / organizacja / komunikacja) zamiast jednej gwiazdki. — AFTER_MVP / P1
-* Bayesowska średnia ważona z decay czasowym i wagą ucznia zamiast Wilson score. — AFTER_MVP / P1
-* Okno edycji oceny (15 min) i kategorie uzasadnienia niskiej oceny. — AFTER_MVP / P1
+* Trójwymiarowa ocena + Bayesowska średnia (`bayesian_score`) zastąpiły Wilson score. — DONE
+* Okno edycji oceny (15 min) i dropdown kategorii uzasadnienia. — DONE
+
+AFTER_MVP (z ADR-007):
+
+* Decay czasowy i waga ucznia (anty-trolling) — aktywować po 3 miesiącach danych. — AFTER_MVP / P1
+* Progi prowizji powiązane z `bayesian_score` — wymaga modułu płatności. — AFTER_MVP / P2
+* Automatyczne flagi anty-fraud (tabela `rating_flags`). — AFTER_MVP / P2
 
 === Algorytm priorytetyzacji powiadomień (The VIP Tier) — AFTER_MVP / P2
 

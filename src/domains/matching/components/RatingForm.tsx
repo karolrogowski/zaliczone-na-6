@@ -1,7 +1,7 @@
 'use client'
 
 import { useActionState, useState, useEffect } from 'react'
-import { submitRating } from '../actions'
+import { submitRating, updateRating } from '../actions'
 import { MIN_COMMENT_LOW_SCORE } from '../validation'
 import type { JustificationCategory } from '../types'
 
@@ -109,7 +109,10 @@ function EditCountdown({ editableUntil }: { editableUntil: string }) {
 }
 
 export function RatingForm({ requestId, role, otherPersonName, existingRating }: RatingFormProps) {
-  const [state, formAction, isPending] = useActionState(submitRating, undefined)
+  const [state, formAction, isPending] = useActionState(
+    existingRating ? updateRating : submitRating,
+    undefined
+  )
 
   const [scoreK, setScoreK] = useState(existingRating?.score_knowledge    ?? 0)
   const [scoreO, setScoreO] = useState(existingRating?.score_organization  ?? 0)
