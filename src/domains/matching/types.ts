@@ -81,7 +81,7 @@ export type TutorPreference = 'flag'
  */
 export type TutorStudentInteraction = {
   studentId: string
-  /** Uczeń zaznaczył "chcę ponownie tego korepetytora" */
+  /** Uczeń dodał korepetytora do ulubionych */
   wantAgain: boolean
   /** Korepetytor uczył już tego ucznia (istnieje poprzednia ocena) */
   hasPreviousSession: boolean

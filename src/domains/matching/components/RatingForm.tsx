@@ -167,9 +167,9 @@ export function RatingForm({ requestId, role, otherPersonName }: RatingFormProps
                 }`}
               >
                 <span aria-hidden="true">★</span>
-                Chcę uczyć się z tym korepetytorem w przyszłości
+                Dodaj do ulubionych
               </button>
-              <InfoTooltip content="Korepetytor zobaczy przy Twoim kolejnym zleceniu oznaczenie, że go preferujesz — może to zachęcić go do szybszej akceptacji. Preferencja pozostaje aktywna bezterminowo i możesz ją zmienić przy kolejnej ocenie." />
+              <InfoTooltip content="Korepetytor trafi na Twoją listę ulubionych i będzie powiadamiany o Twoich zleceniach jako pierwszy. Możesz usunąć go z ulubionych w dowolnym momencie w Ustawieniach." />
             </div>
 
             <div className="flex items-center gap-2">

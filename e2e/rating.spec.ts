@@ -274,7 +274,7 @@ test('uczeń widzi przyciski preferencji, korepetytor ich nie widzi', async ({ p
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/rate/${request.id}`)
   await expect(page.getByText('Preferencje')).toBeVisible()
-  await expect(page.getByRole('button', { name: /Chcę uczyć się z tym korepetytorem/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Dodaj do ulubionych/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /Nie polecaj mi tego korepetytora/ })).toBeVisible()
 
   // Wyloguj studenta — student ma pending rating, więc bez wyczyszczenia cookies
@@ -298,14 +298,14 @@ test('przyciski preferencji ucznia działają jak toggle: wzajemnie wykluczając
   await loginAs(page, STUDENT_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  const wantAgainBtn = page.getByRole('button', { name: /Chcę uczyć się z tym korepetytorem/ })
+  const wantAgainBtn = page.getByRole('button', { name: /Dodaj do ulubionych/ })
   const avoidBtn     = page.getByRole('button', { name: /Nie polecaj mi tego korepetytora/ })
 
   // Domyślnie żaden przycisk nie jest wciśnięty
   await expect(wantAgainBtn).toHaveAttribute('aria-pressed', 'false')
   await expect(avoidBtn).toHaveAttribute('aria-pressed', 'false')
 
-  // Kliknięcie "Chcę uczyć się z tym korepetytorem" — aktywuje
+  // Kliknięcie "Dodaj do ulubionych" — aktywuje
   await wantAgainBtn.click()
   await expect(wantAgainBtn).toHaveAttribute('aria-pressed', 'true')
   await expect(avoidBtn).toHaveAttribute('aria-pressed', 'false')
@@ -358,7 +358,7 @@ test('preferencja "want_again" zapisuje się w bazie po wysłaniu oceny', async 
 
   await page.locator('input[name="score"][value="5"]').evaluate(el => (el as HTMLInputElement).click())
   await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
-  await page.getByRole('button', { name: /Chcę uczyć się z tym korepetytorem/ }).click()
+  await page.getByRole('button', { name: /Dodaj do ulubionych/ }).click()
   await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
 
   await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
