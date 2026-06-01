@@ -68,13 +68,15 @@ export function StudentRequestStatus({
         {/* Poprzednia interakcja z tym korepetytorem */}
         {previousTutorRating && (
           <div className="mt-2 flex flex-wrap gap-1.5">
-            <span className="rounded-full bg-white/70 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
-              {(() => {
-                const { score_knowledge: k, score_organization: o, score_communication: c } = previousTutorRating
-                if (k == null || o == null || c == null) return null
-                return `Poprzednia ocena: ⌀ ${(Math.round(((k + o + c) / 3) * 10) / 10).toFixed(1)}★`
-              })()}
-            </span>
+            {(() => {
+              const { score_knowledge: k, score_organization: o, score_communication: c } = previousTutorRating
+              if (k == null || o == null || c == null) return null
+              return (
+                <span className="rounded-full bg-white/70 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
+                  {`Poprzednia ocena: ⌀ ${(Math.round(((k + o + c) / 3) * 10) / 10).toFixed(1)}★`}
+                </span>
+              )
+            })()}
             {previousTutorRating.preference === 'want_again' && (
               <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
                 ⭐ Ulubiony korepetytor

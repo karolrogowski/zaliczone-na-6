@@ -26,7 +26,7 @@ export default async function DashboardPage({
   if (profile?.role === 'admin') redirect('/admin/dashboard')
 
   const { ocena } = await searchParams
-  const ratingSuccess = ocena === 'zapisana'
+  const ratingSuccess = ocena === 'zapisana' || ocena === 'zaktualizowana'
 
   if (profile?.role === 'student') {
     const [activeRequest, stats, consultations] = await Promise.all([

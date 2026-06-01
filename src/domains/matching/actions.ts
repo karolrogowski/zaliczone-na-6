@@ -312,7 +312,10 @@ export async function updateRating(
     return { message: 'Okno edycji minęło — ocena jest zablokowana.' }
   }
 
-  const { error } = await supabase
+  // Warunek .gt('editable_until') przeniesiony na poziom UPDATE — eliminuje TOCTOU:
+  // dwa równoczesne żądania oba przejdą SELECT, ale tylko jedno UPDATE trafi na wiersz
+  // z editable_until > now(); drugie zaktualizuje 0 wierszy i dostanie błąd "okno minęło".
+  const { data: updated, error } = await supabase
     .from('ratings')
     .update({
       score_knowledge:     scoreK,
@@ -323,8 +326,11 @@ export async function updateRating(
       preference: preference,
     })
     .eq('id', existing.id)
+    .gt('editable_until', new Date().toISOString())
+    .select('id')
 
   if (error) return { message: 'Nie udało się zaktualizować oceny. Spróbuj ponownie.' }
+  if (!updated?.length) return { message: 'Okno edycji minęło — ocena jest zablokowana.' }
 
   redirect('/dashboard?ocena=zaktualizowana')
 }
