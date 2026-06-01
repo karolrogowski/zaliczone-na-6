@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Zaliczone na 6</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #ece9e1;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: #2c2c2a;
+  }
+  button { font-family: inherit; cursor: pointer; }
+
+  /* ============ Tokens ============ */
+  :root {
+    --bg:           #f5f5f3;
+    --chrome:       #ffffff;
+    --chrome-2:     #fafaf8;
+    --border:       #d3d1c7;
+    --border-soft:  #e8e6de;
+    --text:         #2c2c2a;
+    --text-2:       #5f5e5a;
+    --text-3:       #888780;
+    --student:      #185FA5;
+    --student-bg:   #E6F1FB;
+    --student-dk:   #0C447C;
+    --tutor:        #0F6E56;
+    --tutor-bg:    #E1F5EE;
+    --tutor-dk:    #085041;
+    --warn:         #BA7517;
+    --warn-bg:      #FAEEDA;
+    --warn-dk:      #633806;
+    --danger:       #C73A39;
+    --danger-bg:    #FCEBEB;
+    --danger-dk:    #501313;
+    --success:      #27500A;
+    --success-bg:   #EAF3DE;
+    --success-mid:  #639922;
+  }
+
+  /* ============ App frame ============ */
+  .app {
+    width: 1060px;
+    height: 680px;
+    flex-shrink: 0;
+    border: 0.5px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 6px 32px rgba(0,0,0,0.10);
+    display: flex;
+    background: var(--chrome);
+  }
+
+  /* ============ Sidebar ============ */
+  .sidebar {
+    width: 210px;
+    flex-shrink: 0;
+    background: var(--bg);
+    border-right: 0.5px solid var(--border-soft);
+    display: flex;
+    flex-direction: column;
+    padding: 18px 12px;
+  }
+  .sidebar-logo {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    padding: 0 8px 16px;
+    border-bottom: 0.5px solid var(--border-soft);
+    margin-bottom: 14px;
+  }
+  .nav-cta {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 11px;
+    border-radius: 8px;
+    font-size: 12px; font-weight: 500;
+    color: var(--student-dk);
+    background: var(--student-bg);
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .nav-cta:hover { background: #d3e7f8; }
+  .nav-cta svg { width: 14px; height: 14px; flex-shrink: 0; color: var(--student); }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .nav-item:hover { background: var(--chrome); color: var(--text); }
+  .nav-item.active {
+    background: var(--chrome);
+    color: var(--text);
+    font-weight: 500;
+    box-shadow: inset 0 0 0 0.5px var(--border-soft);
+  }
+  .nav-item svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.85; }
+  .nav-item .nav-badge {
+    margin-left: auto;
+    background: var(--warn-bg);
+    color: var(--warn-dk);
+    font-size: 10px; font-weight: 500;
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+  .nav-spacer { flex: 1; }
+  .nav-bottom {
+    padding-top: 12px;
+    border-top: 0.5px solid var(--border-soft);
+  }
+  .avatar-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px;
+  }
+  .avatar {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--student-bg);
+    color: var(--student-dk);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 500;
+    flex-shrink: 0;
+  }
+  .avatar-name { font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.2; }
+  .avatar-meta { font-size: 10px; color: var(--text-3); line-height: 1.4; margin-top: 1px; }
+
+  /* ============ Content ============ */
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+    min-width: 0;
+  }
+  .content-header {
+    flex-shrink: 0;
+    padding: 16px 26px;
+    background: var(--chrome);
+    border-bottom: 0.5px solid var(--border-soft);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .content-title { font-size: 16px; font-weight: 500; color: var(--text); }
+  .content-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .header-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px;
+    background: var(--success-bg);
+    color: var(--success);
+    border-radius: 20px;
+    font-size: 11px; font-weight: 500;
+  }
+  .header-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success-mid); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .header-pill.warn { background: var(--warn-bg); color: var(--warn-dk); }
+  .header-pill.warn .dot { background: var(--warn); }
+  .header-pill.danger { background: var(--danger-bg); color: var(--danger-dk); }
+  .header-pill.danger .dot { background: var(--danger); }
+  .icon-btn {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    border: 0.5px solid transparent;
+    background: transparent;
+    color: var(--text-2);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .icon-btn:hover { background: var(--bg); border-color: var(--border-soft); }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  /* ============ Body & layout ============ */
+  .body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 22px 26px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  /* ============ Blocked banner (top-of-content) ============ */
+  .blocked-banner {
+    display: none;
+    background: var(--danger-bg);
+    border: 0.5px solid #F7C1C1;
+    border-radius: 10px;
+    padding: 14px 16px;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  body[data-state="blocked"] .blocked-banner { display: flex; }
+  .blocked-icon {
+    width: 32px; height: 32px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #F09595;
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .blocked-icon svg { width: 16px; height: 16px; }
+  .blocked-text { flex: 1; }
+  .blocked-title { font-size: 13px; font-weight: 500; color: var(--danger-dk); margin-bottom: 2px; }
+  .blocked-sub { font-size: 12px; color: #791F1F; line-height: 1.5; }
+  .blocked-btn {
+    padding: 8px 14px;
+    background: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px; font-weight: 500;
+    flex-shrink: 0;
+  }
+  .blocked-btn:hover { background: var(--danger-dk); }
+
+  /* ============ Hero greeting ============ */
+  .hero {
+    background: var(--chrome);
+    border: 0.5px solid var(--border-soft);
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .hero-text { flex: 1; min-width: 0; }
+  .hero-greeting { font-size: 18px; font-weight: 500; color: var(--text); margin-bottom: 4px; }
+  .hero-sub { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+  .hero-sub strong { color: var(--text); font-weight: 500; }
+  .hero-cta {
+    padding: 11px 22px;
+    background: var(--student);
+    color: white;
+    border: none;
+    border-radius: 9px;
+    font-size: 13px; font-weight: 500;
+    display: inline-flex; align-items: center; gap: 8px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 0 rgba(12,68,124,0.3);
+  }
+  .hero-cta:hover { background: var(--student-dk); }
+  .hero-cta svg { width: 14px; height: 14px; }
+  .hero-cta.disabled {
+    background: var(--text-3);
+    cursor: not-allowed;
+    pointer-events: none;
+    box-shadow: none;
+  }
+  body[data-state="blocked"] .hero-cta { background: var(--text-3); pointer-events: none; }
+  body[data-state="empty"] .hero-greeting { font-size: 18px; }
+
+  /* Empty-state hero variation */
+  body[data-state="empty"] .hero-empty-cue { display: inline; }
+  body:not([data-state="empty"]) .hero-empty-cue { display: none; }
+  body[data-state="empty"] .hero-normal-cue { display: none; }
+
+  /* ============ Available tutors strip ============ */
+  .section { display: flex; flex-direction: column; gap: 10px; }
+  .section-head { display: flex; align-items: center; justify-content: space-between; }
+  .section-title { font-size: 13px; font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .section-title .count {
+    font-size: 11px; font-weight: 400; color: var(--text-3);
+    padding: 1px 8px; border-radius: 10px; background: var(--chrome-2); border: 0.5px solid var(--border-soft);
+  }
+  .section-link { font-size: 12px; color: var(--student); text-decoration: none; }
+  .section-link:hover { text-decoration: underline; }
+
+  .tutors-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .tutor-card {
+    background: var(--chrome);
+    border: 0.5px solid var(--border-soft);
+    border-radius: 10px;
+    padding: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .tutor-card:hover { border-color: var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .tutor-top { display: flex; align-items: flex-start; gap: 10px; }
+  .tutor-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--tutor-bg);
+    color: var(--tutor-dk);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 500;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .online-dot {
+    position: absolute;
+    bottom: -1px; right: -1px;
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    background: var(--success-mid);
+    border: 2px solid var(--chrome);
+  }
+  .tutor-name { font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.3; }
+  .tutor-rating { font-size: 11px; color: var(--text-3); margin-top: 2px; display: flex; align-items: center; gap: 3px; }
+  .tutor-rating .star { color: #EF9F27; }
+  .tutor-subjects { display: flex; flex-wrap: wrap; gap: 4px; }
+  .subj-tag {
+    font-size: 10px;
+    padding: 2px 7px;
+    background: var(--bg);
+    border-radius: 10px;
+    color: var(--text-2);
+  }
+
+  /* Empty strip */
+  .strip-empty {
+    background: var(--chrome);
+    border: 0.5px dashed var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .strip-empty .big-icon { font-size: 22px; opacity: 0.4; margin-bottom: 6px; }
+  .strip-empty strong { color: var(--text); font-weight: 500; }
+
+  body[data-state="no-tutors"] .tutors-strip { display: none; }
+  body:not([data-state="no-tutors"]) .strip-empty { display: none; }
+
+  /* ============ 2-col grid ============ */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  /* ---- Sessions list ---- */
+  .sessions-card {
+    background: var(--chrome);
+    border: 0.5px solid var(--border-soft);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .sessions-card .section-head { padding: 14px 16px 10px; }
+  .sessions-list { display: flex; flex-direction: column; }
+  .session-row {
+    padding: 12px 16px;
+    border-top: 0.5px solid var(--border-soft);
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .session-row:hover { background: var(--chrome-2); }
+  .session-avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--tutor-bg);
+    color: var(--tutor-dk);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 500;
+    flex-shrink: 0;
+  }
+  .session-mid { flex: 1; min-width: 0; }
+  .session-line1 { display: flex; align-items: center; gap: 8px; }
+  .session-tutor { font-size: 13px; font-weight: 500; color: var(--text); }
+  .session-line2 { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .session-line2 .dot { margin: 0 6px; color: #d0cec5; }
+  .session-status {
+    padding: 3px 9px;
+    border-radius: 20px;
+    font-size: 10px; font-weight: 500;
+    flex-shrink: 0;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .session-status.rated { background: var(--success-bg); color: var(--success); }
+  .session-status.unrated { background: var(--warn-bg); color: var(--warn-dk); }
+
+  /* Empty sessions */
+  .empty-sessions {
+    padding: 28px 24px;
+    text-align: center;
+    color: var(--text-2);
+    font-size: 13px;
+    line-height: 1.7;
+  }
+  .empty-sessions .big-icon { font-size: 28px; opacity: 0.35; margin-bottom: 8px; }
+  .empty-sessions strong { color: var(--text); font-weight: 500; }
+  .empty-sessions-cta {
+    margin-top: 12px;
+    padding: 8px 18px;
+    background: var(--student);
+    color: white;
+    border: none; border-radius: 8px;
+    font-size: 12px; font-weight: 500;
+  }
+  body[data-state="empty"] .session-row { display: none; }
+  body:not([data-state="empty"]) .empty-sessions { display: none; }
+
+  /* ---- Stats card ---- */
+  .stats-card {
+    background: var(--chrome);
+    border: 0.5px solid var(--border-soft);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .stats-card .section-head { padding: 14px 16px 10px; }
+  .stats-body { padding: 0 16px 16px; }
+  .stats-total {
+    display: flex; align-items: baseline; gap: 8px;
+    padding: 10px 0 14px;
+    border-bottom: 0.5px solid var(--border-soft);
+    margin-bottom: 14px;
+  }
+  .stats-total-value { font-size: 28px; font-weight: 500; color: var(--text); line-height: 1; font-variant-numeric: tabular-nums; }
+  .stats-total-label { font-size: 11px; color: var(--text-3); }
+  .stats-delta {
+    font-size: 11px; color: var(--success); display: inline-flex; align-items: center; gap: 2px;
+    margin-left: auto;
+  }
+  .bars { display: flex; flex-direction: column; gap: 10px; }
+  .bar-row {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 11px;
+  }
+  .bar-subject { width: 78px; color: var(--text-2); flex-shrink: 0; }
+  .bar-track { flex: 1; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--student); border-radius: 3px; }
+  .bar-fill.alt-1 { background: #5E94C2; }
+  .bar-fill.alt-2 { background: #8EB4D2; }
+  .bar-fill.alt-3 { background: #B8CDE0; }
+  .bar-count { width: 18px; text-align: right; color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+
+  body[data-state="empty"] .stats-total-value { color: var(--text-3); }
+  body[data-state="empty"] .stats-empty { display: block; }
+  body:not([data-state="empty"]) .stats-empty { display: none; }
+  body[data-state="empty"] .bars { display: none; }
+  .stats-empty {
+    display: none;
+    padding: 24px 0;
+    text-align: center;
+    color: var(--text-3);
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  /* ============ Tweaks panel ============ */
+  .tweaks-toggle-hint {
+    margin-top: 14px; font-size: 11px; color: #888780; text-align: center;
+  }
+  .tweaks-toggle-hint kbd {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    background: #fff; border: 0.5px solid #d3d1c7; border-radius: 4px;
+    padding: 1px 6px; font-size: 10px; color: #2c2c2a;
+  }
+  .tweaks {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #fff;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+    width: 240px;
+    padding: 14px;
+    display: none;
+    z-index: 100;
+  }
+  .tweaks.open { display: block; }
+  .tweaks-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .tweaks-title { font-size: 12px; font-weight: 500; color: #2c2c2a; }
+  .tweaks-close { width: 22px; height: 22px; border-radius: 6px; background: transparent; border: none; color: #888780; font-size: 14px; }
+  .tweaks-close:hover { background: #f5f5f3; color: #2c2c2a; }
+  .tweak-row { margin-bottom: 12px; }
+  .tweak-row:last-child { margin-bottom: 0; }
+  .tweak-label { font-size: 10px; color: #888780; margin-bottom: 5px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .seg { display: flex; background: #f5f5f3; border: 0.5px solid #e8e6de; border-radius: 7px; padding: 2px; flex-wrap: wrap; gap: 2px; }
+  .seg button {
+    flex: 1 0 45%;
+    padding: 5px 8px;
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    font-size: 11px;
+    color: #5f5e5a;
+    font-family: inherit;
+  }
+  .seg button.active { background: #fff; color: #2c2c2a; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+  /* ============ State-conditional pill in header ============ */
+  body[data-state="normal"] .header-pill-default { display: inline-flex; }
+  body[data-state="warn1"]  .header-pill-warn1 { display: inline-flex; }
+  body[data-state="empty"]  .header-pill-default { display: inline-flex; }
+  body[data-state="no-tutors"] .header-pill-notutors { display: inline-flex; }
+  body[data-state="blocked"] .header-pill-blocked { display: inline-flex; }
+  .header-pill { display: none; }
+
+  /* When blocked, dim sessions count emphasis */
+  body[data-state="blocked"] .session-row { opacity: 0.65; }
+</style>
+</head>
+<body data-state="normal">
+
+<div class="app">
+
+  <!-- ============ Sidebar ============ -->
+  <div class="sidebar">
+    <div class="sidebar-logo">Zaliczone na 6</div>
+
+    <div class="nav-cta">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Nowe zlecenie
+    </div>
+
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Historia
+      <span class="nav-badge" id="nav-badge" style="display:none;">2</span>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Korepetytorzy
+    </div>
+
+    <div class="nav-spacer"></div>
+
+    <div class="nav-bottom">
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Ustawienia
+      </div>
+      <div class="avatar-row">
+        <div class="avatar">AK</div>
+        <div>
+          <div class="avatar-name">Anna K.</div>
+          <div class="avatar-meta">Liceum · Polski</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Content ============ -->
+  <div class="content">
+
+    <div class="content-header">
+      <div>
+        <div class="content-title">Dashboard</div>
+        <div class="content-sub" id="content-sub">Twoja przestrzeń nauki</div>
+      </div>
+      <div class="header-right">
+        <span class="header-pill header-pill-default"><span class="dot"></span> <span id="online-count">4</span> korepetytorów online</span>
+        <span class="header-pill warn header-pill-warn1"><span class="dot"></span> 1 nieoceniona sesja</span>
+        <span class="header-pill warn header-pill-notutors"><span class="dot"></span> Brak korepetytorów online</span>
+        <span class="header-pill danger header-pill-blocked"><span class="dot"></span> Konto zablokowane</span>
+
+        <button class="icon-btn" title="Powiadomienia">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="body">
+
+      <!-- ===== Blocked banner ===== -->
+      <div class="blocked-banner">
+        <div class="blocked-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div class="blocked-text">
+          <div class="blocked-title">Konto tymczasowo zablokowane</div>
+          <div class="blocked-sub">Masz <strong>3 nieocenione sesje</strong>. Wystaw brakujące oceny żeby odblokować możliwość składania zleceń.</div>
+        </div>
+        <button class="blocked-btn">Oceń sesje →</button>
+      </div>
+
+      <!-- ===== Hero greeting + CTA ===== -->
+      <div class="hero">
+        <div class="hero-text">
+          <div class="hero-greeting" id="hero-greeting">Cześć Anna 👋</div>
+          <div class="hero-sub">
+            <span class="hero-normal-cue">
+              <strong id="online-count-hero">4 korepetytorów</strong> jest dostępnych w tej chwili.
+              Średni czas znalezienia: <strong>1m 12s</strong>.
+            </span>
+            <span class="hero-empty-cue">
+              Witaj na platformie. Złóż pierwsze zlecenie kiedy będziesz potrzebować pomocy — szukamy korepetytora w kilka minut.
+            </span>
+          </div>
+        </div>
+        <button class="hero-cta" id="hero-cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nowe zlecenie
+        </button>
+      </div>
+
+      <!-- ===== Dostępni korepetytorzy ===== -->
+      <div class="section">
+        <div class="section-head">
+          <div class="section-title">
+            Dostępni teraz
+            <span class="count" id="strip-count">4</span>
+          </div>
+          <a class="section-link" href="#">Wszyscy korepetytorzy →</a>
+        </div>
+
+        <div class="tutors-strip">
+          <div class="tutor-card">
+            <div class="tutor-top">
+              <div class="tutor-avatar">JW<span class="online-dot"></span></div>
+              <div style="min-width:0;">
+                <div class="tutor-name">Jan W.</div>
+                <div class="tutor-rating"><span class="star">★</span> 4.9 · 32 sesje</div>
+              </div>
+            </div>
+            <div class="tutor-subjects">
+              <span class="subj-tag">Matematyka</span>
+              <span class="subj-tag">Fizyka</span>
+            </div>
+          </div>
+
+          <div class="tutor-card">
+            <div class="tutor-top">
+              <div class="tutor-avatar" style="background:#FAEEDA;color:#854F0B;">MK<span class="online-dot"></span></div>
+              <div>
+                <div class="tutor-name">Marta K.</div>
+                <div class="tutor-rating"><span class="star">★</span> 4.8 · 18 sesji</div>
+              </div>
+            </div>
+            <div class="tutor-subjects">
+              <span class="subj-tag">Chemia</span>
+              <span class="subj-tag">Biologia</span>
+            </div>
+          </div>
+
+          <div class="tutor-card">
+            <div class="tutor-top">
+              <div class="tutor-avatar" style="background:#F1E2F0;color:#5D2C5C;">PN<span class="online-dot"></span></div>
+              <div>
+                <div class="tutor-name">Piotr N.</div>
+                <div class="tutor-rating"><span class="star">★</span> 5.0 · 47 sesji</div>
+              </div>
+            </div>
+            <div class="tutor-subjects">
+              <span class="subj-tag">Język ang.</span>
+              <span class="subj-tag">Niemiecki</span>
+            </div>
+          </div>
+
+          <div class="tutor-card">
+            <div class="tutor-top">
+              <div class="tutor-avatar" style="background:#E6F1FB;color:#0C447C;">AL<span class="online-dot"></span></div>
+              <div>
+                <div class="tutor-name">Adam L.</div>
+                <div class="tutor-rating"><span class="star">★</span> 4.7 · 9 sesji</div>
+              </div>
+            </div>
+            <div class="tutor-subjects">
+              <span class="subj-tag">Historia</span>
+              <span class="subj-tag">Polski</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="strip-empty">
+          <div class="big-icon">🌙</div>
+          <div><strong>Nikt nie jest teraz dostępny</strong><br>Spróbuj za chwilę — średnio o tej porze pojawia się 2-3 korepetytorów w ciągu 15 min.</div>
+        </div>
+      </div>
+
+      <!-- ===== 2-col: Ostatnie sesje + Statystyki ===== -->
+      <div class="grid-2">
+
+        <div class="sessions-card">
+          <div class="section-head">
+            <div class="section-title">Ostatnie sesje</div>
+            <a class="section-link" href="#">Cała historia →</a>
+          </div>
+          <div class="sessions-list">
+
+            <div class="session-row">
+              <div class="session-avatar">JW</div>
+              <div class="session-mid">
+                <div class="session-line1">
+                  <span class="session-tutor">Jan Wiśniewski</span>
+                </div>
+                <div class="session-line2">Matematyka · całki <span class="dot">·</span> 60 min <span class="dot">·</span> dziś, 18:42</div>
+              </div>
+              <span class="session-status unrated">⏱ Oceń</span>
+            </div>
+
+            <div class="session-row">
+              <div class="session-avatar" style="background:#FAEEDA;color:#854F0B;">MK</div>
+              <div class="session-mid">
+                <div class="session-line1">
+                  <span class="session-tutor">Marta Kowalska</span>
+                </div>
+                <div class="session-line2">Fizyka · ruch jednostajny <span class="dot">·</span> 30 min <span class="dot">·</span> wczoraj, 21:15</div>
+              </div>
+              <span class="session-status rated">✓ 5★</span>
+            </div>
+
+            <div class="session-row">
+              <div class="session-avatar">JW</div>
+              <div class="session-mid">
+                <div class="session-line1">
+                  <span class="session-tutor">Jan Wiśniewski</span>
+                </div>
+                <div class="session-line2">Matematyka · pochodne <span class="dot">·</span> 60 min <span class="dot">·</span> 3 dni temu</div>
+              </div>
+              <span class="session-status rated">✓ 5★</span>
+            </div>
+
+            <div class="session-row">
+              <div class="session-avatar" style="background:#F1E2F0;color:#5D2C5C;">PN</div>
+              <div class="session-mid">
+                <div class="session-line1">
+                  <span class="session-tutor">Piotr Nowak</span>
+                </div>
+                <div class="session-line2">Angielski · gramatyka <span class="dot">·</span> 30 min <span class="dot">·</span> 5 dni temu</div>
+              </div>
+              <span class="session-status rated">✓ 4★</span>
+            </div>
+
+            <div class="session-row">
+              <div class="session-avatar" style="background:#E1F5EE;color:#085041;">RW</div>
+              <div class="session-mid">
+                <div class="session-line1">
+                  <span class="session-tutor">Robert W.</span>
+                </div>
+                <div class="session-line2">Chemia · stechiometria <span class="dot">·</span> 60 min <span class="dot">·</span> tydzień temu</div>
+              </div>
+              <span class="session-status rated">✓ 5★</span>
+            </div>
+
+          </div>
+
+          <div class="empty-sessions">
+            <div class="big-icon">📚</div>
+            <div><strong>Brak sesji</strong><br>Twoje sesje pojawią się tutaj po pierwszym zleceniu.</div>
+            <button class="empty-sessions-cta">Złóż pierwsze zlecenie →</button>
+          </div>
+        </div>
+
+        <div class="stats-card">
+          <div class="section-head">
+            <div class="section-title">Twoje statystyki</div>
+            <span style="font-size:11px;color:var(--text-3);">listopad</span>
+          </div>
+          <div class="stats-body">
+            <div class="stats-total">
+              <span class="stats-total-value" id="stats-total">8</span>
+              <span class="stats-total-label">sesji w miesiącu</span>
+              <span class="stats-delta">↑ 33% vs. październik</span>
+            </div>
+
+            <div class="bars">
+              <div class="bar-row">
+                <span class="bar-subject">Matematyka</span>
+                <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
+                <span class="bar-count">4</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-subject">Fizyka</span>
+                <div class="bar-track"><div class="bar-fill alt-1" style="width:50%"></div></div>
+                <span class="bar-count">2</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-subject">Chemia</span>
+                <div class="bar-track"><div class="bar-fill alt-2" style="width:25%"></div></div>
+                <span class="bar-count">1</span>
+              </div>
+              <div class="bar-row">
+                <span class="bar-subject">Angielski</span>
+                <div class="bar-track"><div class="bar-fill alt-3" style="width:25%"></div></div>
+                <span class="bar-count">1</span>
+              </div>
+            </div>
+
+            <div class="stats-empty">
+              <div>Brak sesji w tym miesiącu.<br>Statystyki pojawią się tutaj po pierwszej sesji.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<p class="tweaks-toggle-hint">Naciśnij <kbd>T</kbd> żeby otworzyć panel Tweaks.</p>
+
+<!-- ============ Tweaks ============ -->
+<div class="tweaks" id="tweaks">
+  <div class="tweaks-header">
+    <span class="tweaks-title">Tweaks</span>
+    <button class="tweaks-close" onclick="closeTweaks()">×</button>
+  </div>
+
+  <div class="tweak-row">
+    <p class="tweak-label">Stan dashboardu</p>
+    <div class="seg" data-key="state">
+      <button data-val="normal" class="active">Normalny</button>
+      <button data-val="warn1">1 nieoceniona</button>
+      <button data-val="empty">Nowy ucz.</button>
+      <button data-val="no-tutors">Brak online</button>
+      <button data-val="blocked" style="flex:1 0 100%;">Blokada konta (3 nieocenione)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "state": "blocked"
+}/*EDITMODE-END*/;
+
+const body = document.body;
+const tweaks = document.getElementById('tweaks');
+
+function applyState(key, val) {
+  if (key === 'state') {
+    body.dataset.state = val;
+    // Side effects
+    const headerSub = document.getElementById('content-sub');
+    const navBadge = document.getElementById('nav-badge');
+    const stripCount = document.getElementById('strip-count');
+    const onlineCount = document.getElementById('online-count');
+    const onlineHero = document.getElementById('online-count-hero');
+    const heroGreeting = document.getElementById('hero-greeting');
+    const statsTotal = document.getElementById('stats-total');
+
+    navBadge.style.display = 'none';
+    headerSub.textContent = 'Twoja przestrzeń nauki';
+
+    if (val === 'normal') {
+      stripCount.textContent = '4';
+      onlineCount.textContent = '4';
+      onlineHero.textContent = '4 korepetytorów';
+      heroGreeting.textContent = 'Cześć Anna 👋';
+      statsTotal.textContent = '8';
+    } else if (val === 'warn1') {
+      navBadge.style.display = 'inline-flex';
+      navBadge.textContent = '1';
+      heroGreeting.textContent = 'Cześć Anna 👋';
+      stripCount.textContent = '4';
+    } else if (val === 'empty') {
+      heroGreeting.textContent = 'Witaj na platformie 👋';
+      headerSub.textContent = 'Złóż pierwsze zlecenie kiedy będziesz potrzebować pomocy';
+      statsTotal.textContent = '0';
+      stripCount.textContent = '4';
+    } else if (val === 'no-tutors') {
+      stripCount.textContent = '0';
+      onlineCount.textContent = '0';
+      onlineHero.textContent = '0 korepetytorów';
+    } else if (val === 'blocked') {
+      navBadge.style.display = 'inline-flex';
+      navBadge.textContent = '3';
+      heroGreeting.textContent = 'Cześć Anna 👋';
+      headerSub.textContent = '⚠ Składanie zleceń tymczasowo zablokowane';
+    }
+  }
+  document.querySelectorAll(`.seg[data-key="${key}"] button`).forEach(b => {
+    b.classList.toggle('active', b.dataset.val === val);
+  });
+}
+
+document.querySelectorAll('.seg').forEach(seg => {
+  const key = seg.dataset.key;
+  seg.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = btn.dataset.val;
+      applyState(key, val);
+      try {
+        window.parent.postMessage({
+          type: '__edit_mode_set_keys',
+          edits: { [key]: val }
+        }, '*');
+      } catch(e) {}
+    });
+  });
+});
+
+Object.entries(TWEAK_DEFAULTS).forEach(([k, v]) => applyState(k, v));
+
+/* Tweaks panel — host protocol */
+function openTweaks()  { tweaks.classList.add('open'); }
+function closeTweaks() {
+  tweaks.classList.remove('open');
+  try { window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); } catch(e) {}
+}
+window.openTweaks = openTweaks;
+window.closeTweaks = closeTweaks;
+
+window.addEventListener('message', (e) => {
+  const d = e.data || {};
+  if (d.type === '__activate_edit_mode')   openTweaks();
+  if (d.type === '__deactivate_edit_mode') tweaks.classList.remove('open');
+});
+try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch(e) {}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 't' || e.key === 'T') {
+    if (document.activeElement && /input|textarea|select/i.test(document.activeElement.tagName)) return;
+    tweaks.classList.toggle('open');
+  }
+});
+
+/* Hero CTA → triggers Nowe zlecenie flow (mock) */
+document.getElementById('hero-cta').addEventListener('click', () => {
+  alert('Następny ekran: formularz zlecenia (03-formularz-zlecenia.html)');
+});
+</script>
+</body>
+</html>

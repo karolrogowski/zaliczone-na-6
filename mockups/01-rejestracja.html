@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+P<head>
+  <meta charset="utf-8">
+  <title>Załóż konto — Zaliczone na 6</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #f5f5f3; display: flex; align-items: center; justify-content: center; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    #__bundler_loading { position: fixed; bottom: 20px; right: 20px; font: 13px/1.4 -apple-system, BlinkMacSystemFont, sans-serif; color: #666; background: #fff; padding: 8px 14px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.12); z-index: 10000; }
+    #__bundler_thumbnail { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f5f5f3; z-index: 9999; }
+    #__bundler_thumbnail svg { width: 100%; height: 100%; object-fit: contain; }
+    #__bundler_placeholder { color: #999; font-size: 14px; }
+  </style>
+  <noscript>
+    <style>#__bundler_loading { display: none; }</style>
+    <div style="position:fixed;bottom:12px;left:12px;font:13px/1.4 -apple-system,BlinkMacSystemFont,sans-serif;color:#999;background:rgba(255,255,255,0.9);padding:6px 12px;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,0.08);z-index:10000;">
+      This page requires JavaScript to display.
+    </div>
+  </noscript>
+</head>
+<body>
+  <div id="__bundler_thumbnail">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#f5f5f3"></rect>
+    <text x="980" y="780" font-family="-apple-system, sans-serif" font-size="760" font-weight="700" fill="#185FA5" opacity="0.07" text-anchor="middle">6</text>
+    <rect x="380" y="330" width="240" height="14" rx="7" fill="#2c2c2a"></rect>
+    <rect x="380" y="360" width="320" height="14" rx="7" fill="#0C447C"></rect>
+    <rect x="380" y="430" width="440" height="52" rx="11" fill="#ffffff" stroke="#e8e6de"></rect>
+    <rect x="380" y="500" width="440" height="52" rx="13" fill="#185FA5"></rect>
+  </svg>
+</div>
+  <div id="__bundler_loading">Unpacking...</div>
+
+  <script>
+    
+document.addEventListener('DOMContentLoaded', async function() {
+  const loading = document.getElementById('__bundler_loading');
+  function setStatus(msg) { if (loading) loading.textContent = msg; }
+
+  // Error sink persists across replaceWith since it's on window, not the DOM.
+  window.addEventListener('error', function(e) {
+    var p = document.body || document.documentElement;
+    var d = document.getElementById('__bundler_err') || p.appendChild(document.createElement('div'));
+    d.id = '__bundler_err';
+    d.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;font:12px/1.4 ui-monospace,monospace;background:#2a1215;color:#ff8a80;padding:10px 14px;border-radius:8px;border:1px solid #5c2b2e;z-index:99999;white-space:pre-wrap;max-height:40vh;overflow:auto';
+    d.textContent = (d.textContent ? d.textContent + String.fromCharCode(10) : '') +
+      '[bundle] ' + (e.message || e.type) +
+      (e.filename ? ' (' + e.filename.slice(0, 60) + ':' + e.lineno + ')' : '');
+  }, true);
+
+  try {
+    const manifestEl = document.querySelector('script[type="__bundler/manifest"]');
+    const templateEl = document.querySelector('script[type="__bundler/template"]');
+    if (!manifestEl || !templateEl) {
+      setStatus('Error: missing bundle data');
+      console.error('[bundler] Missing script tags — manifestEl:', !!manifestEl, 'templateEl:', !!templateEl);
+      return;
+    }
+
+    const manifest = JSON.parse(manifestEl.textContent);
+    let template = JSON.parse(templateEl.textContent);
+
+    const uuids = Object.keys(manifest);
+    setStatus('Unpacking ' + uuids.length + ' assets...');
+
+    const blobUrls = {};
+    await Promise.all(uuids.map(async (uuid) => {
+      const entry = manifest[uuid];
+      try {
+        const binaryStr = atob(entry.data);
+        const bytes = new Uint8Array(binaryStr.length);
+        for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+        let finalBytes = bytes;
+        if (entry.compressed) {
+          if (typeof DecompressionStream !== 'undefined') {
+            const ds = new DecompressionStream('gzip');
+            const writer = ds.writable.getWriter();
+            const reader = ds.readable.getReader();
+            writer.write(bytes);
+            writer.close();
+            const chunks = [];
+            let totalLen = 0;
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              chunks.push(value);
+              totalLen += value.length;
+            }
+            finalBytes = new Uint8Array(totalLen);
+            let offset = 0;
+            for (const chunk of chunks) { finalBytes.set(chunk, offset); offset += chunk.length; }
+          } else {
+            console.warn('DecompressionStream not available, asset ' + uuid + ' may not render');
+          }
+        }
+
+        blobUrls[uuid] = URL.createObjectURL(new Blob([finalBytes], { type: entry.mime }));
+      } catch (err) {
+        console.error('Failed to decode asset ' + uuid + ':', err);
+        blobUrls[uuid] = URL.createObjectURL(new Blob([], { type: entry.mime }));
+      }
+    }));
+
+    const extResEl = document.querySelector('script[type="__bundler/ext_resources"]');
+    const extResources = extResEl ? JSON.parse(extResEl.textContent) : [];
+    const resourceMap = {};
+    for (const entry of extResources) {
+      if (blobUrls[entry.uuid]) resourceMap[entry.id] = blobUrls[entry.uuid];
+    }
+
+    setStatus('Rendering...');
+    for (const uuid of uuids) template = template.split(uuid).join(blobUrls[uuid]);
+
+    // Strip integrity + crossorigin — blob URLs from a file:// document inherit
+    // a null origin, so crossorigin forces a CORS fetch that SRI then rejects.
+    // The manifest bytes are ours; SRI protects against CDN compromise, not this.
+    template = template.replace(/\s+integrity="[^"]*"/gi, '').replace(/\s+crossorigin="[^"]*"/gi, '');
+
+    const resourceScript = '<script>window.__resources = ' +
+      JSON.stringify(resourceMap).split('</' + 'script>').join('<\\/' + 'script>') +
+      ';</' + 'script>';
+    // Inject after <head> so the DOCTYPE stays first; prepending the script
+    // would push the parser into quirks mode. DOMParser always emits a <head>
+    // (synthesizing one if the source HTML omitted it) but may carry
+    // attributes through, so match the full opening tag. slice() rather than
+    // replace() keeps us clear of $-pattern substitution in resourceScript.
+    const headOpen = template.match(/<head[^>]*>/i);
+    if (headOpen) {
+      const i = headOpen.index + headOpen[0].length;
+      template = template.slice(0, i) + resourceScript + template.slice(i);
+    }
+
+    // Parse the template and swap the root element. Scripts inserted via
+    // DOMParser/replaceWith are inert per spec — re-create each with
+    // createElement so they execute, awaiting onload for src scripts to
+    // preserve ordering (React before ReactDOM before Babel before text/babel).
+    const doc = new DOMParser().parseFromString(template, 'text/html');
+    document.documentElement.replaceWith(doc.documentElement);
+    const dead = Array.from(document.scripts);
+    for (const old of dead) {
+      const s = document.createElement('script');
+      for (const a of old.attributes) s.setAttribute(a.name, a.value);
+      s.textContent = old.textContent;
+      // text/babel scripts with a src: fetch and inline. transformScriptTags
+      // does XHR against the src, but blob:null/ from a file:// origin is
+      // silently dropped. Inlining makes it a plain inline babel script,
+      // which transformScriptTags handles unconditionally.
+      if ((s.type === 'text/babel' || s.type === 'text/jsx') && s.src) {
+        const r = await fetch(s.src);
+        s.textContent = await r.text();
+        s.removeAttribute('src');
+      }
+      const p = s.src ? new Promise(function(r) { s.onload = s.onerror = r; }) : null;
+      old.replaceWith(s);
+      if (p) await p;
+    }
+    // Babel standalone auto-transforms type=text/babel on DOMContentLoaded,
+    // which fired before we swapped the document. Trigger manually if present.
+    if (window.Babel && typeof window.Babel.transformScriptTags === 'function') {
+      window.Babel.transformScriptTags();
+    }
+  } catch (err) {
+    setStatus('Error unpacking: ' + err.message);
+    console.error('Bundle unpack error:', err);
+  }
+});
+
+  </script>
+
+  <script type="__bundler/manifest">
+{}
+  </script>
+
+  <script type="__bundler/ext_resources">
+[]
+  </script>
+
+  <script type="__bundler/template">
+"<!DOCTYPE html>\n<html lang=\"pl\"><head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n<title>Załóż konto — Zaliczone na 6<\u002Ftitle>\n\n<style>\n  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }\n  html, body { height: 100%; }\n  body {\n    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;\n    color: #2c2c2a;\n    -webkit-font-smoothing: antialiased;\n  }\n  button, input { font-family: inherit; }\n\n  :root {\n    --bg:           #f5f5f3;\n    --chrome:       #ffffff;\n    --border:       #d3d1c7;\n    --border-soft:  #e8e6de;\n    --text:         #2c2c2a;\n    --text-2:       #5f5e5a;\n    --text-3:       #8a8980;\n    --student:      #185FA5;\n    --student-bg:   #E6F1FB;\n    --student-dk:   #0C447C;\n    --tutor:        #0F6E56;\n    --tutor-bg:     #E1F5EE;\n    --tutor-dk:     #085041;\n    --success-mid:  #639922;\n    --star:         #EF9F27;\n    --accent:    var(--student);\n    --accent-bg: var(--student-bg);\n    --accent-dk: var(--student-dk);\n  }\n  body[data-role=\"tutor\"] {\n    --accent:    var(--tutor);\n    --accent-bg: var(--tutor-bg);\n    --accent-dk: var(--tutor-dk);\n  }\n\n  /* ============ Site shell — full bleed warm canvas ============ */\n  .site {\n    min-height: 100%;\n    background: var(--bg);\n    display: flex;\n    flex-direction: column;\n    position: relative;\n    overflow: hidden;\n    transition: background 0.4s ease;\n  }\n\n  /* Oversized brand \"6\" — ownable background device */\n  .bg-six {\n    position: absolute;\n    right: -4vw; bottom: -22vh;\n    font-size: 92vh;\n    font-weight: 700;\n    line-height: 0.8;\n    color: var(--accent);\n    opacity: 0.05;\n    letter-spacing: -0.04em;\n    pointer-events: none;\n    user-select: none;\n    z-index: 0;\n    transition: color 0.4s ease;\n  }\n  @media (max-width: 720px) {\n    .bg-six { font-size: 60vh; right: -10vw; bottom: -8vh; opacity: 0.045; }\n  }\n\n  /* ============ Top nav (full width) ============ */\n  .topnav {\n    position: relative; z-index: 2;\n    display: flex; align-items: center; justify-content: space-between;\n    padding: 22px clamp(20px, 5vw, 56px);\n  }\n  .nav-logo {\n    font-size: 15px; font-weight: 500; color: var(--text);\n    display: flex; align-items: center; gap: 9px;\n  }\n  .nav-logo .mark {\n    width: 24px; height: 24px;\n    border-radius: 7px;\n    background: var(--accent);\n    color: #fff;\n    display: flex; align-items: center; justify-content: center;\n    font-size: 13px; font-weight: 700;\n    transition: background 0.4s ease;\n  }\n  .nav-right { font-size: 13px; color: var(--text-2); }\n  .nav-right a { color: var(--accent-dk); text-decoration: none; font-weight: 500; margin-left: 5px; transition: color 0.4s ease; }\n  .nav-right a:hover { text-decoration: underline; }\n\n  /* ============ Main centered column ============ */\n  .main {\n    position: relative; z-index: 1;\n    flex: 1;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n    padding: 16px clamp(20px, 5vw, 56px) 56px;\n  }\n  .col {\n    width: 100%;\n    max-width: 452px;\n  }\n\n  /* Live status */\n  .live {\n    display: inline-flex; align-items: center; gap: 8px;\n    padding: 6px 13px 6px 11px;\n    background: var(--chrome);\n    border: 0.5px solid var(--border-soft);\n    border-radius: 22px;\n    font-size: 12.5px; color: var(--text-2);\n    margin-bottom: 24px;\n    box-shadow: 0 1px 3px rgba(0,0,0,0.03);\n  }\n  .live .ping {\n    position: relative;\n    width: 8px; height: 8px; flex-shrink: 0;\n  }\n  .live .ping::before, .live .ping::after {\n    content: ''; position: absolute; inset: 0;\n    border-radius: 50%; background: var(--success-mid);\n  }\n  .live .ping::after { animation: ping 1.8s cubic-bezier(0,0,0.2,1) infinite; }\n  @keyframes ping { 0% { transform: scale(1); opacity: 0.7; } 80%,100% { transform: scale(2.6); opacity: 0; } }\n  .live strong { color: var(--text); font-weight: 500; }\n\n  /* Headline */\n  .headline {\n    font-size: clamp(30px, 4.6vw, 42px);\n    font-weight: 500;\n    line-height: 1.12;\n    letter-spacing: -0.02em;\n    color: var(--text);\n    margin-bottom: 14px;\n  }\n  .headline .hl-accent { color: var(--accent-dk); transition: color 0.4s ease; }\n  .subhead {\n    font-size: 15.5px; color: var(--text-2); line-height: 1.6;\n    margin-bottom: 30px;\n  }\n\n  /* ============ Role segmented toggle ============ */\n  .role-toggle {\n    display: grid;\n    grid-template-columns: 1fr 1fr;\n    gap: 4px;\n    padding: 4px;\n    background: var(--chrome);\n    border: 0.5px solid var(--border-soft);\n    border-radius: 13px;\n    margin-bottom: 22px;\n    position: relative;\n  }\n  .role-opt {\n    border: none; background: transparent; cursor: pointer;\n    padding: 11px 12px;\n    border-radius: 10px;\n    display: flex; align-items: center; gap: 10px;\n    text-align: left;\n    transition: background 0.18s;\n  }\n  .role-opt .r-ico {\n    width: 30px; height: 30px; border-radius: 8px;\n    background: var(--bg); color: var(--text-3);\n    display: flex; align-items: center; justify-content: center;\n    flex-shrink: 0; transition: background 0.18s, color 0.18s;\n  }\n  .role-opt .r-ico svg { width: 16px; height: 16px; }\n  .role-opt .r-label { line-height: 1.25; }\n  .role-opt .r-title { font-size: 13px; font-weight: 500; color: var(--text-2); transition: color 0.18s; }\n  .role-opt .r-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }\n\n  body[data-role=\"student\"] .role-opt[data-r=\"student\"],\n  body[data-role=\"tutor\"]   .role-opt[data-r=\"tutor\"] {\n    background: var(--accent-bg);\n  }\n  body[data-role=\"student\"] .role-opt[data-r=\"student\"] .r-ico { background: var(--student); color: #fff; }\n  body[data-role=\"student\"] .role-opt[data-r=\"student\"] .r-title { color: var(--student-dk); }\n  body[data-role=\"tutor\"]   .role-opt[data-r=\"tutor\"] .r-ico { background: var(--tutor); color: #fff; }\n  body[data-role=\"tutor\"]   .role-opt[data-r=\"tutor\"] .r-title { color: var(--tutor-dk); }\n\n  /* ============ Form fields ============ */\n  .field { margin-bottom: 15px; }\n  .field-label { display: block; font-size: 12px; font-weight: 500; color: var(--text-2); margin-bottom: 6px; }\n  .input-wrap { position: relative; }\n  .input {\n    width: 100%;\n    padding: 12px 14px;\n    border: 0.5px solid var(--border);\n    border-radius: 10px;\n    font-size: 14px; color: var(--text);\n    background: var(--chrome);\n    outline: none;\n    transition: border-color 0.15s, box-shadow 0.15s;\n  }\n  .input:focus {\n    border-color: var(--accent);\n    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);\n  }\n  .input::placeholder { color: var(--text-3); }\n  .reveal {\n    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);\n    width: 34px; height: 34px;\n    border: none; background: transparent; cursor: pointer;\n    color: var(--text-3); border-radius: 8px;\n    display: flex; align-items: center; justify-content: center;\n  }\n  .reveal:hover { color: var(--text-2); background: var(--bg); }\n  .reveal svg { width: 17px; height: 17px; }\n\n  .pwd-meter { display: flex; gap: 5px; margin-top: 9px; }\n  .pwd-seg { flex: 1; height: 3px; background: var(--border-soft); border-radius: 2px; transition: background 0.2s; }\n  .pwd-seg.on-1 { background: #D98C2B; }\n  .pwd-seg.on-2 { background: var(--star); }\n  .pwd-seg.on-3 { background: var(--success-mid); }\n  .pwd-hint { font-size: 11.5px; color: var(--text-3); margin-top: 8px; }\n  .pwd-hint.ok { color: var(--success-mid); }\n\n  /* CTA */\n  .cta {\n    width: 100%; padding: 14px;\n    border-radius: 11px;\n    font-size: 15px; font-weight: 500;\n    border: none; cursor: pointer;\n    background: var(--accent); color: #fff;\n    margin: 8px 0 18px;\n    display: inline-flex; align-items: center; justify-content: center; gap: 9px;\n    transition: filter 0.15s, background 0.4s ease;\n    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);\n  }\n  .cta:hover { filter: brightness(0.93); }\n  .cta svg { width: 16px; height: 16px; }\n\n  .divider { display: flex; align-items: center; gap: 12px; margin: 2px 0 18px; font-size: 12px; color: var(--text-3); }\n  .divider::before, .divider::after { content: ''; flex: 1; height: 0.5px; background: var(--border-soft); }\n\n  .oauth {\n    width: 100%; padding: 12px;\n    border-radius: 11px;\n    border: 0.5px solid var(--border);\n    background: var(--chrome); color: var(--text);\n    font-size: 14px; font-weight: 500; cursor: pointer;\n    display: inline-flex; align-items: center; justify-content: center; gap: 9px;\n    transition: background 0.15s, border-color 0.15s;\n  }\n  .oauth:hover { background: #fafaf8; border-color: var(--text-3); }\n  .oauth svg { width: 17px; height: 17px; }\n\n  .legal {\n    font-size: 11.5px; color: var(--text-3);\n    line-height: 1.6; margin-top: 22px;\n  }\n  .legal a { color: var(--text-2); text-decoration: underline; }\n<\u002Fstyle>\n<\u002Fhead>\n<body data-role=\"student\">\n\n<div class=\"site\">\n  <div class=\"bg-six\">6<\u002Fdiv>\n\n  <!-- Top nav -->\n  <nav class=\"topnav\">\n    <div class=\"nav-logo\">\n      <span class=\"mark\">6<\u002Fspan>\n      Zaliczone na 6\n    <\u002Fdiv>\n    <div class=\"nav-right\">Masz już konto?<a href=\"#\">Zaloguj się<\u002Fa><\u002Fdiv>\n  <\u002Fnav>\n\n  <!-- Centered column -->\n  <main class=\"main\">\n    <div class=\"col\">\n\n      <div class=\"live\">\n        <span class=\"ping\"><\u002Fspan>\n        <span><strong>4 korepetytorów<\u002Fstrong> online teraz · pomoc średnio w <strong>1m 12s<\u002Fstrong><\u002Fspan>\n      <\u002Fdiv>\n\n      <h1 class=\"headline\">\n        Klasówka jutro?<br>\n        <span class=\"hl-accent\" id=\"hl-accent\">Znajdź pomoc dziś wieczorem.<\u002Fspan>\n      <\u002Fh1>\n      <p class=\"subhead\" id=\"subhead\">Załóż konto w 30 sekund. Bez karty na start — dane płatności podasz dopiero przed pierwszą sesją.<\u002Fp>\n\n      <!-- Role toggle -->\n      <div class=\"role-toggle\">\n        <button class=\"role-opt\" data-r=\"student\" onclick=\"selectRole('student')\">\n          <span class=\"r-ico\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M22 10v6M2 10l10-5 10 5-10 5z\"><\u002Fpath><path d=\"M6 12v5c3 3 9 3 12 0v-5\"><\u002Fpath><\u002Fsvg><\u002Fspan>\n          <span class=\"r-label\">\n            <span class=\"r-title\">Szukam korepetytora<\u002Fspan>\n            <span class=\"r-sub\">Uczeń lub rodzic<\u002Fspan>\n          <\u002Fspan>\n        <\u002Fbutton>\n        <button class=\"role-opt\" data-r=\"tutor\" onclick=\"selectRole('tutor')\">\n          <span class=\"r-ico\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z\"><\u002Fpath><path d=\"M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z\"><\u002Fpath><\u002Fsvg><\u002Fspan>\n          <span class=\"r-label\">\n            <span class=\"r-title\">Chcę uczyć<\u002Fspan>\n            <span class=\"r-sub\">Zarabiaj elastycznie<\u002Fspan>\n          <\u002Fspan>\n        <\u002Fbutton>\n      <\u002Fdiv>\n\n      <!-- Fields -->\n      <div class=\"field\">\n        <label class=\"field-label\" for=\"email\">Email<\u002Flabel>\n        <div class=\"input-wrap\">\n          <input class=\"input\" type=\"email\" id=\"email\" placeholder=\"anna@example.com\">\n        <\u002Fdiv>\n      <\u002Fdiv>\n\n      <div class=\"field\">\n        <label class=\"field-label\" for=\"password\">Hasło<\u002Flabel>\n        <div class=\"input-wrap\">\n          <input class=\"input\" type=\"password\" id=\"password\" placeholder=\"Min. 8 znaków\" style=\"padding-right:44px;\">\n          <button class=\"reveal\" id=\"reveal\" type=\"button\" aria-label=\"Pokaż hasło\">\n            <svg id=\"reveal-icon\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z\"><\u002Fpath><circle cx=\"12\" cy=\"12\" r=\"3\"><\u002Fcircle><\u002Fsvg>\n          <\u002Fbutton>\n        <\u002Fdiv>\n        <div class=\"pwd-meter\" id=\"pwd-meter\">\n          <div class=\"pwd-seg\"><\u002Fdiv><div class=\"pwd-seg\"><\u002Fdiv><div class=\"pwd-seg\"><\u002Fdiv>\n        <\u002Fdiv>\n        <p class=\"pwd-hint\" id=\"pwd-hint\">Min. 8 znaków, jedna cyfra<\u002Fp>\n      <\u002Fdiv>\n\n      <button class=\"cta\" id=\"cta\">\n        <span id=\"cta-label\">Załóż konto i szukaj korepetytora<\u002Fspan>\n        <svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><line x1=\"5\" y1=\"12\" x2=\"19\" y2=\"12\"><\u002Fline><polyline points=\"12 5 19 12 12 19\"><\u002Fpolyline><\u002Fsvg>\n      <\u002Fbutton>\n\n      <div class=\"divider\">albo<\u002Fdiv>\n\n      <button class=\"oauth\">\n        <svg viewBox=\"0 0 24 24\"><path fill=\"#4285F4\" d=\"M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z\"><\u002Fpath><path fill=\"#34A853\" d=\"M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z\"><\u002Fpath><path fill=\"#FBBC05\" d=\"M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88z\"><\u002Fpath><path fill=\"#EA4335\" d=\"M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15A10.5 10.5 0 0 0 12 1 11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.4 12 5.4z\"><\u002Fpath><\u002Fsvg>\n        Kontynuuj z Google\n      <\u002Fbutton>\n\n      <p class=\"legal\">Tworząc konto akceptujesz <a href=\"#\">Regulamin<\u002Fa> i <a href=\"#\">Politykę prywatności<\u002Fa>.<\u002Fp>\n\n    <\u002Fdiv>\n  <\u002Fmain>\n<\u002Fdiv>\n\n<script>\n  const body = document.body;\n  const hlAccent = document.getElementById('hl-accent');\n  const subhead = document.getElementById('subhead');\n  const ctaLabel = document.getElementById('cta-label');\n\n  const COPY = {\n    student: {\n      hl: 'Znajdź pomoc dziś wieczorem.',\n      sub: 'Załóż konto w 30 sekund. Bez karty na start — dane płatności podasz dopiero przed pierwszą sesją.',\n      cta: 'Załóż konto i szukaj korepetytora',\n      headlineTop: 'Klasówka jutro?'\n    },\n    tutor: {\n      hl: 'Zacznij zarabiać w ten weekend.',\n      sub: 'Włączasz dostępność kiedy masz czas — zlecenia same do Ciebie trafiają. 72 zł za godzinną sesję, wypłata co tydzień.',\n      cta: 'Załóż konto korepetytora',\n      headlineTop: 'Masz wiedzę?'\n    }\n  };\n\n  function selectRole(role) {\n    body.dataset.role = role;\n    const c = COPY[role];\n    hlAccent.textContent = c.hl;\n    subhead.textContent = c.sub;\n    ctaLabel.textContent = c.cta;\n    document.querySelector('.headline').childNodes[0].textContent = c.headlineTop;\n  }\n\n  /* Password reveal */\n  const pwd = document.getElementById('password');\n  const reveal = document.getElementById('reveal');\n  const revealIcon = document.getElementById('reveal-icon');\n  reveal.addEventListener('click', () => {\n    const show = pwd.type === 'password';\n    pwd.type = show ? 'text' : 'password';\n    revealIcon.innerHTML = show\n      ? '<path d=\"M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24\"/><line x1=\"1\" y1=\"1\" x2=\"23\" y2=\"23\"/>'\n      : '<path d=\"M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>';\n  });\n\n  /* Password strength */\n  const segs = document.querySelectorAll('#pwd-meter .pwd-seg');\n  const hint = document.getElementById('pwd-hint');\n  pwd.addEventListener('input', () => {\n    const v = pwd.value;\n    let score = 0;\n    if (v.length >= 8) score++;\n    if (/\\d/.test(v)) score++;\n    if (/[^A-Za-z0-9]/.test(v) || (/[A-Z]/.test(v) && v.length >= 10)) score++;\n    segs.forEach((s, i) => { s.className = 'pwd-seg' + (i < score ? ' on-' + score : ''); });\n    if (v.length === 0) { hint.classList.remove('ok'); hint.textContent = 'Min. 8 znaków, jedna cyfra'; }\n    else if (score >= 2) { hint.classList.add('ok'); hint.textContent = score === 3 ? 'Silne hasło' : 'Wystarczająco silne'; }\n    else { hint.classList.remove('ok'); hint.textContent = 'Za słabe — dodaj cyfrę lub znak specjalny'; }\n  });\n<\u002Fscript>\n\n\n<\u002Fbody><\u002Fhtml>"
+  </script>
+</body>
+</html>
