@@ -86,15 +86,25 @@ export const getTutorPendingRequests = cache(
     // Lazy expiry: oznacza przeterminowane zlecenia przed pobraniem listy
     await supabase.rpc('expire_pending_requests')
 
-    // Pobierz student_ids, którzy oznaczyli bieżącego korepetytora jako 'avoid'.
-    // RLS automatycznie filtruje ratings do wierszy z tutor_id = auth.uid().
-    const { data: avoidedData } = await supabase
+    // Pobierz aktualną preferencję każdego ucznia względem bieżącego korepetytora.
+    // RLS filtruje do tutor_id = auth.uid(). Bierzemy NAJNOWSZY wiersz per uczeń
+    // (order DESC + deduplikacja w JS), żeby późniejsze want_again nadpisywało avoid
+    // z poprzedniej sesji i odwrotnie.
+    const { data: prefData } = await supabase
       .from('ratings')
-      .select('student_id')
+      .select('student_id, preference')
       .eq('rated_by', 'student')
-      .eq('preference', 'avoid')
+      .order('created_at', { ascending: false })
 
-    const avoidedIds = (avoidedData ?? []).map((r) => r.student_id).filter(Boolean) as string[]
+    const latestByStudent = new Map<string, string | null>()
+    for (const row of (prefData ?? [])) {
+      if (row.student_id && !latestByStudent.has(row.student_id)) {
+        latestByStudent.set(row.student_id, row.preference ?? null)
+      }
+    }
+    const avoidedIds = [...latestByStudent.entries()]
+      .filter(([, pref]) => pref === 'avoid')
+      .map(([id]) => id)
 
     const now = new Date().toISOString()
     let query = supabase
@@ -309,46 +319,40 @@ export const getTutorStudentInteractions = cache(
  * Deduplikuje: jeśli uczeń miał wiele sesji z tym samym korepetytorem
  * i każdą oznaczył jako avoid, na liście pojawia się raz.
  */
+// Pomocnicza funkcja: dla zalogowanego ucznia zwraca listę korepetytorów
+// z aktualną preferencją równą `targetPref`. Bierze NAJNOWSZY wiersz per
+// korepetytor (order DESC + deduplikacja), żeby zmiana preferencji w nowej
+// sesji zastępowała starą.
+async function getStudentTutorsByPreference(
+  targetPref: 'want_again' | 'avoid'
+): Promise<Array<{ tutorId: string; tutorName: string }>> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('ratings')
+    .select('tutor_id, preference, tutor:profiles!tutor_id(full_name)')
+    .eq('rated_by', 'student')
+    .order('created_at', { ascending: false })
+
+  if (!data) return []
+
+  const seen = new Set<string>()
+  return data
+    .filter((r) => r.tutor_id && !seen.has(r.tutor_id) && seen.add(r.tutor_id))
+    .filter((r) => r.preference === targetPref)
+    .map((r) => ({
+      tutorId: r.tutor_id as string,
+      tutorName: (r.tutor as unknown as { full_name: string } | null)?.full_name ?? 'Korepetytor',
+    }))
+}
+
 export const getStudentFavoriteTutors = cache(
-  async (): Promise<Array<{ tutorId: string; tutorName: string }>> => {
-    const supabase = await createClient()
-    const { data } = await supabase
-      .from('ratings')
-      .select('tutor_id, tutor:profiles!tutor_id(full_name)')
-      .eq('rated_by', 'student')
-      .eq('preference', 'want_again')
-
-    if (!data) return []
-
-    const seen = new Set<string>()
-    return data
-      .filter((r) => r.tutor_id && !seen.has(r.tutor_id) && seen.add(r.tutor_id))
-      .map((r) => ({
-        tutorId: r.tutor_id as string,
-        tutorName: (r.tutor as unknown as { full_name: string } | null)?.full_name ?? 'Korepetytor',
-      }))
-  }
+  async (): Promise<Array<{ tutorId: string; tutorName: string }>> =>
+    getStudentTutorsByPreference('want_again')
 )
 
 export const getStudentAvoidedTutors = cache(
-  async (): Promise<Array<{ tutorId: string; tutorName: string }>> => {
-    const supabase = await createClient()
-    const { data } = await supabase
-      .from('ratings')
-      .select('tutor_id, tutor:profiles!tutor_id(full_name)')
-      .eq('rated_by', 'student')
-      .eq('preference', 'avoid')
-
-    if (!data) return []
-
-    const seen = new Set<string>()
-    return data
-      .filter((r) => r.tutor_id && !seen.has(r.tutor_id) && seen.add(r.tutor_id))
-      .map((r) => ({
-        tutorId: r.tutor_id as string,
-        tutorName: (r.tutor as unknown as { full_name: string } | null)?.full_name ?? 'Korepetytor',
-      }))
-  }
+  async (): Promise<Array<{ tutorId: string; tutorName: string }>> =>
+    getStudentTutorsByPreference('avoid')
 )
 
 export const getStudentPreviousRatingOfTutor = cache(
