@@ -4,7 +4,6 @@ import { validateSubmitRequest, validateRatingComment, MAX_DESCRIPTION, MAX_COMM
 const valid = {
   subject_id: 'matematyka',
   level: 'I klasa liceum / technikum',
-  scope: 'Sprawdzian / kartkówka',
   description: 'Nie rozumiem równań kwadratowych',
 }
 
@@ -25,10 +24,6 @@ describe('validateSubmitRequest', () => {
     expect(validateSubmitRequest({ ...valid, level: '' })?.errors?.level).toBeDefined()
   })
 
-  it('błąd gdy zakres pusty', () => {
-    expect(validateSubmitRequest({ ...valid, scope: '' })?.errors?.scope).toBeDefined()
-  })
-
   it('błąd gdy opis pusty', () => {
     expect(validateSubmitRequest({ ...valid, description: '' })?.errors?.description).toBeDefined()
   })
@@ -38,10 +33,9 @@ describe('validateSubmitRequest', () => {
   })
 
   it('zwraca wszystkie błędy naraz', () => {
-    const result = validateSubmitRequest({ subject_id: '', level: '', scope: '', description: '' })
+    const result = validateSubmitRequest({ subject_id: '', level: '', description: '' })
     expect(result?.errors?.subject_id).toBeDefined()
     expect(result?.errors?.level).toBeDefined()
-    expect(result?.errors?.scope).toBeDefined()
     expect(result?.errors?.description).toBeDefined()
   })
 

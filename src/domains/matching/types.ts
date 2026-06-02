@@ -43,7 +43,6 @@ export type SubmitRequestFormState =
       errors?: {
         subject_id?: string[]
         level?: string[]
-        scope?: string[]
         description?: string[]
       }
       message?: string

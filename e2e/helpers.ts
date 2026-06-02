@@ -14,7 +14,6 @@ export async function submitRequest(page: Page, subject = 'matematyka') {
   await page.goto('/request')
   await page.selectOption('select[name="subject_id"]', subject)
   await page.selectOption('select[name="level"]', 'liceum_1')
-  await page.selectOption('select[name="scope"]', 'homework')
   await page.fill('textarea[name="description"]', 'Testowe zlecenie e2e')
   await page.click('button[type="submit"]')
   await page.waitForURL('/dashboard')
