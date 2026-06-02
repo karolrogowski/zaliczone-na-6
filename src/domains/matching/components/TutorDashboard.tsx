@@ -53,18 +53,24 @@ export function TutorDashboard({
 
   if (profileIncomplete) {
     return (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
-        <h2 className="mb-1 font-semibold text-zinc-900">Uzupełnij profil</h2>
-        <p className="mb-4 text-sm text-zinc-600">
-          Zanim zaczniesz przyjmować zlecenia, ustaw swoją stawkę godzinową, przedmioty
-          i poziomy, których uczysz.
-        </p>
-        <a
-          href="/profile"
-          className="inline-block rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
-        >
-          Uzupełnij profil
-        </a>
+      <div className="bg-[#FAEEDA] border border-[#BA7517]/30 rounded-[12px] p-5 flex items-start gap-3">
+        <div className="w-7 h-7 rounded-full bg-[#BA7517] text-white flex items-center justify-center shrink-0 mt-0.5">
+          <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-[14px] font-medium text-[#633806] mb-1">Uzupełnij profil</h2>
+          <p className="text-[13px] text-[#633806]/90 mb-4 leading-[1.5]">
+            Ustaw swoją stawkę godzinową, przedmioty i poziomy, których uczysz.
+          </p>
+          <a
+            href="/profile"
+            className="inline-flex items-center gap-2 px-[18px] py-[9px] bg-[#BA7517] text-white text-[13px] font-medium rounded-[8px] hover:bg-[#9A6010] transition-colors"
+          >
+            Uzupełnij profil
+          </a>
+        </div>
       </div>
     )
   }
@@ -75,37 +81,43 @@ export function TutorDashboard({
     const hasRoom = !!sessionData?.daily_room_url
 
     return (
-      <div className="flex flex-col gap-6">
-        <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
-          <div className="mb-2 text-2xl">✅</div>
-          <h2 className="mb-1 text-lg font-semibold text-zinc-900">Zaakceptowałeś zlecenie!</h2>
-          <p className="text-sm text-zinc-600">
+      <div className="flex flex-col gap-5">
+        <div className="bg-[#EAF3DE] border border-[#b8e0c5] rounded-[12px] p-5">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-[#27500A]/60 mb-2">Aktywna sesja</p>
+          <h2 className="text-[15px] font-medium text-[#27500A] mb-1">Zaakceptowałeś zlecenie!</h2>
+          <p className="text-[13px] text-[#3a6e1a]">
             Przedmiot:{' '}
-            <strong>{acceptedRequest.subjects?.label ?? acceptedRequest.subject_id}</strong>.
+            <span className="font-medium">{acceptedRequest.subjects?.label ?? acceptedRequest.subject_id}</span>
           </p>
-          {hasRoom && sessionId ? (
-            <a
-              href={`/session/${sessionId}`}
-              data-testid="join-session-link"
-              className="mt-4 inline-block rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
+          <div className="mt-4 flex items-center gap-4">
+            {hasRoom && sessionId ? (
+              <a
+                href={`/session/${sessionId}`}
+                data-testid="join-session-link"
+                className="flex items-center gap-2 px-[22px] py-[11px] bg-[#185FA5] text-white text-[13px] font-medium rounded-[9px] hover:bg-[#0C447C] transition-colors"
+                style={{ boxShadow: '0 1px 0 rgba(12,68,124,0.3)' }}
+              >
+                <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+                Dołącz do sesji
+              </a>
+            ) : (
+              <p className="text-[13px] text-[#27500A]/70">Sesja wkrótce się rozpocznie...</p>
+            )}
+            <button
+              onClick={() =>
+                startTransition(async () => {
+                  await completeMatchingRequest(acceptedRequest.id)
+                  router.refresh()
+                })
+              }
+              disabled={isPending}
+              className="cursor-pointer text-[13px] text-[#888780] hover:text-[#2c2c2a] disabled:opacity-50 transition-colors"
             >
-              Dołącz do sesji
-            </a>
-          ) : (
-            <p className="mt-3 text-sm text-zinc-400">Sesja wkrótce się rozpocznie...</p>
-          )}
-          <button
-            onClick={() =>
-              startTransition(async () => {
-                await completeMatchingRequest(acceptedRequest.id)
-                router.refresh()
-              })
-            }
-            disabled={isPending}
-            className="cursor-pointer mt-4 block text-sm text-zinc-500 hover:text-zinc-700 disabled:opacity-50 transition-colors"
-          >
-            {isPending ? 'Ładowanie...' : 'Zakończ sesję'}
-          </button>
+              {isPending ? 'Ładowanie...' : 'Zakończ sesję'}
+            </button>
+          </div>
         </div>
         <TutorRequestHistory requests={recentRequests} />
       </div>
