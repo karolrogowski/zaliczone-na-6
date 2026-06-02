@@ -9,14 +9,6 @@ export const LEVEL_OPTIONS = [
   { value: 'inne',     label: 'Inne (wpisz poniżej)' },
 ] as const
 
-export const SCOPE_OPTIONS = [
-  { value: 'new_material', label: 'Nowy materiał' },
-  { value: 'homework',     label: 'Praca domowa' },
-  { value: 'test_prep',    label: 'Sprawdzian / kartkówka' },
-  { value: 'matura_prep',  label: 'Przygotowanie do matury' },
-  { value: 'repeat',       label: 'Powtórzenie materiału' },
-  { value: 'inne',         label: 'Inne (wpisz poniżej)' },
-] as const
 
 type Option = { value: string; label: string }
 

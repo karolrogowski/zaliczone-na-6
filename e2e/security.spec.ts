@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+﻿import { test, expect } from '@playwright/test'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { adminClient, TEST_PASSWORD, STUDENT_EMAIL, TUTOR1_EMAIL, TUTOR2_EMAIL } from './global-setup'
 import { loginAs, getTestUserIds, student3DRating } from './helpers'
@@ -23,27 +23,27 @@ test.beforeAll(async () => {
     await deleteIfExists(email)
   }
 
-  // Admin bez MFA: user_metadata.role='admin' potrzebne do przejścia sprawdzenia w middleware
+  // Admin bez MFA: user_metadata.role='admin' potrzebne do przejĹ›cia sprawdzenia w middleware
   const { data: adminData } = await supabase.auth.admin.createUser({
     email: ADMIN_NO_MFA_EMAIL,
     password: TEST_PASSWORD,
     user_metadata: { role: 'admin', full_name: 'Admin Bez MFA' },
     email_confirm: true,
   })
-  // Trigger handle_new_user ustawia role='student' z whitelisty — ręcznie promujemy na admina
+  // Trigger handle_new_user ustawia role='student' z whitelisty â€” rÄ™cznie promujemy na admina
   if (adminData?.user) {
     await supabase.from('profiles').update({ role: 'admin' }).eq('id', adminData.user.id)
   }
 
-  // Atakujący próbujący zarejestrować się jako admin przez metadane
+  // AtakujÄ…cy prĂłbujÄ…cy zarejestrowaÄ‡ siÄ™ jako admin przez metadane
   await supabase.auth.admin.createUser({
     email: ATTACKER_EMAIL,
     password: TEST_PASSWORD,
-    user_metadata: { role: 'admin', full_name: 'Atakujący Admin' },
+    user_metadata: { role: 'admin', full_name: 'AtakujÄ…cy Admin' },
     email_confirm: true,
   })
 
-  // Użytkownicy do testu RLS — celowo bez wspólnych zleceń
+  // UĹĽytkownicy do testu RLS â€” celowo bez wspĂłlnych zleceĹ„
   await supabase.auth.admin.createUser({
     email: SEC_TUTOR_EMAIL,
     password: TEST_PASSWORD,
@@ -53,7 +53,7 @@ test.beforeAll(async () => {
   await supabase.auth.admin.createUser({
     email: SEC_STUDENT_EMAIL,
     password: TEST_PASSWORD,
-    user_metadata: { role: 'student', full_name: 'Uczeń RLS' },
+    user_metadata: { role: 'student', full_name: 'UczeĹ„ RLS' },
     email_confirm: true,
   })
 
@@ -66,9 +66,8 @@ test.beforeAll(async () => {
       .insert({
         student_id: studentId,
         subject_id: 'matematyka',
-        level: 'Test bezpieczeństwa',
-        scope: 'Test bezpieczeństwa',
-        description: 'Zlecenie tworzone automatycznie przez testy bezpieczeństwa',
+        level: 'Test bezpieczeĹ„stwa',
+        description: 'Zlecenie tworzone automatycznie przez testy bezpieczeĹ„stwa',
         status: 'pending',
       })
       .select('id')
@@ -86,7 +85,7 @@ test.afterAll(async () => {
   }
 })
 
-// ─── Test 1: Eskalacja uprawnień przez rejestrację ────────────────────────────
+// â”€â”€â”€ Test 1: Eskalacja uprawnieĹ„ przez rejestracjÄ™ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 test('rejestracja z role=admin w metadanych tworzy profil o roli student', async () => {
   const { byEmail } = await getTestUserIds()
@@ -102,53 +101,53 @@ test('rejestracja z role=admin w metadanych tworzy profil o roli student', async
   expect(profile?.role).toBe('student')
 })
 
-// ─── Test 2: Panel admina — niezalogowany użytkownik ─────────────────────────
+// â”€â”€â”€ Test 2: Panel admina â€” niezalogowany uĹĽytkownik â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('niezalogowany dostęp do /admin/dashboard przekierowuje na /admin/login', async ({ page }) => {
+test('niezalogowany dostÄ™p do /admin/dashboard przekierowuje na /admin/login', async ({ page }) => {
   await page.goto('/admin/dashboard')
   await expect(page).toHaveURL('/admin/login')
 })
 
-// ─── Test 3: Panel admina — zalogowany uczeń ──────────────────────────────────
+// â”€â”€â”€ Test 3: Panel admina â€” zalogowany uczeĹ„ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('uczeń próbujący wejść na /admin/dashboard zostaje przekierowany na /dashboard', async ({ page }) => {
+test('uczeĹ„ prĂłbujÄ…cy wejĹ›Ä‡ na /admin/dashboard zostaje przekierowany na /dashboard', async ({ page }) => {
   await loginAs(page, STUDENT_EMAIL)
   await page.goto('/admin/dashboard')
   await expect(page).toHaveURL('/dashboard')
 })
 
-// ─── Test 4: Panel admina — zalogowany korepetytor ───────────────────────────
+// â”€â”€â”€ Test 4: Panel admina â€” zalogowany korepetytor â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('korepetytor próbujący wejść na /admin/dashboard zostaje przekierowany na /dashboard', async ({ page }) => {
+test('korepetytor prĂłbujÄ…cy wejĹ›Ä‡ na /admin/dashboard zostaje przekierowany na /dashboard', async ({ page }) => {
   await loginAs(page, TUTOR1_EMAIL)
   await page.goto('/admin/dashboard')
   await expect(page).toHaveURL('/dashboard')
 })
 
-// ─── Test 5: Panel admina — admin bez skonfigurowanego MFA ───────────────────
+// â”€â”€â”€ Test 5: Panel admina â€” admin bez skonfigurowanego MFA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('admin bez skonfigurowanego MFA zostaje przekierowany na stronę konfiguracji TOTP', async ({ page }) => {
+test('admin bez skonfigurowanego MFA zostaje przekierowany na stronÄ™ konfiguracji TOTP', async ({ page }) => {
   await loginAs(page, ADMIN_NO_MFA_EMAIL)
   await page.goto('/admin/dashboard')
-  // Brak TOTP → /admin/mfa/enroll; TOTP bez aal2 → /admin/mfa/verify
+  // Brak TOTP â†’ /admin/mfa/enroll; TOTP bez aal2 â†’ /admin/mfa/verify
   await expect(page).toHaveURL(/\/admin\/mfa\/(enroll|verify)/)
 })
 
-// ─── Test 6: OTP type injection ───────────────────────────────────────────────
+// â”€â”€â”€ Test 6: OTP type injection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('nieprawidłowy typ OTP w /auth/confirm przekierowuje na stronę błędu', async ({ page }) => {
+test('nieprawidĹ‚owy typ OTP w /auth/confirm przekierowuje na stronÄ™ bĹ‚Ä™du', async ({ page }) => {
   await page.goto('/auth/confirm?token_hash=fakehash&type=evil_payload')
   await expect(page).toHaveURL('/login?error=invalid_link')
 })
 
-test('/auth/confirm bez token_hash przekierowuje na stronę błędu', async ({ page }) => {
+test('/auth/confirm bez token_hash przekierowuje na stronÄ™ bĹ‚Ä™du', async ({ page }) => {
   await page.goto('/auth/confirm?type=signup')
   await expect(page).toHaveURL('/login?error=invalid_link')
 })
 
-// ─── Test 7: RLS — widoczność profilu ucznia ──────────────────────────────────
+// â”€â”€â”€ Test 7: RLS â€” widocznoĹ›Ä‡ profilu ucznia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('korepetytor bez wspólnej sesji nie widzi profilu ucznia', async () => {
+test('korepetytor bez wspĂłlnej sesji nie widzi profilu ucznia', async () => {
   const { byEmail } = await getTestUserIds()
   const studentId = byEmail(SEC_STUDENT_EMAIL)
   expect(studentId).toBeDefined()
@@ -171,11 +170,11 @@ test('korepetytor bez wspólnej sesji nie widzi profilu ucznia', async () => {
   await userClient.auth.signOut()
 })
 
-// ─── Test 8: RLS — korepetytor nie może anulować cudzego zlecenia ─────────────
+// â”€â”€â”€ Test 8: RLS â€” korepetytor nie moĹĽe anulowaÄ‡ cudzego zlecenia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('korepetytor nie może anulować zlecenia ucznia przez bezpośrednie zapytanie do bazy', async () => {
+test('korepetytor nie moĹĽe anulowaÄ‡ zlecenia ucznia przez bezpoĹ›rednie zapytanie do bazy', async () => {
   if (!secRequestId) {
-    test.skip(true, 'Brak danych testowych — insert zlecenia nie powiódł się w beforeAll')
+    test.skip(true, 'Brak danych testowych â€” insert zlecenia nie powiĂłdĹ‚ siÄ™ w beforeAll')
     return
   }
 
@@ -186,7 +185,7 @@ test('korepetytor nie może anulować zlecenia ucznia przez bezpośrednie zapyta
 
   await tutorClient.auth.signInWithPassword({ email: TUTOR1_EMAIL, password: TEST_PASSWORD })
 
-  // Korepetytor próbuje ustawić status='cancelled' bez filtra student_id
+  // Korepetytor prĂłbuje ustawiÄ‡ status='cancelled' bez filtra student_id
   await tutorClient
     .from('matching_requests')
     .update({ status: 'cancelled' })
@@ -195,7 +194,7 @@ test('korepetytor nie może anulować zlecenia ucznia przez bezpośrednie zapyta
 
   await tutorClient.auth.signOut()
 
-  // Zlecenie musi nadal być 'pending' — RLS lub brak uprawnień do UPDATE powinien zablokować
+  // Zlecenie musi nadal byÄ‡ 'pending' â€” RLS lub brak uprawnieĹ„ do UPDATE powinien zablokowaÄ‡
   const { data } = await adminClient()
     .from('matching_requests')
     .select('status')
@@ -205,9 +204,9 @@ test('korepetytor nie może anulować zlecenia ucznia przez bezpośrednie zapyta
   expect(data?.status).toBe('pending')
 })
 
-// ─── Test 9: RLS — tutor2 nie widzi zakończonych zleceń tutor1 ───────────────
+// â”€â”€â”€ Test 9: RLS â€” tutor2 nie widzi zakoĹ„czonych zleceĹ„ tutor1 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('tutor2 nie widzi zakończonych zleceń obsługiwanych przez tutor1', async () => {
+test('tutor2 nie widzi zakoĹ„czonych zleceĹ„ obsĹ‚ugiwanych przez tutor1', async () => {
   const { byEmail } = await getTestUserIds()
   const tutor1Id = byEmail(TUTOR1_EMAIL)
   expect(tutor1Id).toBeDefined()
@@ -219,7 +218,7 @@ test('tutor2 nie widzi zakończonych zleceń obsługiwanych przez tutor1', async
 
   await tutor2Client.auth.signInWithPassword({ email: TUTOR2_EMAIL, password: TEST_PASSWORD })
 
-  // Tutor2 próbuje zobaczyć zlecenia gdzie tutor1 był korepetytorem
+  // Tutor2 prĂłbuje zobaczyÄ‡ zlecenia gdzie tutor1 byĹ‚ korepetytorem
   const { data } = await tutor2Client
     .from('matching_requests')
     .select('id')
@@ -231,9 +230,9 @@ test('tutor2 nie widzi zakończonych zleceń obsługiwanych przez tutor1', async
   await tutor2Client.auth.signOut()
 })
 
-// ─── Test 10: RLS — uczeń nie widzi zleceń innego ucznia ─────────────────────
+// â”€â”€â”€ Test 10: RLS â€” uczeĹ„ nie widzi zleceĹ„ innego ucznia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('uczeń nie widzi zleceń innego ucznia przez zapytanie do bazy', async () => {
+test('uczeĹ„ nie widzi zleceĹ„ innego ucznia przez zapytanie do bazy', async () => {
   const { byEmail } = await getTestUserIds()
   const student1Id = byEmail(STUDENT_EMAIL)
   expect(student1Id).toBeDefined()
@@ -245,7 +244,7 @@ test('uczeń nie widzi zleceń innego ucznia przez zapytanie do bazy', async () 
 
   await secStudentClient.auth.signInWithPassword({ email: SEC_STUDENT_EMAIL, password: TEST_PASSWORD })
 
-  // SEC_STUDENT próbuje zobaczyć zlecenia STUDENT — nie powinien mieć dostępu
+  // SEC_STUDENT prĂłbuje zobaczyÄ‡ zlecenia STUDENT â€” nie powinien mieÄ‡ dostÄ™pu
   const { data } = await secStudentClient
     .from('matching_requests')
     .select('id')
@@ -256,9 +255,9 @@ test('uczeń nie widzi zleceń innego ucznia przez zapytanie do bazy', async () 
   await secStudentClient.auth.signOut()
 })
 
-// ─── Test 11: Mass assignment — student nie może podnieść siebie do roli admin ─
+// â”€â”€â”€ Test 11: Mass assignment â€” student nie moĹĽe podnieĹ›Ä‡ siebie do roli admin â”€
 
-test('uczeń nie może zmienić swojej roli na admin przez bezpośredni UPDATE profiles', async () => {
+test('uczeĹ„ nie moĹĽe zmieniÄ‡ swojej roli na admin przez bezpoĹ›redni UPDATE profiles', async () => {
   const { byEmail } = await getTestUserIds()
   const studentId = byEmail(SEC_STUDENT_EMAIL)
   expect(studentId).toBeDefined()
@@ -270,7 +269,7 @@ test('uczeń nie może zmienić swojej roli na admin przez bezpośredni UPDATE p
 
   await studentClient.auth.signInWithPassword({ email: SEC_STUDENT_EMAIL, password: TEST_PASSWORD })
 
-  // Próba mass assignment: zmiana roli z poziomu klienta
+  // PrĂłba mass assignment: zmiana roli z poziomu klienta
   await studentClient
     .from('profiles')
     .update({ role: 'admin' })
@@ -288,14 +287,14 @@ test('uczeń nie może zmienić swojej roli na admin przez bezpośredni UPDATE p
   expect(data?.role).toBe('student')
 })
 
-// ─── Test 12: Mass assignment — korepetytor nie może zawyżyć swojej oceny ─────
+// â”€â”€â”€ Test 12: Mass assignment â€” korepetytor nie moĹĽe zawyĹĽyÄ‡ swojej oceny â”€â”€â”€â”€â”€
 
-test('korepetytor nie może zmienić rating_avg ani rating_count na tutor_profiles', async () => {
+test('korepetytor nie moĹĽe zmieniÄ‡ rating_avg ani rating_count na tutor_profiles', async () => {
   const { byEmail } = await getTestUserIds()
   const tutorId = byEmail(TUTOR1_EMAIL)
   expect(tutorId).toBeDefined()
 
-  // Zapamiętaj stan wyjściowy
+  // ZapamiÄ™taj stan wyjĹ›ciowy
   const { data: before } = await adminClient()
     .from('tutor_profiles')
     .select('rating_avg, rating_count')
@@ -309,7 +308,7 @@ test('korepetytor nie może zmienić rating_avg ani rating_count na tutor_profil
 
   await tutorClient.auth.signInWithPassword({ email: TUTOR1_EMAIL, password: TEST_PASSWORD })
 
-  // Próba mass assignment ocen — REVOKE na kolumnach powinien zwrócić błąd permission denied
+  // PrĂłba mass assignment ocen â€” REVOKE na kolumnach powinien zwrĂłciÄ‡ bĹ‚Ä…d permission denied
   const { error } = await tutorClient
     .from('tutor_profiles')
     .update({ rating_avg: 5.0, rating_count: 9999 })
@@ -319,7 +318,7 @@ test('korepetytor nie może zmienić rating_avg ani rating_count na tutor_profil
 
   await tutorClient.auth.signOut()
 
-  // Rzeczywiste wartości nie powinny się zmienić
+  // Rzeczywiste wartoĹ›ci nie powinny siÄ™ zmieniÄ‡
   const { data: after } = await adminClient()
     .from('tutor_profiles')
     .select('rating_avg, rating_count')
@@ -330,7 +329,7 @@ test('korepetytor nie może zmienić rating_avg ani rating_count na tutor_profil
   expect(after?.rating_count).toBe(before?.rating_count ?? 0)
 })
 
-// ─── Test 13: CSP/HSTS nagłówki obecne na publicznych trasach ─────────────────
+// â”€â”€â”€ Test 13: CSP/HSTS nagĹ‚Ăłwki obecne na publicznych trasach â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 test('strona zwraca Content-Security-Policy z restrykcyjnym frame-ancestors', async ({ page }) => {
   const response = await page.goto('/login')
@@ -342,16 +341,16 @@ test('strona zwraca Content-Security-Policy z restrykcyjnym frame-ancestors', as
   expect(csp).toContain("base-uri 'self'")
 })
 
-// ─── Test 14: host_room_url niewidoczny dla studenta ─────────────────────────
+// â”€â”€â”€ Test 14: host_room_url niewidoczny dla studenta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('student nie widzi host_room_url swojej sesji przez bezpośrednie zapytanie do bazy', async () => {
+test('student nie widzi host_room_url swojej sesji przez bezpoĹ›rednie zapytanie do bazy', async () => {
   const { byEmail } = await getTestUserIds()
   const studentId = byEmail(STUDENT_EMAIL)
   const tutorId = byEmail(TUTOR1_EMAIL)
   expect(studentId).toBeDefined()
   expect(tutorId).toBeDefined()
 
-  // Setup: utwórz zlecenie + sesję z host_room_url (service role omija column grants)
+  // Setup: utwĂłrz zlecenie + sesjÄ™ z host_room_url (service role omija column grants)
   const admin = adminClient()
   const { data: mr } = await admin
     .from('matching_requests')
@@ -359,8 +358,7 @@ test('student nie widzi host_room_url swojej sesji przez bezpośrednie zapytanie
       student_id: studentId!,
       tutor_id: tutorId!,
       subject_id: 'matematyka',
-      level: 'Test bezpieczeństwa',
-      scope: 'Test bezpieczeństwa',
+      level: 'Test bezpieczeĹ„stwa',
       description: 'Sesja do testu host_room_url',
       status: 'accepted',
     })
@@ -390,7 +388,7 @@ test('student nie widzi host_room_url swojej sesji przez bezpośrednie zapytanie
     )
     await studentClient.auth.signInWithPassword({ email: STUDENT_EMAIL, password: TEST_PASSWORD })
 
-    // Próba bezpośredniego SELECT host_room_url — powinno wywalić błędem permission denied
+    // PrĂłba bezpoĹ›redniego SELECT host_room_url â€” powinno wywaliÄ‡ bĹ‚Ä™dem permission denied
     const directRead = await studentClient
       .from('sessions')
       .select('host_room_url')
@@ -398,7 +396,7 @@ test('student nie widzi host_room_url swojej sesji przez bezpośrednie zapytanie
       .maybeSingle()
     expect(directRead.error).not.toBeNull()
 
-    // Inne kolumny dalej dostępne dla uczestnika
+    // Inne kolumny dalej dostÄ™pne dla uczestnika
     const safeRead = await studentClient
       .from('sessions')
       .select('id, daily_room_url, status')
@@ -419,21 +417,21 @@ test('student nie widzi host_room_url swojej sesji przez bezpośrednie zapytanie
   }
 })
 
-// ─── Test 15b: Audit log admina rejestruje zmianę prowizji ────────────────────
+// â”€â”€â”€ Test 15b: Audit log admina rejestruje zmianÄ™ prowizji â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 test('updateCommissionPct zapisuje wpis w admin_audit_log', async () => {
-  // Bezpośredni INSERT przez service role symuluje zapis robiony przez akcję
-  // adminową (action: 'commission_pct_updated'). Sama akcja wymaga aal2 + sesji
-  // adminowej, co byłoby trudne do odtworzenia w czystym teście DB. Tu sprawdzamy
-  // mechanikę audit logu: RLS, append-only, widoczność dla admina.
+  // BezpoĹ›redni INSERT przez service role symuluje zapis robiony przez akcjÄ™
+  // adminowÄ… (action: 'commission_pct_updated'). Sama akcja wymaga aal2 + sesji
+  // adminowej, co byĹ‚oby trudne do odtworzenia w czystym teĹ›cie DB. Tu sprawdzamy
+  // mechanikÄ™ audit logu: RLS, append-only, widocznoĹ›Ä‡ dla admina.
   const { byEmail } = await getTestUserIds()
   const admin = adminClient()
 
-  // Znajdź dowolnego admina (z domyślnego seedu db:reset jest admin@test.pl)
+  // ZnajdĹş dowolnego admina (z domyĹ›lnego seedu db:reset jest admin@test.pl)
   const ADMIN_EMAIL = 'admin@test.pl'
   const adminId = byEmail(ADMIN_EMAIL)
   if (!adminId) {
-    test.skip(true, 'Konto admina nie istnieje — wymaga db:reset')
+    test.skip(true, 'Konto admina nie istnieje â€” wymaga db:reset')
     return
   }
 
@@ -446,7 +444,7 @@ test('updateCommissionPct zapisuje wpis w admin_audit_log', async () => {
   })
   expect(insertError).toBeNull()
 
-  // Student nie powinien zobaczyć żadnych wpisów (polityka admin_audit_log_read)
+  // Student nie powinien zobaczyÄ‡ ĹĽadnych wpisĂłw (polityka admin_audit_log_read)
   const studentClient = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -456,7 +454,7 @@ test('updateCommissionPct zapisuje wpis w admin_audit_log', async () => {
   expect(studentRead.data ?? []).toHaveLength(0)
   await studentClient.auth.signOut()
 
-  // Service role widzi wpis i ma poprawne wartości
+  // Service role widzi wpis i ma poprawne wartoĹ›ci
   const { data: entries } = await admin
     .from('admin_audit_log')
     .select('action, target_id, payload')
@@ -477,9 +475,9 @@ test('updateCommissionPct zapisuje wpis w admin_audit_log', async () => {
     .eq('action', 'commission_pct_updated')
 })
 
-// ─── Test 17: Manipulacja expires_at zablokowana ──────────────────────────────
+// â”€â”€â”€ Test 17: Manipulacja expires_at zablokowana â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('student nie może wydłużyć expires_at swojego zlecenia', async () => {
+test('student nie moĹĽe wydĹ‚uĹĽyÄ‡ expires_at swojego zlecenia', async () => {
   const { byEmail } = await getTestUserIds()
   const studentId = byEmail(STUDENT_EMAIL)
   expect(studentId).toBeDefined()
@@ -491,7 +489,6 @@ test('student nie może wydłużyć expires_at swojego zlecenia', async () => {
       student_id: studentId!,
       subject_id: 'matematyka',
       level: 'Test expires_at',
-      scope: 'Test',
       description: 'Test ochrony expires_at',
       status: 'pending',
     })
@@ -507,7 +504,7 @@ test('student nie może wydłużyć expires_at swojego zlecenia', async () => {
     )
     await studentClient.auth.signInWithPassword({ email: STUDENT_EMAIL, password: TEST_PASSWORD })
 
-    // Próba wydłużenia o 999 dni — trigger powinien rzucić wyjątkiem
+    // PrĂłba wydĹ‚uĹĽenia o 999 dni â€” trigger powinien rzuciÄ‡ wyjÄ…tkiem
     const result = await studentClient
       .from('matching_requests')
       .update({ expires_at: new Date(Date.now() + 999 * 24 * 3600 * 1000).toISOString() })
@@ -515,14 +512,14 @@ test('student nie może wydłużyć expires_at swojego zlecenia', async () => {
 
     expect(result.error).not.toBeNull()
 
-    // Próba zmiany tutor_id — również zablokowana
+    // PrĂłba zmiany tutor_id â€” rĂłwnieĹĽ zablokowana
     const tutorIdAttempt = await studentClient
       .from('matching_requests')
       .update({ tutor_id: studentId })
       .eq('id', mr!.id)
     expect(tutorIdAttempt.error).not.toBeNull()
 
-    // Anulowanie (pending → cancelled) — DOZWOLONE
+    // Anulowanie (pending â†’ cancelled) â€” DOZWOLONE
     const cancelOk = await studentClient
       .from('matching_requests')
       .update({ status: 'cancelled' })
@@ -531,7 +528,7 @@ test('student nie może wydłużyć expires_at swojego zlecenia', async () => {
 
     await studentClient.auth.signOut()
   } finally {
-    // Sprawdź że expires_at niezmienione
+    // SprawdĹş ĹĽe expires_at niezmienione
     const { data: after } = await admin
       .from('matching_requests')
       .select('expires_at, tutor_id')
@@ -544,10 +541,10 @@ test('student nie może wydłużyć expires_at swojego zlecenia', async () => {
   }
 })
 
-// ─── Test 18: nieprawidłowy UUID w URL przekierowuje ──────────────────────────
+// â”€â”€â”€ Test 18: nieprawidĹ‚owy UUID w URL przekierowuje â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('GET /session/<nie-uuid> przekierowuje na /dashboard zamiast wywalać 500', async ({ page }) => {
-  // Najpierw zaloguj się, żeby middleware nie przekierował do /login
+test('GET /session/<nie-uuid> przekierowuje na /dashboard zamiast wywalaÄ‡ 500', async ({ page }) => {
+  // Najpierw zaloguj siÄ™, ĹĽeby middleware nie przekierowaĹ‚ do /login
   await loginAs(page, STUDENT_EMAIL)
   await page.goto('/session/not-a-uuid')
   await page.waitForURL('/dashboard')
@@ -559,22 +556,22 @@ test('GET /history/<sql-injection> przekierowuje na /history', async ({ page }) 
   await page.waitForURL('/history')
 })
 
-// ─── Test 19: Cache-Control na trasach z PII ─────────────────────────────────
+// â”€â”€â”€ Test 19: Cache-Control na trasach z PII â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('strony z PII zwracają Cache-Control blokujący cachowanie', async ({ page }) => {
+test('strony z PII zwracajÄ… Cache-Control blokujÄ…cy cachowanie', async ({ page }) => {
   await loginAs(page, STUDENT_EMAIL)
   const response = await page.goto('/settings')
   expect(response).not.toBeNull()
   const cacheControl = response!.headers()['cache-control']
   expect(cacheControl).toBeDefined()
   // W produkcji next.config.ts wymusza "private, no-store"; w dev Next.js nadpisuje
-  // własnym "no-cache, must-revalidate". Oba blokują cache PII, więc akceptujemy.
+  // wĹ‚asnym "no-cache, must-revalidate". Oba blokujÄ… cache PII, wiÄ™c akceptujemy.
   expect(cacheControl).toMatch(/no-store|no-cache|private/)
 })
 
-// ─── Test 20: Korepetytor nie może nadpisać chronionych pól matching_requests ─
+// â”€â”€â”€ Test 20: Korepetytor nie moĹĽe nadpisaÄ‡ chronionych pĂłl matching_requests â”€
 
-test('korepetytor przy accept nie może zmienić student_id ani expires_at zlecenia', async () => {
+test('korepetytor przy accept nie moĹĽe zmieniÄ‡ student_id ani expires_at zlecenia', async () => {
   const { byEmail } = await getTestUserIds()
   const studentId = byEmail(STUDENT_EMAIL)
   const tutorId = byEmail(TUTOR1_EMAIL)
@@ -588,7 +585,6 @@ test('korepetytor przy accept nie może zmienić student_id ani expires_at zlece
       student_id: studentId!,
       subject_id: 'matematyka',
       level: 'Test trigger uniwersalny',
-      scope: 'Test',
       description: 'Sprawdzenie trigger universal block',
       status: 'pending',
     })
@@ -602,10 +598,10 @@ test('korepetytor przy accept nie może zmienić student_id ani expires_at zlece
     )
     await tutorClient.auth.signInWithPassword({ email: TUTOR1_EMAIL, password: TEST_PASSWORD })
 
-    // Próba zmiany student_id (przepięcie na innego ucznia) podczas accept.
-    // Trigger powinien rzucić wyjątek — udokumentowane jako defense in depth.
-    // Niezależnie od tego czy zwróci błąd czy 0 zmodyfikowanych wierszy, najważniejsze
-    // jest aby wartości chronionych kolumn nie zmieniły się w bazie (sprawdzane w finally).
+    // PrĂłba zmiany student_id (przepiÄ™cie na innego ucznia) podczas accept.
+    // Trigger powinien rzuciÄ‡ wyjÄ…tek â€” udokumentowane jako defense in depth.
+    // NiezaleĹĽnie od tego czy zwrĂłci bĹ‚Ä…d czy 0 zmodyfikowanych wierszy, najwaĹĽniejsze
+    // jest aby wartoĹ›ci chronionych kolumn nie zmieniĹ‚y siÄ™ w bazie (sprawdzane w finally).
     await tutorClient
       .from('matching_requests')
       .update({
@@ -632,9 +628,9 @@ test('korepetytor przy accept nie może zmienić student_id ani expires_at zlece
   }
 })
 
-// ─── Test 21: Uczeń nie może nadpisać host_room_url ──────────────────────────
+// â”€â”€â”€ Test 21: UczeĹ„ nie moĹĽe nadpisaÄ‡ host_room_url â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('uczeń nie może nadpisać host_room_url po jego ustawieniu', async () => {
+test('uczeĹ„ nie moĹĽe nadpisaÄ‡ host_room_url po jego ustawieniu', async () => {
   const { byEmail } = await getTestUserIds()
   const studentId = byEmail(STUDENT_EMAIL)
   const tutorId = byEmail(TUTOR1_EMAIL)
@@ -647,7 +643,6 @@ test('uczeń nie może nadpisać host_room_url po jego ustawieniu', async () => 
       tutor_id: tutorId!,
       subject_id: 'matematyka',
       level: 'Test sessions trigger',
-      scope: 'Test',
       description: 'Sesja do testu trigera sessions',
       status: 'accepted',
     })
@@ -677,14 +672,14 @@ test('uczeń nie może nadpisać host_room_url po jego ustawieniu', async () => 
     )
     await studentClient.auth.signInWithPassword({ email: STUDENT_EMAIL, password: TEST_PASSWORD })
 
-    // Próba nadpisania host_room_url na URL atakującego
+    // PrĂłba nadpisania host_room_url na URL atakujÄ…cego
     const attempt = await studentClient
       .from('sessions')
       .update({ host_room_url: 'https://attacker.whereby.com/evil?roomKey=PWN' })
       .eq('id', sess!.id)
     expect(attempt.error).not.toBeNull()
 
-    // Próba nadpisania tutor_id
+    // PrĂłba nadpisania tutor_id
     const tutorIdAttempt = await studentClient
       .from('sessions')
       .update({ tutor_id: studentId })
@@ -706,9 +701,9 @@ test('uczeń nie może nadpisać host_room_url po jego ustawieniu', async () => 
   }
 })
 
-// ─── Test 22: Uczeń nie może wystawić oceny obcemu korepetytorowi ─────────────
+// â”€â”€â”€ Test 22: UczeĹ„ nie moĹĽe wystawiÄ‡ oceny obcemu korepetytorowi â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('uczeń nie może podstawić obcego tutor_id w insert do ratings', async () => {
+test('uczeĹ„ nie moĹĽe podstawiÄ‡ obcego tutor_id w insert do ratings', async () => {
   const { byEmail } = await getTestUserIds()
   const studentId = byEmail(STUDENT_EMAIL)
   const tutorId = byEmail(TUTOR1_EMAIL)
@@ -722,7 +717,6 @@ test('uczeń nie może podstawić obcego tutor_id w insert do ratings', async ()
       tutor_id: tutorId!,
       subject_id: 'matematyka',
       level: 'Test rating tutor_id',
-      scope: 'Test',
       description: 'Sesja do testu ratings.tutor_id check',
       status: 'completed',
     })
@@ -752,16 +746,16 @@ test('uczeń nie może podstawić obcego tutor_id w insert do ratings', async ()
     )
     await studentClient.auth.signInWithPassword({ email: STUDENT_EMAIL, password: TEST_PASSWORD })
 
-    // Próba wystawienia oceny obcemu korepetytorowi
+    // PrĂłba wystawienia oceny obcemu korepetytorowi
     const attempt = await studentClient.from('ratings').insert({
       session_id: sess!.id,
       student_id: studentId!,
       tutor_id: otherTutorId!,
-      ...student3DRating(1, { comment: 'sabotaż' }),
+      ...student3DRating(1, { comment: 'sabotaĹĽ' }),
     })
     expect(attempt.error).not.toBeNull()
 
-    // Poprawna ocena (z prawdziwym tutorem) — działa
+    // Poprawna ocena (z prawdziwym tutorem) â€” dziaĹ‚a
     const ok = await studentClient.from('ratings').insert({
       session_id: sess!.id,
       student_id: studentId!,
@@ -778,7 +772,7 @@ test('uczeń nie może podstawić obcego tutor_id w insert do ratings', async ()
   }
 })
 
-// ─── Test 23: Uczeń nie może ustawić odległego expires_at przy insercie ───────
+// â”€â”€â”€ Test 23: UczeĹ„ nie moĹĽe ustawiÄ‡ odlegĹ‚ego expires_at przy insercie â”€â”€â”€â”€â”€â”€â”€
 
 test('expires_at jest normalizowane do now()+5min przy insercie z konta studenta', async () => {
   const studentClient = createSupabaseClient(
@@ -793,7 +787,6 @@ test('expires_at jest normalizowane do now()+5min przy insercie z konta studenta
     .insert({
       subject_id: 'matematyka',
       level: 'Test normalize',
-      scope: 'Test',
       description: 'Test normalizacji expires_at',
       expires_at: farFuture,
     })
@@ -802,7 +795,7 @@ test('expires_at jest normalizowane do now()+5min przy insercie z konta studenta
 
   expect(error).toBeNull()
   expect(data?.expires_at).not.toBe(farFuture)
-  // Powinno być w okolicy now() + 5min
+  // Powinno byÄ‡ w okolicy now() + 5min
   const expiresMs = new Date(data!.expires_at).getTime()
   const expectedMs = Date.now() + 5 * 60 * 1000
   expect(Math.abs(expiresMs - expectedMs)).toBeLessThan(60 * 1000) // tolerancja 1 min
@@ -811,7 +804,7 @@ test('expires_at jest normalizowane do now()+5min przy insercie z konta studenta
   await studentClient.auth.signOut()
 })
 
-// ─── Test 24: profiles.phone ukryte dla zwykłych użytkowników ─────────────────
+// â”€â”€â”€ Test 24: profiles.phone ukryte dla zwykĹ‚ych uĹĽytkownikĂłw â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 test('select phone z profiles dla anon clienta zwraca permission denied', async () => {
   const studentClient = createSupabaseClient(
@@ -826,9 +819,9 @@ test('select phone z profiles dla anon clienta zwraca permission denied', async 
   await studentClient.auth.signOut()
 })
 
-// ─── Test 26: Tutor nie może wstawić sesji dla cudzego studenta ──────────────
+// â”€â”€â”€ Test 26: Tutor nie moĹĽe wstawiÄ‡ sesji dla cudzego studenta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-test('korepetytor nie może wstawić sesji dla obcego studenta przez direct INSERT', async () => {
+test('korepetytor nie moĹĽe wstawiÄ‡ sesji dla obcego studenta przez direct INSERT', async () => {
   const { byEmail } = await getTestUserIds()
   const studentId = byEmail(STUDENT_EMAIL)
   const tutorId = byEmail(TUTOR1_EMAIL)
@@ -836,15 +829,14 @@ test('korepetytor nie może wstawić sesji dla obcego studenta przez direct INSE
   expect(otherStudentId).toBeDefined()
 
   const admin = adminClient()
-  // Tworzymy pending request od studenta1, ale tutor próbuje INSERT sesji
-  // z student_id wskazującym na obcego ucznia (SEC_STUDENT)
+  // Tworzymy pending request od studenta1, ale tutor prĂłbuje INSERT sesji
+  // z student_id wskazujÄ…cym na obcego ucznia (SEC_STUDENT)
   const { data: mr } = await admin
     .from('matching_requests')
     .insert({
       student_id: studentId!,
       subject_id: 'matematyka',
       level: 'Test session insert',
-      scope: 'Test',
       description: 'Test luki #1',
       status: 'accepted',
       tutor_id: tutorId,
@@ -859,7 +851,7 @@ test('korepetytor nie może wstawić sesji dla obcego studenta przez direct INSE
     )
     await tutorClient.auth.signInWithPassword({ email: TUTOR1_EMAIL, password: TEST_PASSWORD })
 
-    // Próba: tutor wpisuje student_id obcego ucznia + własne URL-e
+    // PrĂłba: tutor wpisuje student_id obcego ucznia + wĹ‚asne URL-e
     const attempt = await tutorClient
       .from('sessions')
       .insert({
@@ -879,9 +871,9 @@ test('korepetytor nie może wstawić sesji dla obcego studenta przez direct INSE
   }
 })
 
-// ─── Test 27: Student nie może oznaczyć sesji jako completed bezpośrednio ────
+// â”€â”€â”€ Test 27: Student nie moĹĽe oznaczyÄ‡ sesji jako completed bezpoĹ›rednio â”€â”€â”€â”€
 
-test('student nie może wykonać UPDATE sessions set status=completed bezpośrednio', async () => {
+test('student nie moĹĽe wykonaÄ‡ UPDATE sessions set status=completed bezpoĹ›rednio', async () => {
   const { byEmail } = await getTestUserIds()
   const studentId = byEmail(STUDENT_EMAIL)
   const tutorId = byEmail(TUTOR1_EMAIL)
@@ -894,7 +886,6 @@ test('student nie może wykonać UPDATE sessions set status=completed bezpośred
       tutor_id: tutorId!,
       subject_id: 'matematyka',
       level: 'Test sabotage status',
-      scope: 'Test',
       description: 'Test luki #2',
       status: 'accepted',
     })
@@ -924,7 +915,7 @@ test('student nie może wykonać UPDATE sessions set status=completed bezpośred
     )
     await studentClient.auth.signInWithPassword({ email: STUDENT_EMAIL, password: TEST_PASSWORD })
 
-    // Próba bezpośredniego UPDATE
+    // PrĂłba bezpoĹ›redniego UPDATE
     await studentClient
       .from('sessions')
       .update({ status: 'completed', ended_at: new Date().toISOString() })
@@ -932,7 +923,7 @@ test('student nie może wykonać UPDATE sessions set status=completed bezpośred
 
     await studentClient.auth.signOut()
   } finally {
-    // Trigger powinien był rzucić — sesja nadal in_progress
+    // Trigger powinien byĹ‚ rzuciÄ‡ â€” sesja nadal in_progress
     const { data: after } = await admin
       .from('sessions')
       .select('status, ended_at')
@@ -946,9 +937,9 @@ test('student nie może wykonać UPDATE sessions set status=completed bezpośred
   }
 })
 
-// ─── Test 28: RPC complete_session — legalna ścieżka zakończenia sesji ───────
+// â”€â”€â”€ Test 28: RPC complete_session â€” legalna Ĺ›cieĹĽka zakoĹ„czenia sesji â”€â”€â”€â”€â”€â”€â”€
 
-test('RPC complete_session pozwala studentowi zakończyć sesję (auto-end po timerze)', async () => {
+test('RPC complete_session pozwala studentowi zakoĹ„czyÄ‡ sesjÄ™ (auto-end po timerze)', async () => {
   const { byEmail } = await getTestUserIds()
   const studentId = byEmail(STUDENT_EMAIL)
   const tutorId = byEmail(TUTOR1_EMAIL)
@@ -961,15 +952,14 @@ test('RPC complete_session pozwala studentowi zakończyć sesję (auto-end po ti
       tutor_id: tutorId!,
       subject_id: 'matematyka',
       level: 'Test RPC complete',
-      scope: 'Test',
-      description: 'Test legalnej ścieżki zakończenia',
+      description: 'Test legalnej Ĺ›cieĹĽki zakoĹ„czenia',
       status: 'accepted',
     })
     .select('id')
     .single()
 
   // started_at 61 min temu + duration 60 min = naturalny koniec 1 min temu.
-  // Trigger pozwala studentowi oznaczyć completed dopiero po naturalnym końcu.
+  // Trigger pozwala studentowi oznaczyÄ‡ completed dopiero po naturalnym koĹ„cu.
   const { data: sess } = await admin
     .from('sessions')
     .insert({
@@ -992,10 +982,10 @@ test('RPC complete_session pozwala studentowi zakończyć sesję (auto-end po ti
     )
     await studentClient.auth.signInWithPassword({ email: STUDENT_EMAIL, password: TEST_PASSWORD })
 
-    // Student wywołuje RPC — powinno się powieść
+    // Student wywoĹ‚uje RPC â€” powinno siÄ™ powieĹ›Ä‡
     const { error } = await studentClient.rpc('complete_session', {
       p_session_id: sess!.id,
-      p_notes: 'Student próbuje wstawić notatki',
+      p_notes: 'Student prĂłbuje wstawiÄ‡ notatki',
     })
     expect(error).toBeNull()
 
@@ -1008,10 +998,10 @@ test('RPC complete_session pozwala studentowi zakończyć sesję (auto-end po ti
       .single()
     expect(after?.status).toBe('completed')
     expect(after?.ended_at).not.toBeNull()
-    // Notatki od studenta są ignorowane przez RPC — może ustawiać tylko tutor
+    // Notatki od studenta sÄ… ignorowane przez RPC â€” moĹĽe ustawiaÄ‡ tylko tutor
     expect(after?.notes).toBeNull()
 
-    // Matching request też zostaje zaktualizowany
+    // Matching request teĹĽ zostaje zaktualizowany
     const { data: mrAfter } = await admin
       .from('matching_requests')
       .select('status')
@@ -1024,9 +1014,9 @@ test('RPC complete_session pozwala studentowi zakończyć sesję (auto-end po ti
   }
 })
 
-// ─── Test 29: complete_session — obcy user nie może zakończyć cudzej sesji ────
+// â”€â”€â”€ Test 29: complete_session â€” obcy user nie moĹĽe zakoĹ„czyÄ‡ cudzej sesji â”€â”€â”€â”€
 
-test('complete_session odrzuca obcego użytkownika', async () => {
+test('complete_session odrzuca obcego uĹĽytkownika', async () => {
   const { byEmail } = await getTestUserIds()
   const studentId = byEmail(STUDENT_EMAIL)
   const tutorId = byEmail(TUTOR1_EMAIL)
@@ -1039,8 +1029,7 @@ test('complete_session odrzuca obcego użytkownika', async () => {
       tutor_id: tutorId!,
       subject_id: 'matematyka',
       level: 'Test obcy RPC',
-      scope: 'Test',
-      description: 'Test obcego użytkownika w RPC',
+      description: 'Test obcego uĹĽytkownika w RPC',
       status: 'accepted',
     })
     .select('id')
@@ -1081,7 +1070,7 @@ test('complete_session odrzuca obcego użytkownika', async () => {
   }
 })
 
-// ─── Test 16: host_room_url dostępny dla korepetytora przez RPC ──────────────
+// â”€â”€â”€ Test 16: host_room_url dostÄ™pny dla korepetytora przez RPC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 test('korepetytor odczytuje host_room_url przez get_session_host_room_url', async () => {
   const { byEmail } = await getTestUserIds()
@@ -1095,8 +1084,7 @@ test('korepetytor odczytuje host_room_url przez get_session_host_room_url', asyn
       student_id: studentId!,
       tutor_id: tutorId!,
       subject_id: 'matematyka',
-      level: 'Test bezpieczeństwa',
-      scope: 'Test bezpieczeństwa',
+      level: 'Test bezpieczeĹ„stwa',
       description: 'Sesja do testu host RPC',
       status: 'accepted',
     })

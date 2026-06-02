@@ -260,7 +260,6 @@ function RequestCard({
           </p>
           <div className="mt-1 flex flex-col gap-0.5 text-xs text-zinc-500">
             {request.level && <span>{request.level}</span>}
-            {request.scope && <span>{request.scope}</span>}
             {request.description && (
               <span className="mt-1 text-zinc-400">{request.description}</span>
             )}
