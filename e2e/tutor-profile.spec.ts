@@ -54,17 +54,17 @@ test('korepetytor zapisuje profil — stawka i dane trafiają do DB poprawnie', 
   await page.goto('/profile')
   await page.waitForURL('/profile')
 
-  // Odznacz bieżące poziomy, zaznacz nowy
-  await page.locator('input[name="levels"][value="liceum_1"]').uncheck()
-  await page.locator('input[name="levels"][value="liceum_2"]').uncheck()
-  await page.locator('input[name="levels"][value="matura"]').uncheck()
-  await page.locator('input[name="levels"][value="sp_7_8"]').check()
+  // Odznacz bieżące poziomy (chipy), zaznacz nowy
+  await page.getByRole('button', { name: 'I klasa liceum / technikum', exact: true }).click()
+  await page.getByRole('button', { name: 'II klasa liceum / technikum', exact: true }).click()
+  await page.getByRole('button', { name: 'Matura', exact: true }).click()
+  await page.getByRole('button', { name: 'Szkoła podstawowa (kl. 7–8)', exact: true }).click()
 
   // Ustaw nową stawkę (150 PLN = 15000 groszy) i bio
   await page.fill('input[name="hourly_rate_pln"]', '150')
   await page.fill('textarea[name="bio"]', 'Specjalista od algebry')
 
-  await page.getByRole('button', { name: 'Zapisz profil' }).click()
+  await page.getByRole('button', { name: 'Zapisz' }).click()
   await page.waitForURL('/dashboard', { timeout: 10_000 })
 
   // Weryfikacja w DB
@@ -113,12 +113,12 @@ test('formularz profilu korepetytora jest wstępnie wypełniony danymi z DB', as
   const bioValue = await page.inputValue('textarea[name="bio"]')
   expect(bioValue).toBe('Bio testowe')
 
-  // Checkbox poziomu 'matura' zaznaczony, 'liceum_1' odznaczony
-  await expect(page.locator('input[name="levels"][value="matura"]')).toBeChecked()
-  await expect(page.locator('input[name="levels"][value="liceum_1"]')).not.toBeChecked()
+  // Chip poziomu 'matura' aktywny (hidden input istnieje), 'liceum_1' nieaktywny (brak hidden input)
+  await expect(page.locator('input[name="levels"][value="matura"]')).toHaveCount(1)
+  await expect(page.locator('input[name="levels"][value="liceum_1"]')).toHaveCount(0)
 
-  // Przedmiot matematyka zaznaczony
-  await expect(page.locator('input[name="subject_ids"][value="matematyka"]')).toBeChecked()
+  // Przedmiot matematyka aktywny
+  await expect(page.locator('input[name="subject_ids"][value="matematyka"]')).toHaveCount(1)
 })
 
 // ════════════════════════════════════════════════════════════════════════════
