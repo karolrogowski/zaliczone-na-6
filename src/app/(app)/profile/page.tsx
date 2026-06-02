@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentProfile } from '@/domains/auth/queries'
 import { getTutorOwnProfile } from '@/domains/auth/queries'
-import { PageContainer } from '../components/PageContainer'
 import { getSubjects } from '@/domains/matching/queries'
 import { TutorProfileForm } from '@/domains/auth/components/TutorProfileForm'
 
@@ -15,9 +14,5 @@ export default async function ProfilePage() {
     getTutorOwnProfile(),
   ])
 
-  return (
-    <PageContainer><div className="mx-auto max-w-2xl">
-      <TutorProfileForm subjects={subjects} profile={tutorProfile} />
-    </div></PageContainer>
-  )
+  return <TutorProfileForm subjects={subjects} profile={tutorProfile} />
 }

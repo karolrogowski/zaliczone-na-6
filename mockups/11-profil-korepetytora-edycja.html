@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Twój profil — Zaliczone na 6 (korepetytor)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #ece9e1;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: #2c2c2a;
+  }
+  button, input, textarea, select { font-family: inherit; }
+
+  :root {
+    --bg:           #f5f5f3;
+    --chrome:       #ffffff;
+    --chrome-2:     #fafaf8;
+    --border:       #d3d1c7;
+    --border-soft:  #e8e6de;
+    --text:         #2c2c2a;
+    --text-2:       #5f5e5a;
+    --text-3:       #888780;
+    --student:      #185FA5;
+    --student-bg:   #E6F1FB;
+    --tutor:        #0F6E56;
+    --tutor-bg:     #E1F5EE;
+    --tutor-dk:     #085041;
+    --warn:         #BA7517;
+    --warn-bg:      #FAEEDA;
+    --warn-dk:      #633806;
+    --danger:       #C73A39;
+    --success:      #27500A;
+    --success-bg:   #EAF3DE;
+    --success-mid:  #639922;
+  }
+
+  .app {
+    width: 1060px;
+    height: 680px;
+    flex-shrink: 0;
+    border: 0.5px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 6px 32px rgba(0,0,0,0.10);
+    display: flex;
+    background: var(--chrome);
+  }
+
+  /* ============ Sidebar (korepetytor) ============ */
+  .sidebar {
+    width: 210px; flex-shrink: 0;
+    background: var(--bg);
+    border-right: 0.5px solid var(--border-soft);
+    display: flex; flex-direction: column;
+    padding: 18px 12px;
+  }
+  .sidebar-logo {
+    font-size: 13px; font-weight: 500; color: var(--text);
+    padding: 0 8px 16px;
+    border-bottom: 0.5px solid var(--border-soft);
+    margin-bottom: 14px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: 8px;
+    font-size: 12px; color: var(--text-2);
+    cursor: pointer; transition: background 0.15s, color 0.15s;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { background: var(--chrome); color: var(--text); }
+  .nav-item.active {
+    background: var(--chrome); color: var(--text); font-weight: 500;
+    box-shadow: inset 0 0 0 0.5px var(--border-soft);
+  }
+  .nav-item svg { width: 14px; height: 14px; opacity: 0.85; }
+  .nav-spacer { flex: 1; }
+  .nav-bottom {
+    padding-top: 12px;
+    border-top: 0.5px solid var(--border-soft);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  /* Availability block */
+  .avail-block {
+    background: var(--chrome);
+    border: 0.5px solid var(--border-soft);
+    border-radius: 9px;
+    padding: 10px 11px;
+  }
+  .avail-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .avail-label {
+    font-size: 10px; color: var(--text-3);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .toggle {
+    width: 30px; height: 17px;
+    background: var(--border);
+    border-radius: 20px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 13px; height: 13px;
+    background: white;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: left 0.2s;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  }
+  .toggle.on { background: var(--success-mid); }
+  .toggle.on::after { left: 15px; }
+  .toggle.disabled { background: var(--border-soft); cursor: not-allowed; opacity: 0.7; }
+  .avail-status {
+    font-size: 11px; font-weight: 500;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .avail-status.offline { color: var(--text-3); }
+  .avail-status.offline::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-3);
+  }
+  .avail-status.online { color: var(--success); }
+  .avail-status.online::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--success-mid);
+  }
+  .avail-status.locked { color: var(--warn-dk); }
+  .avail-status.locked::before {
+    content: '🔒'; font-size: 10px;
+  }
+  .avail-hint {
+    font-size: 10px; color: var(--warn-dk);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+  body[data-completion="100"] .avail-hint { display: none; }
+  body:not([data-completion="100"]) .toggle { background: var(--border-soft); cursor: not-allowed; }
+  body:not([data-completion="100"]) .avail-status-line .online { display: none; }
+  body[data-completion="100"]  .avail-status-line .locked  { display: none; }
+  body[data-completion="100"]  .avail-status-line .offline { display: flex; }
+  body[data-completion="100"]  .toggle { background: var(--border); cursor: pointer; }
+
+  .avatar-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; }
+  .avatar-sb {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--tutor-bg); color: var(--tutor-dk);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 500;
+  }
+  .avatar-name { font-size: 12px; font-weight: 500; color: var(--text); }
+  .avatar-meta { font-size: 10px; color: var(--text-3); margin-top: 1px; }
+
+  /* ============ Content ============ */
+  .content {
+    flex: 1; display: flex; flex-direction: column;
+    background: var(--bg); min-width: 0;
+  }
+  .content-header {
+    flex-shrink: 0; padding: 14px 26px 0;
+    background: var(--chrome);
+    border-bottom: 0.5px solid var(--border-soft);
+  }
+  .header-top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding-bottom: 10px;
+  }
+  .header-title { font-size: 16px; font-weight: 500; color: var(--text); }
+  .header-sub { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+  .save-indicator {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--text-3);
+  }
+  .save-indicator svg { width: 12px; height: 12px; color: var(--success); }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    padding: 0 0 10px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .progress-track {
+    flex: 1;
+    height: 5px;
+    background: var(--bg);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 33%;
+    background: var(--warn);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+  body[data-completion="33"]  .progress-fill { width: 33%; background: var(--warn); }
+  body[data-completion="66"]  .progress-fill { width: 66%; background: var(--warn); }
+  body[data-completion="100"] .progress-fill { width: 100%; background: var(--success-mid); }
+  .progress-text {
+    font-size: 11px; color: var(--text-2);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ============ Body ============ */
+  .body {
+    flex: 1; overflow-y: auto;
+    padding: 20px 26px 26px;
+    display: flex; flex-direction: column; gap: 16px;
+  }
+
+  /* Banner */
+  .top-banner {
+    background: var(--warn-bg);
+    border: 0.5px solid color-mix(in srgb, var(--warn) 30%, transparent);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .top-banner.success {
+    background: var(--success-bg);
+    border-color: color-mix(in srgb, var(--success-mid) 30%, transparent);
+  }
+  .top-banner-icon {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--warn);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .top-banner.success .top-banner-icon { background: var(--success-mid); }
+  .top-banner-icon svg { width: 14px; height: 14px; }
+  .top-banner-text { flex: 1; }
+  .top-banner-title { font-size: 13px; font-weight: 500; color: var(--warn-dk); margin-bottom: 2px; }
+  .top-banner.success .top-banner-title { color: var(--success); }
+  .top-banner-sub { font-size: 12px; color: var(--warn-dk); line-height: 1.55; opacity: 0.92; }
+  .top-banner.success .top-banner-sub { color: var(--success); }
+  body[data-completion="100"] .top-banner-warn { display: none; }
+  body:not([data-completion="100"]) .top-banner-ok { display: none; }
+
+  /* ============ Section card ============ */
+  .section {
+    background: var(--chrome);
+    border: 0.5px solid var(--border-soft);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .section-head {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 14px;
+    gap: 14px;
+  }
+  .section-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 0.5px solid var(--border-soft);
+    color: var(--text-3);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 500;
+    flex-shrink: 0;
+  }
+  .section-num.done {
+    background: var(--success-bg);
+    border-color: transparent;
+    color: var(--success);
+  }
+  .section-title-area { flex: 1; }
+  .section-title-row { display: flex; align-items: center; gap: 8px; }
+  .section-title { font-size: 14px; font-weight: 500; color: var(--text); }
+  .section-required {
+    font-size: 10px;
+    padding: 2px 7px;
+    background: var(--warn-bg);
+    color: var(--warn-dk);
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .section-required.done {
+    background: var(--success-bg);
+    color: var(--success);
+  }
+  .section-required.done::before { content: '✓ '; }
+  .section-sub {
+    font-size: 12px; color: var(--text-3);
+    line-height: 1.5; margin-top: 3px;
+  }
+
+  /* Photo + name section */
+  .photo-row {
+    display: flex; gap: 18px; align-items: flex-start;
+  }
+  .photo-circle {
+    width: 84px; height: 84px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 1.5px dashed var(--border);
+    color: var(--text-3);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .photo-circle:hover { border-color: var(--text-3); background: var(--chrome-2); }
+  .photo-circle svg { width: 24px; height: 24px; }
+  .photo-circle.filled {
+    background: linear-gradient(135deg, #4d8a78 0%, #2c5e4d 100%);
+    color: white;
+    border: 0.5px solid var(--border-soft);
+    font-size: 28px; font-weight: 500;
+    border-style: solid;
+  }
+  body:not([data-completion="33"]) .photo-circle { /* default — show filled when not pure empty */ }
+  body[data-completion="33"]  .photo-circle.preview { display: none; }
+  body[data-completion="33"]  .photo-circle.empty { display: flex; }
+  body:not([data-completion="33"]) .photo-circle.empty { display: none; }
+  body:not([data-completion="33"]) .photo-circle.preview { display: flex; }
+  .photo-edit-btn {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--text);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--chrome);
+  }
+  .photo-edit-btn svg { width: 11px; height: 11px; }
+  body[data-completion="33"] .photo-edit-btn { display: none; }
+  .name-fields { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+
+  /* Form primitives */
+  .field-row { display: flex; flex-direction: column; gap: 5px; }
+  .field-row.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-label {
+    font-size: 11px; color: var(--text-2); font-weight: 500;
+  }
+  .input, .textarea {
+    padding: 10px 12px;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--chrome);
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    width: 100%;
+    font-family: inherit;
+  }
+  .input:focus, .textarea:focus {
+    border-color: var(--tutor);
+    box-shadow: 0 0 0 3px rgba(15,110,86,0.12);
+  }
+  .input::placeholder, .textarea::placeholder { color: var(--text-3); }
+  .textarea { resize: vertical; min-height: 76px; line-height: 1.6; }
+  .field-hint {
+    font-size: 11px; color: var(--text-3);
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 2px;
+  }
+  .char-count { font-variant-numeric: tabular-nums; }
+  .char-count.warn { color: var(--warn); }
+  .char-count.ok { color: var(--success); }
+
+  /* Chip multi-select */
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    padding: 6px 12px;
+    background: var(--chrome);
+    border: 0.5px solid var(--border);
+    border-radius: 18px;
+    font-size: 12px;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all 0.12s;
+    display: inline-flex; align-items: center; gap: 5px;
+    user-select: none;
+  }
+  .chip:hover { border-color: var(--text-3); color: var(--text); }
+  .chip.active {
+    background: var(--tutor-bg);
+    color: var(--tutor-dk);
+    border-color: transparent;
+    font-weight: 500;
+    padding-left: 9px;
+  }
+  .chip.active::before {
+    content: '';
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--tutor);
+    display: inline-flex; align-items: center; justify-content: center;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 8px;
+  }
+  .chip-group + .chip-group { margin-top: 14px; }
+  .chip-group-label {
+    font-size: 11px; color: var(--text-3);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 500;
+  }
+
+  /* Locked section (coming soon) */
+  .section.locked {
+    opacity: 0.85;
+    position: relative;
+  }
+  .section.locked::after {
+    content: 'Wkrótce';
+    position: absolute;
+    top: 18px; right: 20px;
+    font-size: 10px;
+    padding: 3px 9px;
+    background: var(--bg);
+    color: var(--text-3);
+    border-radius: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .locked-info {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--text-2);
+    line-height: 1.6;
+  }
+  .price-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .price-tile {
+    padding: 10px 12px;
+    border: 0.5px solid var(--border-soft);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--chrome);
+  }
+  .price-time { font-size: 12px; color: var(--text-2); }
+  .price-amount { font-size: 14px; font-weight: 500; color: var(--text); }
+
+  /* Footer / save bar */
+  .save-bar {
+    flex-shrink: 0;
+    padding: 12px 26px;
+    background: var(--chrome);
+    border-top: 0.5px solid var(--border-soft);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .save-bar-info {
+    font-size: 12px; color: var(--text-2);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .save-bar-info svg { width: 12px; height: 12px; }
+  .save-bar-info.success { color: var(--success); }
+  .save-bar-buttons { display: flex; gap: 8px; }
+  .btn-secondary {
+    padding: 9px 14px;
+    background: transparent;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-2);
+    cursor: pointer;
+  }
+  .btn-secondary:hover { border-color: var(--text-3); color: var(--text); }
+  .btn-primary {
+    padding: 9px 18px;
+    background: var(--tutor);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary:hover { background: var(--tutor-dk); }
+  .btn-primary.disabled {
+    background: var(--text-3);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  .btn-primary svg { width: 13px; height: 13px; }
+
+  /* ============ Tweaks ============ */
+  .tweaks-toggle-hint {
+    margin-top: 14px; font-size: 11px; color: #888780; text-align: center;
+  }
+  .tweaks-toggle-hint kbd {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    background: #fff; border: 0.5px solid #d3d1c7; border-radius: 4px;
+    padding: 1px 6px; font-size: 10px; color: #2c2c2a;
+  }
+  .tweaks {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #fff;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+    width: 240px; padding: 14px;
+    display: none;
+    z-index: 100;
+  }
+  .tweaks.open { display: block; }
+  .tweaks-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .tweaks-title { font-size: 12px; font-weight: 500; color: #2c2c2a; }
+  .tweaks-close { width: 22px; height: 22px; border-radius: 6px; background: transparent; border: none; color: #888780; font-size: 14px; }
+  .tweaks-close:hover { background: #f5f5f3; color: #2c2c2a; }
+  .tweak-row { margin-bottom: 12px; }
+  .tweak-row:last-child { margin-bottom: 0; }
+  .tweak-label { font-size: 10px; color: #888780; margin-bottom: 5px; letter-spacing: 0.04em; text-transform: uppercase; }
+  .seg { display: flex; background: #f5f5f3; border: 0.5px solid #e8e6de; border-radius: 7px; padding: 2px; }
+  .seg button {
+    flex: 1; padding: 5px 8px;
+    background: transparent; border: none; border-radius: 5px;
+    font-size: 11px; color: #5f5e5a; font-family: inherit;
+  }
+  .seg button.active { background: #fff; color: #2c2c2a; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+</style>
+</head>
+<body data-completion="33">
+
+<div class="app">
+
+  <!-- ============ Sidebar (korepetytor) ============ -->
+  <div class="sidebar">
+    <div class="sidebar-logo">Zaliczone na 6</div>
+
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Mój profil
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Historia
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Zarobki
+    </div>
+
+    <div class="nav-spacer"></div>
+
+    <div class="nav-bottom">
+      <div class="avail-block">
+        <div class="avail-row">
+          <span class="avail-label">Dostępność</span>
+          <div class="toggle" id="avail-toggle"></div>
+        </div>
+        <div class="avail-status-line">
+          <span class="avail-status locked">Zablokowana</span>
+          <span class="avail-status offline" style="display:none;">Niedostępny</span>
+          <span class="avail-status online" style="display:none;">Dostępny</span>
+        </div>
+        <div class="avail-hint">Uzupełnij profil żeby zacząć przyjmować zlecenia</div>
+      </div>
+
+      <div class="nav-item" style="margin: 4px 0 0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Ustawienia
+      </div>
+      <div class="avatar-row">
+        <div class="avatar-sb">JW</div>
+        <div>
+          <div class="avatar-name">Jan W.</div>
+          <div class="avatar-meta">Korepetytor</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Content ============ -->
+  <div class="content">
+
+    <div class="content-header">
+      <div class="header-top">
+        <div>
+          <div class="header-title">Twój profil</div>
+          <div class="header-sub">Wszystko co zobaczy uczeń zanim zdecyduje się na sesję</div>
+        </div>
+        <div class="save-indicator" id="save-indicator">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span id="save-text">Zapisano automatycznie · 2 sekundy temu</span>
+        </div>
+      </div>
+      <div class="progress-bar-wrap">
+        <div class="progress-text"><span id="completion-num">33</span>% uzupełnione</div>
+        <div class="progress-track"><div class="progress-fill"></div></div>
+        <span class="progress-text" style="color:var(--text-3);font-weight:400;"><span id="completion-req">2 z 3</span> sekcji</span>
+      </div>
+    </div>
+
+    <div class="body">
+
+      <!-- ===== Top banner ===== -->
+      <div class="top-banner top-banner-warn">
+        <div class="top-banner-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="top-banner-text">
+          <div class="top-banner-title">Uzupełnij profil żeby zacząć przyjmować zlecenia</div>
+          <div class="top-banner-sub">Bez wypełnionego profilu nie będziesz widoczny dla uczniów. <strong id="banner-missing">Brakuje 2 wymaganych sekcji.</strong></div>
+        </div>
+      </div>
+
+      <div class="top-banner success top-banner-ok">
+        <div class="top-banner-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="top-banner-text">
+          <div class="top-banner-title">Profil gotowy</div>
+          <div class="top-banner-sub">Możesz teraz włączyć dostępność w lewym dolnym rogu i zacząć przyjmować zlecenia.</div>
+        </div>
+      </div>
+
+      <!-- ===== 1. Zdjęcie + nazwa ===== -->
+      <div class="section">
+        <div class="section-head">
+          <div style="display:flex;gap:12px;flex:1;">
+            <span class="section-num done" id="num-1">1</span>
+            <div class="section-title-area">
+              <div class="section-title-row">
+                <span class="section-title">Jak chcesz się przedstawić</span>
+                <span class="section-required done">Wymagane</span>
+              </div>
+              <p class="section-sub">Imię, nazwisko i zdjęcie — to pierwsza rzecz, którą zobaczy uczeń.</p>
+            </div>
+          </div>
+        </div>
+        <div class="photo-row">
+          <div class="photo-circle preview filled">
+            JW
+            <div class="photo-edit-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
+          </div>
+          <div class="photo-circle empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          </div>
+          <div class="name-fields">
+            <div class="field-row row-2">
+              <div class="field-row">
+                <label class="field-label">Imię</label>
+                <input class="input" type="text" value="Jan" placeholder="Twoje imię">
+              </div>
+              <div class="field-row">
+                <label class="field-label">Nazwisko</label>
+                <input class="input" type="text" value="Wiśniewski" placeholder="Twoje nazwisko">
+              </div>
+            </div>
+            <div class="field-row">
+              <label class="field-label">Jak ma się pojawiać Twoja nazwa w profilu publicznym</label>
+              <input class="input" type="text" value="Jan W." placeholder="Np. Jan W.">
+              <p class="field-hint">Możesz pokazać tylko inicjał nazwiska — uczniowie zobaczą to.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 2. O mnie ===== -->
+      <div class="section">
+        <div class="section-head">
+          <div style="display:flex;gap:12px;flex:1;">
+            <span class="section-num done" id="num-2">2</span>
+            <div class="section-title-area">
+              <div class="section-title-row">
+                <span class="section-title">O mnie</span>
+                <span class="section-required done">Wymagane</span>
+              </div>
+              <p class="section-sub">Krótki opis. Skąd jesteś, co studiujesz/skończyłeś, jakie masz podejście do nauki.</p>
+            </div>
+          </div>
+        </div>
+        <div class="field-row">
+          <textarea class="textarea" id="bio" rows="5" placeholder="Np. Jestem studentem matematyki na PW. Korepetycji udzielam od 4 lat. Specjalizuję się w analizie matematycznej...">Jestem studentem ostatniego roku matematyki na Politechnice Warszawskiej. Korepetycji udzielam od czterech lat — pomogłem ponad setce uczniów przygotować się do klasówek, matury i kolokwiów.
+
+Specjalizuję się w analizie matematycznej (granice, pochodne, całki) oraz fizyce na poziomie liceum i pierwszego roku studiów.</textarea>
+          <div class="field-hint">
+            <span>Min. 80 znaków · Pisz konkretnie — co potrafisz tłumaczyć i jak pracujesz.</span>
+            <span class="char-count ok" id="char-count">312 znaków</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 3. Przedmioty + Poziomy ===== -->
+      <div class="section">
+        <div class="section-head">
+          <div style="display:flex;gap:12px;flex:1;">
+            <span class="section-num" id="num-3">3</span>
+            <div class="section-title-area">
+              <div class="section-title-row">
+                <span class="section-title">Czego uczysz</span>
+                <span class="section-required" id="req-3">Wymagane</span>
+              </div>
+              <p class="section-sub">Wybierz przedmioty i poziomy. Dostaniesz zlecenia tylko z tego co tutaj wskażesz.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="chip-group">
+          <div class="chip-group-label">Przedmioty</div>
+          <div class="chips" id="subjects">
+            <span class="chip active">Matematyka</span>
+            <span class="chip active">Fizyka</span>
+            <span class="chip">Chemia</span>
+            <span class="chip">Biologia</span>
+            <span class="chip">Informatyka</span>
+            <span class="chip">Język angielski</span>
+            <span class="chip">Język polski</span>
+            <span class="chip">Język niemiecki</span>
+            <span class="chip">Historia</span>
+            <span class="chip">Geografia</span>
+            <span class="chip">WOS</span>
+          </div>
+        </div>
+
+        <div class="chip-group">
+          <div class="chip-group-label">Poziomy</div>
+          <div class="chips" id="levels">
+            <span class="chip">Szkoła podstawowa</span>
+            <span class="chip active">Liceum</span>
+            <span class="chip active">Matura</span>
+            <span class="chip active">Studia, I rok</span>
+            <span class="chip">Studia, wyższe lata</span>
+          </div>
+        </div>
+
+        <div class="chip-group">
+          <div class="chip-group-label">Języki sesji</div>
+          <div class="chips" id="langs">
+            <span class="chip active">Polski</span>
+            <span class="chip active">English</span>
+            <span class="chip">Deutsch</span>
+            <span class="chip">Українська</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 4. Wykształcenie ===== -->
+      <div class="section">
+        <div class="section-head">
+          <div style="display:flex;gap:12px;flex:1;">
+            <span class="section-num" id="num-4">4</span>
+            <div class="section-title-area">
+              <div class="section-title-row">
+                <span class="section-title">Wykształcenie</span>
+                <span style="font-size:10px;color:var(--text-3);padding:2px 7px;background:var(--bg);border-radius:10px;">Opcjonalne</span>
+              </div>
+              <p class="section-sub">Pomaga uczniom zaufać Twoim kompetencjom. Nie weryfikujemy automatycznie — bądź uczciwy.</p>
+            </div>
+          </div>
+        </div>
+        <div class="field-row">
+          <label class="field-label">Kierunek i uczelnia</label>
+          <input class="input" type="text" value="Matematyka, Politechnika Warszawska, V rok" placeholder="Np. Matematyka, Politechnika Warszawska">
+        </div>
+      </div>
+
+      <!-- ===== 5. Stawka — locked / coming soon ===== -->
+      <div class="section locked">
+        <div class="section-head">
+          <div style="display:flex;gap:12px;flex:1;">
+            <span class="section-num" style="background:transparent;border-style:dashed;">5</span>
+            <div class="section-title-area">
+              <div class="section-title-row">
+                <span class="section-title">Twoja stawka</span>
+              </div>
+              <p class="section-sub">W MVP wszystkie sesje mają stałą cenę platformy. Własny cennik pojawi się w kolejnej wersji.</p>
+            </div>
+          </div>
+        </div>
+        <div class="locked-info">
+          Otrzymujesz <strong>80% ceny sesji</strong>. W tej chwili każdy korepetytor zarabia tyle samo — od kolejnej wersji będziesz mógł ustawić własną stawkę.
+        </div>
+        <div class="price-grid">
+          <div class="price-tile">
+            <span class="price-time">30 min</span>
+            <div><span style="font-size:11px;color:var(--text-3);">Twój zarobek</span> <span class="price-amount" style="color:var(--tutor);">36 zł</span></div>
+          </div>
+          <div class="price-tile">
+            <span class="price-time">60 min</span>
+            <div><span style="font-size:11px;color:var(--text-3);">Twój zarobek</span> <span class="price-amount" style="color:var(--tutor);">72 zł</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Save bar -->
+    <div class="save-bar">
+      <div class="save-bar-info" id="save-bar-info">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <span>Zmiany zapisują się automatycznie</span>
+      </div>
+      <div class="save-bar-buttons">
+        <button class="btn-secondary">Anuluj zmiany</button>
+        <button class="btn-primary" id="finish-btn">
+          <span id="finish-label">Zapisz</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<p class="tweaks-toggle-hint">Naciśnij <kbd>T</kbd> żeby otworzyć panel Tweaks.</p>
+
+<!-- ============ Tweaks ============ -->
+<div class="tweaks" id="tweaks">
+  <div class="tweaks-header">
+    <span class="tweaks-title">Tweaks</span>
+    <button class="tweaks-close" onclick="closeTweaks()">×</button>
+  </div>
+  <div class="tweak-row">
+    <p class="tweak-label">Wypełnienie profilu</p>
+    <div class="seg" data-key="completion">
+      <button data-val="33">33%</button>
+      <button data-val="66" class="active">66%</button>
+      <button data-val="100">100%</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "completion": "100"
+}/*EDITMODE-END*/;
+
+const body = document.body;
+const tweaks = document.getElementById('tweaks');
+
+function applyState(key, val) {
+  if (key === 'completion') {
+    body.dataset.completion = val;
+    const num = document.getElementById('completion-num');
+    const req = document.getElementById('completion-req');
+    const missing = document.getElementById('banner-missing');
+    const finishLabel = document.getElementById('finish-label');
+    const finishBtn = document.getElementById('finish-btn');
+
+    // Section status indicators
+    const num1 = document.getElementById('num-1');
+    const num2 = document.getElementById('num-2');
+    const num3 = document.getElementById('num-3');
+    const req3 = document.getElementById('req-3');
+
+    // Reset section 3 to default first
+    num3.classList.remove('done');
+    req3.classList.remove('done');
+    req3.textContent = 'Wymagane';
+
+    if (val === '33') {
+      num.textContent = '33';
+      req.textContent = '1 z 3';
+      missing.textContent = 'Brakuje 2 wymaganych sekcji.';
+      finishLabel.textContent = 'Zapisz';
+      finishBtn.classList.add('disabled');
+
+      // Section 1 done (name pre-filled), 2 incomplete (empty bio), 3 incomplete (no chips)
+      num1.classList.add('done');
+      num2.classList.remove('done');
+
+      // Empty out bio
+      document.getElementById('bio').value = '';
+      document.getElementById('char-count').textContent = '0 / min. 80 znaków';
+      document.getElementById('char-count').classList.remove('ok');
+      document.getElementById('char-count').classList.add('warn');
+
+      // Deactivate chips
+      document.querySelectorAll('.chips .chip.active').forEach(c => c.classList.remove('active'));
+      // Activate a few defaults
+      document.querySelectorAll('#langs .chip')[0].classList.add('active');
+    } else if (val === '66') {
+      num.textContent = '66';
+      req.textContent = '2 z 3';
+      missing.textContent = 'Brakuje 1 wymaganej sekcji.';
+      finishLabel.textContent = 'Zapisz';
+      finishBtn.classList.add('disabled');
+
+      num1.classList.add('done');
+      num2.classList.add('done');
+
+      // Bio filled
+      document.getElementById('bio').value = 'Jestem studentem ostatniego roku matematyki na Politechnice Warszawskiej. Korepetycji udzielam od czterech lat — pomogłem ponad setce uczniów przygotować się do klasówek, matury i kolokwiów.\n\nSpecjalizuję się w analizie matematycznej (granice, pochodne, całki) oraz fizyce na poziomie liceum i pierwszego roku studiów.';
+      document.getElementById('char-count').textContent = '312 znaków';
+      document.getElementById('char-count').classList.add('ok');
+      document.getElementById('char-count').classList.remove('warn');
+
+      // Section 3 still empty
+      document.querySelectorAll('.chips .chip.active').forEach(c => c.classList.remove('active'));
+      document.querySelectorAll('#langs .chip')[0].classList.add('active');
+    } else if (val === '100') {
+      num.textContent = '100';
+      req.textContent = '3 z 3';
+      missing.textContent = 'Wszystkie wymagane sekcje wypełnione.';
+      finishLabel.textContent = 'Włącz dostępność';
+      finishBtn.classList.remove('disabled');
+
+      num1.classList.add('done');
+      num2.classList.add('done');
+      num3.classList.add('done');
+      req3.classList.add('done');
+      req3.textContent = 'Wymagane';
+
+      // Bio filled
+      document.getElementById('bio').value = 'Jestem studentem ostatniego roku matematyki na Politechnice Warszawskiej. Korepetycji udzielam od czterech lat — pomogłem ponad setce uczniów przygotować się do klasówek, matury i kolokwiów.\n\nSpecjalizuję się w analizie matematycznej (granice, pochodne, całki) oraz fizyce na poziomie liceum i pierwszego roku studiów.';
+      document.getElementById('char-count').textContent = '312 znaków';
+      document.getElementById('char-count').classList.add('ok');
+      document.getElementById('char-count').classList.remove('warn');
+
+      // Activate chips
+      const activations = {
+        '#subjects': [0, 1],
+        '#levels':   [1, 2, 3],
+        '#langs':    [0, 1]
+      };
+      document.querySelectorAll('.chips .chip.active').forEach(c => c.classList.remove('active'));
+      Object.entries(activations).forEach(([sel, idx]) => {
+        const chips = document.querySelectorAll(sel + ' .chip');
+        idx.forEach(i => chips[i] && chips[i].classList.add('active'));
+      });
+    }
+  }
+  document.querySelectorAll(`.seg[data-key="${key}"] button`).forEach(b => {
+    b.classList.toggle('active', b.dataset.val === val);
+  });
+}
+
+document.querySelectorAll('.seg').forEach(seg => {
+  const key = seg.dataset.key;
+  seg.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const val = btn.dataset.val;
+      applyState(key, val);
+      try {
+        window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [key]: val } }, '*');
+      } catch(e) {}
+    });
+  });
+});
+
+/* Chip toggling */
+document.querySelectorAll('.chip').forEach(c => {
+  c.addEventListener('click', () => c.classList.toggle('active'));
+});
+
+/* Bio char count */
+document.getElementById('bio').addEventListener('input', (e) => {
+  const n = e.target.value.length;
+  const el = document.getElementById('char-count');
+  el.textContent = n + (n < 80 ? ' / min. 80 znaków' : ' znaków');
+  el.classList.toggle('ok',   n >= 80);
+  el.classList.toggle('warn', n < 80);
+});
+
+Object.entries(TWEAK_DEFAULTS).forEach(([k, v]) => applyState(k, v));
+
+function openTweaks()  { tweaks.classList.add('open'); }
+function closeTweaks() {
+  tweaks.classList.remove('open');
+  try { window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*'); } catch(e) {}
+}
+window.openTweaks = openTweaks;
+window.closeTweaks = closeTweaks;
+
+window.addEventListener('message', (e) => {
+  const d = e.data || {};
+  if (d.type === '__activate_edit_mode')   openTweaks();
+  if (d.type === '__deactivate_edit_mode') tweaks.classList.remove('open');
+});
+try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch(e) {}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 't' || e.key === 'T') {
+    if (document.activeElement && /input|textarea|select/i.test(document.activeElement.tagName)) return;
+    tweaks.classList.toggle('open');
+  }
+});
+</script>
+</body>
+</html>
