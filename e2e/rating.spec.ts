@@ -142,11 +142,11 @@ test('korepetytor widzi formularz oceny ucznia po zakończonej sesji', async ({ 
   await page.goto(`/rate/${request.id}`)
 
   // Korepetytor powinien widzieć swój formularz
-  await expect(page.getByText(/Oceń ucznia/)).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeVisible()
+  await expect(page.getByText(/Opinia o sesji/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Zapisz' })).toBeVisible()
   // Korepetytor nie widzi gwiazdek — brak systemu ocen dla uczniów
   await expect(page.locator('input[name="score_knowledge"]')).toHaveCount(0)
-  // Korepetytor nie widzi checkboxów preferencji
+  // Korepetytor nie widzi sekcji preferencji ucznia
   await expect(page.getByText('Preferencje')).not.toBeVisible()
 })
 
@@ -160,8 +160,8 @@ test('korepetytor może wystawić ocenę uczniowi (bez gwiazdek, opcjonalna flag
   await page.goto(`/rate/${request.id}`)
 
   // Korepetytor nie wybiera gwiazdek — przycisk jest od razu aktywny
-  await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
-  await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
+  await expect(page.getByRole('button', { name: 'Zapisz' })).toBeEnabled({ timeout: 3_000 })
+  await page.getByRole('button', { name: 'Zapisz' }).click()
 
   await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
   const { data: rating } = await adminClient()
@@ -394,10 +394,10 @@ test('korepetytor może oznaczyć ucznia flagą (tutor_preference = "flag")', as
   await page.goto(`/rate/${request.id}`)
 
   // Korepetytor nie wybiera gwiazdek — przycisk od razu aktywny
-  await expect(page.getByRole('button', { name: 'Wyślij ocenę' })).toBeEnabled({ timeout: 3_000 })
-  // Checkbox "Oznacz tego ucznia jako problematycznego"
-  await page.getByRole('checkbox').click()
-  await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
+  await expect(page.getByRole('button', { name: 'Zapisz' })).toBeEnabled({ timeout: 3_000 })
+  // Tile "Zgłoś problem z uczniem"
+  await page.getByRole('button', { name: /Zgłoś problem z uczniem/ }).click()
+  await page.getByRole('button', { name: 'Zapisz' }).click()
 
   await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
 
@@ -525,13 +525,13 @@ test('korepetytor może dodać prywatną notatkę przy flagowaniu ucznia — zap
   await loginAs(page, TUTOR1_EMAIL)
   await page.goto(`/rate/${request.id}`)
 
-  // Zaznaczenie flagi ujawnia pole notatki
-  await page.getByRole('checkbox').click()
+  // Kliknięcie tile "Zgłoś problem" ujawnia pole notatki
+  await page.getByRole('button', { name: /Zgłoś problem z uczniem/ }).click()
   await expect(page.getByLabel(/Prywatna notatka/)).toBeVisible()
 
   // Wpisanie notatki
   await page.getByLabel(/Prywatna notatka/).fill('Uczeń przyszedł nieprzygotowany, warto pamiętać.')
-  await page.getByRole('button', { name: 'Wyślij ocenę' }).click()
+  await page.getByRole('button', { name: 'Zapisz' }).click()
 
   await page.waitForURL(/ocena=zapisana/, { timeout: 10_000 })
 
@@ -706,7 +706,7 @@ test('powrót na /rate w oknie 15 min pokazuje formularz edycji z wypełnionymi 
   // Zamiast redirectu do /dashboard — powinien widzieć formularz edycji
   await expect(page.getByText(/Edytuj ocenę/)).toBeVisible({ timeout: 3_000 })
   // Odliczanie powinno być widoczne
-  await expect(page.getByText(/Możesz edytować ocenę jeszcze przez/)).toBeVisible()
+  await expect(page.getByText(/Edycja możliwa przez/)).toBeVisible()
   // Wartości wypełnione (gwiazdka 4 zaznaczona dla każdego wymiaru)
   await expect(page.locator('input[name="score_knowledge"][value="4"]')).toBeChecked()
   await expect(page.locator('input[name="score_organization"][value="4"]')).toBeChecked()
