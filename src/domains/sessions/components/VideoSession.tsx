@@ -129,7 +129,7 @@ export function VideoSession({
   if (ended) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-zinc-500">Sesja zakończona. Przekierowanie...</p>
+        <p className="text-[13px] text-[#888780]">Sesja zakończona. Przekierowanie...</p>
       </div>
     )
   }
@@ -137,7 +137,7 @@ export function VideoSession({
   return (
     <div className="flex flex-col gap-4">
       {endError && (
-        <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-center text-sm font-medium text-red-700">
+        <div className="rounded-[12px] border border-red-300 bg-red-50 px-4 py-3 text-center text-[13px] font-medium text-red-700">
           Nie udało się zakończyć sesji. Sprawdź połączenie i spróbuj ponownie.
         </div>
       )}
@@ -146,7 +146,7 @@ export function VideoSession({
       {isCritical ? (
         <div
           data-testid="timer-banner-critical"
-          className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-center font-semibold text-red-700"
+          className="rounded-[12px] border border-red-300 bg-red-50 px-4 py-3 text-center text-[13px] font-semibold text-red-700"
         >
           Sesja kończy się za{' '}
           <span data-testid="timer" suppressHydrationWarning>{formatted}</span>!
@@ -154,7 +154,7 @@ export function VideoSession({
       ) : isWarning ? (
         <div
           data-testid="timer-banner-warning"
-          className="rounded-xl border border-yellow-300 bg-yellow-50 px-4 py-3 text-center font-medium text-yellow-700"
+          className="rounded-[12px] border border-[#BA7517]/30 bg-[#FAEEDA] px-4 py-3 text-center text-[13px] font-medium text-[#633806]"
         >
           Zbliża się koniec sesji —{' '}
           <span data-testid="timer" suppressHydrationWarning>Pozostało: {formatted}</span>
@@ -162,24 +162,24 @@ export function VideoSession({
       ) : (
         <div
           data-testid="timer-normal"
-          className="rounded-xl border border-zinc-200 bg-white px-4 py-3 text-center text-sm text-zinc-600"
+          className="bg-white border border-[#e8e6de] rounded-[12px] px-4 py-3 text-center text-[13px] text-[#5f5e5a]"
         >
           <span data-testid="timer" suppressHydrationWarning>Pozostało: {formatted}</span>
         </div>
       )}
 
       {/* Iframe wideo */}
-      <div className="relative overflow-hidden rounded-2xl border border-zinc-200" style={{ height: '70vh' }}>
+      <div className="relative overflow-hidden rounded-[12px] border border-[#e8e6de]" style={{ height: '70vh' }}>
         {!videoLoaded && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-900 text-white">
-            <svg className="h-8 w-8 animate-spin text-zinc-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#1a1a18] text-white">
+            <svg className="h-8 w-8 animate-spin text-[#888780]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
             </svg>
-            <p className="text-sm font-medium text-zinc-300">
+            <p className="text-[13px] font-medium text-[#d3d1c7]">
               {isTutor ? 'Przygotowywanie pokoju wideo...' : 'Oczekiwanie na połączenie z korepetytorem...'}
             </p>
-            <p className="text-xs text-zinc-500">Może to potrwać kilka sekund</p>
+            <p className="text-[12px] text-[#888780]">Może to potrwać kilka sekund</p>
           </div>
         )}
         <iframe
@@ -194,18 +194,18 @@ export function VideoSession({
 
       {/* Kontrolki sesji */}
       {isTutor ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="session-notes" className="text-sm font-medium text-zinc-700">
+        <div className="bg-white border border-[#e8e6de] rounded-[12px] p-4 flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="session-notes" className="text-[13px] font-medium text-[#2c2c2a]">
               Notatki z sesji
-              <span className="ml-1 font-normal text-zinc-400">(widoczne dla ucznia w historii)</span>
+              <span className="ml-1 font-normal text-[#888780]">(widoczne dla ucznia w historii)</span>
             </label>
             <textarea
               id="session-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Omówiony materiał, zadania domowe, wskazówki..."
-              className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-900 resize-none focus:outline-none focus:ring-2 focus:ring-zinc-300"
+              className="w-full px-3 py-[10px] border-[0.5px] border-[#d3d1c7] rounded-[8px] text-[13px] text-[#2c2c2a] bg-white outline-none placeholder:text-[#8a8980] focus:border-[#185FA5] focus:ring-2 focus:ring-[#185FA5]/15 transition-shadow font-[inherit] resize-none"
               rows={3}
             />
           </div>
@@ -213,14 +213,14 @@ export function VideoSession({
           <button
             onClick={handleEndClick}
             disabled={isPending}
-            className="cursor-pointer rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+            className="cursor-pointer rounded-[8px] bg-red-600 px-4 py-[9px] text-[13px] font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
           >
             Zakończ sesję
           </button>
         </div>
       ) : (
-        <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3">
-          <p className="text-sm text-zinc-500">
+        <div className="bg-white border border-[#e8e6de] rounded-[12px] px-4 py-3">
+          <p className="text-[13px] text-[#888780]">
             Korepetytor może zakończyć sesję przed czasem.
           </p>
         </div>
@@ -229,18 +229,18 @@ export function VideoSession({
       {/* Modal potwierdzenia zakończenia sesji */}
       {confirming && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl flex flex-col gap-5">
+          <div className="w-full max-w-sm rounded-[16px] bg-white p-6 shadow-2xl flex flex-col gap-5">
             <div>
-              <h3 className="text-lg font-semibold text-zinc-900">Zakończyć sesję?</h3>
-              <p className="mt-1 text-sm text-zinc-500">
+              <h3 className="text-[16px] font-semibold text-[#2c2c2a]">Zakończyć sesję?</h3>
+              <p className="mt-1 text-[13px] text-[#5f5e5a]">
                 Sesja zostanie zakończona, a uczeń zostanie poproszony o wystawienie oceny.
               </p>
             </div>
 
             {notes.trim() && (
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-                <p className="mb-1 text-xs font-medium text-zinc-500">Notatki, które zostaną zapisane:</p>
-                <p className="text-sm text-zinc-700 whitespace-pre-wrap line-clamp-4">{notes.trim()}</p>
+              <div className="rounded-[8px] border border-[#e8e6de] bg-[#f5f5f3] p-3">
+                <p className="mb-1 text-[11px] font-medium text-[#888780]">Notatki, które zostaną zapisane:</p>
+                <p className="text-[13px] text-[#2c2c2a] whitespace-pre-wrap line-clamp-4">{notes.trim()}</p>
               </div>
             )}
 
@@ -248,14 +248,14 @@ export function VideoSession({
               <button
                 onClick={handleConfirm}
                 disabled={isPending}
-                className="cursor-pointer flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+                className="cursor-pointer flex-1 rounded-[8px] bg-red-600 px-4 py-[9px] text-[13px] font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
               >
                 {isPending ? 'Kończenie...' : 'Tak, zakończ'}
               </button>
               <button
                 onClick={handleCancel}
                 disabled={isPending}
-                className="cursor-pointer rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 transition-colors"
+                className="cursor-pointer rounded-[8px] border border-[#e8e6de] bg-white px-4 py-[9px] text-[13px] font-medium text-[#2c2c2a] hover:bg-[#f5f5f3] disabled:opacity-50 transition-colors"
               >
                 Anuluj
               </button>
