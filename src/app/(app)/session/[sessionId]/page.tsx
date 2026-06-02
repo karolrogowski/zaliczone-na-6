@@ -3,7 +3,6 @@ import { getCurrentProfile } from '@/domains/auth/queries'
 import { getSessionById, getSessionHostRoomUrl } from '@/domains/sessions/queries'
 import { VideoSession } from '@/domains/sessions/components/VideoSession'
 import { isUuid } from '@/shared/validation/uuid'
-import { PageContainer } from '../../components/PageContainer'
 
 export default async function SessionPage({
   params,
@@ -41,24 +40,28 @@ export default async function SessionPage({
     : session.daily_room_url
 
   return (
-    <PageContainer><div className="mx-auto max-w-5xl">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-zinc-900">Sesja wideo</h1>
+    <div className="flex flex-col h-full">
+      <div className="shrink-0 bg-white border-b border-[#e8e6de] px-[26px] py-4 flex items-center justify-between">
+        <h1 className="text-[15px] font-semibold text-[#2c2c2a]">Sesja wideo</h1>
         <a
           href="/dashboard"
-          className="text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
+          className="text-[13px] text-[#5f5e5a] hover:text-[#2c2c2a] transition-colors"
         >
           Wróć do dashboardu
         </a>
       </div>
-      <VideoSession
-        sessionId={session.id}
-        matchingRequestId={session.matching_request_id}
-        dailyRoomUrl={roomUrl}
-        startedAt={session.started_at}
-        durationMinutes={durationMinutes}
-        isTutor={isTutor}
-      />
-    </div></PageContainer>
+      <div className="flex-1 overflow-auto p-[22px_26px]">
+        <div className="mx-auto max-w-5xl">
+          <VideoSession
+            sessionId={session.id}
+            matchingRequestId={session.matching_request_id}
+            dailyRoomUrl={roomUrl}
+            startedAt={session.started_at}
+            durationMinutes={durationMinutes}
+            isTutor={isTutor}
+          />
+        </div>
+      </div>
+    </div>
   )
 }

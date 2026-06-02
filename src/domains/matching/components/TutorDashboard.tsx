@@ -128,12 +128,12 @@ export function TutorDashboard({
   const ratingCount = tutorProfile?.rating_count ?? 0
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-6 flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
+      <div className="bg-white border border-[#e8e6de] rounded-[12px] p-5 flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-zinc-900">Dostępność</h2>
-            <p className="text-sm text-zinc-500">
+            <h2 className="text-[14px] font-medium text-[#2c2c2a]">Dostępność</h2>
+            <p className="text-[13px] text-[#5f5e5a] mt-0.5">
               {optimisticAvailable
                 ? 'Widzisz zlecenia i możesz je przyjmować'
                 : 'Nie widzisz nowych zleceń'}
@@ -146,7 +146,7 @@ export function TutorDashboard({
             aria-checked={optimisticAvailable}
             data-testid="availability-toggle"
             className={`cursor-pointer relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
-              optimisticAvailable ? 'bg-green-500' : 'bg-zinc-300'
+              optimisticAvailable ? 'bg-[#27A259]' : 'bg-[#d3d1c7]'
             }`}
           >
             <span
@@ -157,17 +157,17 @@ export function TutorDashboard({
           </button>
         </div>
 
-        <div className="border-t border-zinc-100 pt-4">
-          <div className="mb-1.5 flex items-center gap-2">
-            <p className="text-xs font-medium uppercase tracking-wide text-zinc-400">Twoja ocena</p>
+        <div className="border-t border-[#e8e6de] pt-4">
+          <div className="mb-2 flex items-center gap-2">
+            <p className="text-[11px] font-medium uppercase tracking-wide text-[#888780]">Twoja ocena</p>
             {ratingAvg !== null && ratingCount >= 5 && ratingAvg >= 4.5 && (
-              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">
-                ⭐ VIP
+              <span className="rounded-full bg-[#FAEEDA] px-2 py-0.5 text-[11px] font-semibold text-[#BA7517]">
+                VIP
               </span>
             )}
           </div>
           {ratingAvg !== null && ratingCount > 0 ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((i) => {
                   const full = Math.floor(ratingAvg)
@@ -180,7 +180,7 @@ export function TutorDashboard({
                           ? 'text-yellow-400'
                           : i === full + 1 && half
                             ? 'text-yellow-200'
-                            : 'text-zinc-200'
+                            : 'text-[#d3d1c7]'
                       }`}
                     >
                       ★
@@ -188,36 +188,36 @@ export function TutorDashboard({
                   )
                 })}
               </div>
-              <span className="text-sm font-semibold text-zinc-700">{ratingAvg.toFixed(1)}</span>
-              <span className="text-sm text-zinc-400">
+              <span className="text-[13px] font-semibold text-[#2c2c2a]">{ratingAvg.toFixed(1)}</span>
+              <span className="text-[13px] text-[#888780]">
                 ({ratingCount} {ratingCount === 1 ? 'ocena' : ratingCount < 5 ? 'oceny' : 'ocen'})
               </span>
               {ratingCount < 5 && (
-                <span className="text-xs text-zinc-400">
+                <span className="text-[12px] text-[#888780]">
                   — jeszcze {5 - ratingCount} {5 - ratingCount === 1 ? 'ocena' : 'ocen'} do VIP
                 </span>
               )}
             </div>
           ) : (
-            <p className="text-sm text-zinc-400">Brak ocen — pojawią się po pierwszej sesji.</p>
+            <p className="text-[13px] text-[#888780]">Brak ocen — pojawią się po pierwszej sesji.</p>
           )}
         </div>
       </div>
 
       {optimisticAvailable && (
         <div className="flex flex-col gap-3">
-          <h3 className="text-sm font-medium text-zinc-500 uppercase tracking-wide">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-[#888780]">
             Oczekujące zlecenia
-          </h3>
+          </p>
 
           {raceError && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div className="rounded-[12px] border border-[#BA7517]/30 bg-[#FAEEDA] px-4 py-3 text-[13px] text-[#633806]">
               {raceError}
             </div>
           )}
 
           {requests.length === 0 ? (
-            <div className="rounded-2xl border border-zinc-200 bg-white p-6 text-center text-sm text-zinc-400">
+            <div className="bg-white border border-[#e8e6de] rounded-[12px] p-6 text-center text-[13px] text-[#888780]">
               Brak zleceń w Twoich przedmiotach. Czekamy na uczniów...
             </div>
           ) : (
@@ -264,20 +264,20 @@ function RequestCard({
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-4 flex flex-col gap-3">
+    <div className="bg-white border border-[#e8e6de] rounded-[12px] p-4 flex flex-col gap-3">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-medium text-zinc-900">
+          <p className="text-[14px] font-medium text-[#2c2c2a]">
             {request.subjects?.label ?? request.subject_id}
           </p>
-          <div className="mt-1 flex flex-col gap-0.5 text-xs text-zinc-500">
-            {request.level && <span>{request.level}</span>}
+          <div className="mt-1 flex flex-col gap-0.5">
+            {request.level && <span className="text-[12px] text-[#5f5e5a]">{request.level}</span>}
             {request.description && (
-              <span className="mt-1 text-zinc-400">{request.description}</span>
+              <span className="mt-0.5 text-[12px] text-[#888780]">{request.description}</span>
             )}
           </div>
         </div>
-        <span className="shrink-0 rounded-full bg-zinc-100 px-3 py-1 text-sm font-mono text-zinc-600">
+        <span className="shrink-0 rounded-full bg-[#f5f5f3] px-3 py-1 text-[13px] font-mono text-[#5f5e5a]">
           {/* suppressHydrationWarning — timer zmienia się co sekundę, wartość SSR i CSR celowo różna */}
           <span suppressHydrationWarning>{minutes}:{String(seconds).padStart(2, '0')}</span>
         </span>
@@ -287,27 +287,27 @@ function RequestCard({
       {interaction && (
         <div className="flex flex-wrap gap-1.5">
           {interaction.wantAgain && (
-            <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">
-              ⭐ Ulubiony korepetytor ucznia
+            <span className="rounded-full bg-[#EAF3DE] px-2.5 py-0.5 text-[11px] font-medium text-[#27500A]">
+              Ulubiony korepetytor ucznia
             </span>
           )}
           {interaction.tutorFlagged && (
-            <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-700">
+            <span className="rounded-full bg-[#FAEEDA] px-2.5 py-0.5 text-[11px] font-medium text-[#633806]">
               ⚠️ Oznaczono wcześniej
             </span>
           )}
           {interaction.hasPreviousSession && !interaction.wantAgain && !interaction.tutorFlagged && (
-            <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
+            <span className="rounded-full bg-[#f5f5f3] px-2.5 py-0.5 text-[11px] font-medium text-[#5f5e5a]">
               Uczyłeś już tego ucznia
             </span>
           )}
           {interaction.hasPreviousSession && interaction.studentLastScore !== null && (
-            <span className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-xs font-medium text-zinc-600">
+            <span className="rounded-full bg-[#f5f5f3] px-2.5 py-0.5 text-[11px] font-medium text-[#5f5e5a]">
               Uczeń ocenił Cię: {interaction.studentLastScore}★
             </span>
           )}
           {interaction.tutorFlagged && interaction.tutorNote && (
-            <span className="w-full rounded-lg bg-red-50 border border-red-100 px-2.5 py-1.5 text-xs text-red-700">
+            <span className="w-full rounded-[8px] bg-[#FAEEDA] border border-[#BA7517]/30 px-2.5 py-1.5 text-[12px] text-[#633806]">
               Twoja notatka: {interaction.tutorNote}
             </span>
           )}
@@ -317,7 +317,7 @@ function RequestCard({
       <button
         onClick={handleAccept}
         disabled={isPending}
-        className="cursor-pointer w-full rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+        className="cursor-pointer w-full rounded-[8px] bg-[#27A259] px-4 py-[9px] text-[13px] font-medium text-white hover:bg-[#1f8a4a] disabled:opacity-50 transition-colors"
       >
         {isPending ? 'Akceptowanie...' : 'Akceptuj zlecenie'}
       </button>
