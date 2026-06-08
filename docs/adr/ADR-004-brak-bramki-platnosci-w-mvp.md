@@ -1,6 +1,6 @@
 # ADR-004: Brak integracji bramki płatności w MVP
 
-**Status:** Zaakceptowany  
+**Status:** Superseded by [ADR-008](ADR-008-stripe-connect-platnosci.md)  
 **Data:** 2026-05-05
 
 ## Kontekst
