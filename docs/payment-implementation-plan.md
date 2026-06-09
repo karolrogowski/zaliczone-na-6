@@ -64,7 +64,7 @@ Cel: pokazać działający przepływ pieniędzy w trybie testowym Stripe. Kroki 
 
 | # | Krok | Status | E2E plik |
 |---|------|--------|----------|
-| 1 | Konfiguracja Stripe — klucze, klient, webhook endpoint | TODO | `e2e/payments-webhook.spec.ts` |
+| 1 | Konfiguracja Stripe — klucze, klient, webhook endpoint | DONE | `e2e/payments-webhook.spec.ts` |
 | 2 | Migracja bazy — kolumny Stripe w `session_financials` | TODO | *(db:reset, brak osobnego pliku)* |
 | 3 | Backend: tworzenie PaymentIntent przy złożeniu zlecenia | TODO | `e2e/payments-checkout.spec.ts` |
 | 4 | UI: formularz płatności Stripe Elements (karta + BLIK) | TODO | `e2e/payments-checkout.spec.ts` |
@@ -79,30 +79,37 @@ Cel: pokazać działający przepływ pieniędzy w trybie testowym Stripe. Kroki 
 
 ## Krok 1 — Konfiguracja Stripe: klucze, klient, webhook endpoint
 
-**Status:** TODO
+**Status:** DONE
 
 ### Zadania implementacyjne
 
-- [ ] Zainstaluj pakiety: `npm install stripe @stripe/stripe-js @stripe/react-stripe-js`
-- [ ] Dodaj zmienne do `.env.local`:
+- [x] Zainstaluj pakiety: `npm install stripe @stripe/stripe-js @stripe/react-stripe-js`
+- [x] Dodaj zmienne do `.env.local` / `.env.local.example`:
   ```
   STRIPE_SECRET_KEY=sk_test_...
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
   STRIPE_WEBHOOK_SECRET=whsec_...
   ```
-- [ ] Stwórz `src/domains/payments/stripe-client.ts` — singleton klienta Stripe (server-side)
-- [ ] Stwórz `src/app/api/webhooks/stripe/route.ts` — endpoint webhooka:
+- [x] Stwórz `src/domains/payments/stripe-client.ts` — singleton klienta Stripe (server-side)
+- [x] Stwórz `src/app/api/webhooks/stripe/route.ts` — endpoint webhooka:
   - Weryfikuje podpis (`stripe.webhooks.constructEvent`)
   - Zwraca 400 przy złym podpisie, 200 przy dobrym
   - Na razie tylko loguje zdarzenia (logika w kolejnych krokach)
-- [ ] Stwórz `src/domains/payments/` — nowa domena z plikami: `types.ts`, `queries.ts`, `actions.ts`
+- [x] Stwórz `src/domains/payments/` — nowa domena z plikami: `types.ts` (gotowe), `queries.ts` i `actions.ts` (w kroku 3)
 
 ### E2E testy: `e2e/payments-webhook.spec.ts`
 
-- [ ] **Test 1:** Endpoint `/api/webhooks/stripe` odrzuca żądania bez podpisu (HTTP 400)
-- [ ] **Test 2:** Symulacja zdarzenia przez Stripe CLI (`stripe trigger payment_intent.created`) → endpoint odpowiada 200
+- [x] **Test 1:** Endpoint `/api/webhooks/stripe` odrzuca żądania bez podpisu (HTTP 400) — PASS
+- [x] **Test 2:** Endpoint odrzuca żądania z nieprawidłowym podpisem (HTTP 400) — PASS
+- [x] **Test 3:** Symulacja zdarzenia z poprawnym podpisem (`Stripe.webhooks.generateTestHeaderString`) → endpoint odpowiada 200 — PASS
 
-> Uwaga do testów: webhook można testować lokalnie przez `stripe listen --forward-to localhost:3000/api/webhooks/stripe`. W Playwright użyj bezpośrednich zapytań HTTP (`request.post(...)`) z testowym payloadem i podpisem testowym.
+### Konfiguracja środowiska (wykonane 2026-06-08)
+
+- Klucze testowe Stripe dodane do `.env.local` (`STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`)
+- Stripe CLI zainstalowane (`winget install Stripe.StripeCli`)
+- `stripe listen --forward-to localhost:3000/api/webhooks/stripe` uruchomione w tle — webhook signing secret zapisany jako `STRIPE_WEBHOOK_SECRET`
+
+> Uwaga: `stripe listen` musi działać w tle przez cały czas developmentu płatności — przekierowuje zdarzenia ze Stripe (test mode) na lokalny endpoint webhooka. Jeśli zostanie zatrzymane, webhooki przestaną docierać (testy E2E nadal przejdą — generują własne podpisane payloady niezależnie od `stripe listen`).
 
 ---
 
