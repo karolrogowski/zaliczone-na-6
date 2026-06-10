@@ -65,7 +65,7 @@ Cel: pokazać działający przepływ pieniędzy w trybie testowym Stripe. Kroki 
 | # | Krok | Status | E2E plik |
 |---|------|--------|----------|
 | 1 | Konfiguracja Stripe — klucze, klient, webhook endpoint | DONE | `e2e/payments-webhook.spec.ts` |
-| 2 | Migracja bazy — kolumny Stripe w `session_financials` | TODO | *(db:reset, brak osobnego pliku)* |
+| 2 | Migracja bazy — kolumny Stripe w `session_financials` | DONE | *(db:reset, brak osobnego pliku)* |
 | 3 | Backend: tworzenie PaymentIntent przy złożeniu zlecenia | TODO | `e2e/payments-checkout.spec.ts` |
 | 4 | UI: formularz płatności Stripe Elements (karta + BLIK) | TODO | `e2e/payments-checkout.spec.ts` |
 | 5 | Webhook: `payment_intent.succeeded` → aktualizacja statusu | TODO | `e2e/payments-webhook.spec.ts` |
@@ -115,11 +115,11 @@ Cel: pokazać działający przepływ pieniędzy w trybie testowym Stripe. Kroki 
 
 ## Krok 2 — Migracja bazy: kolumny Stripe w `session_financials`
 
-**Status:** TODO
+**Status:** DONE
 
 ### Zadania implementacyjne
 
-- [ ] Stwórz migrację `supabase/migrations/20260603000000_stripe_payment_fields.sql`:
+- [x] Stwórz migrację `supabase/migrations/20260603000000_stripe_payment_fields.sql`:
   ```sql
   alter table session_financials
     add column stripe_payment_intent_id text unique,
@@ -130,18 +130,14 @@ Cel: pokazać działający przepływ pieniędzy w trybie testowym Stripe. Kroki 
     add column stripe_transfer_id       text unique,
     add column stripe_charge_id         text unique;
   ```
-- [ ] Dodaj do `profiles` pole dla konta korepetytora:
-  ```sql
-  alter table profiles
-    add column stripe_account_id    text unique,
-    add column stripe_onboarding_done boolean not null default false;
-  ```
-- [ ] Zaktualizuj polityki RLS jeśli potrzeba (nowe kolumny dziedziczą istniejące polityki — sprawdź)
+- [x] Dodaj cenę sesji do `platform_config`: `session_price_grosz = 10000` (100 zł)
+- [x] Pole na konto korepetytora — pominięte: `tutor_profiles.stripe_account_id` już istnieje w schemacie (initial_schema). `stripe_onboarding_done` zostanie dodany dopiero w kroku 7 (Connect onboarding, poza zakresem demo).
+- [x] Polityki RLS — bez zmian, nowe kolumny dziedziczą istniejące polityki SELECT na `session_financials`; zapis odbywa się przez service role / definer functions (poza RLS)
 
 ### Weryfikacja
 
-- [ ] `npm run db:reset` — przechodzi bez błędów
-- [ ] `npx tsc --noEmit` — brak błędów typów
+- [x] `npm run db:reset` — przechodzi bez błędów
+- [x] `npx tsc --noEmit` — brak błędów typów
 
 > Brak osobnego pliku E2E dla tego kroku — weryfikacja przez `db:reset` i kolejne testy, które czytają nowe kolumny.
 
