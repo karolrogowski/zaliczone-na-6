@@ -19,14 +19,15 @@ import {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ocena?: string }>
+  searchParams: Promise<{ ocena?: string; payment?: string }>
 }) {
   const profile = await getCurrentProfile()
 
   if (profile?.role === 'admin') redirect('/admin/dashboard')
 
-  const { ocena } = await searchParams
+  const { ocena, payment } = await searchParams
   const ratingSuccess = ocena === 'zapisana' || ocena === 'zaktualizowana'
+  const paymentSuccess = payment === 'success'
 
   if (profile?.role === 'student') {
     const [activeRequest, stats, consultations] = await Promise.all([
@@ -57,6 +58,12 @@ export default async function DashboardPage({
           {ratingSuccess && (
             <div className="rounded-[10px] border border-[#b8e0c5] bg-[#EAF3DE] px-4 py-3 text-[13px] font-medium text-[#27500A]">
               ✓ Ocena została zapisana. Dziękujemy za feedback!
+            </div>
+          )}
+
+          {paymentSuccess && (
+            <div className="rounded-[10px] border border-[#b8e0c5] bg-[#EAF3DE] px-4 py-3 text-[13px] font-medium text-[#27500A]">
+              ✓ Płatność zaakceptowana. Środki zostaną pobrane po zakończeniu sesji.
             </div>
           )}
 

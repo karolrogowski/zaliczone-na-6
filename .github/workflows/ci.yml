@@ -65,11 +65,16 @@ jobs:
             -o /tmp/supabase-docker.tar
 
       - name: Utwórz .env.local z kluczami lokalnego Supabase
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
         run: |
           STATUS=$(npx supabase status --output env)
           echo "NEXT_PUBLIC_SUPABASE_URL=$(echo "$STATUS" | grep '^API_URL=' | cut -d= -f2-)"        > .env.local
           echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(echo "$STATUS" | grep '^ANON_KEY=' | cut -d= -f2-)"  >> .env.local
           echo "SUPABASE_SERVICE_ROLE_KEY=$(echo "$STATUS" | grep '^SERVICE_ROLE_KEY=' | cut -d= -f2-)" >> .env.local
+          echo "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY" >> .env.local
+          echo "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=$NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY" >> .env.local
 
       - name: Cache przeglądarek Playwright
         uses: actions/cache@v4

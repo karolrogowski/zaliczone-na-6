@@ -7,6 +7,10 @@ export type StripePaymentStatus =
   | 'refunded'
   | 'failed'
 
+export type CreateCheckoutSessionResult =
+  | { success: true; clientSecret: string }
+  | { success: false; message: string }
+
 export type SessionFinancials = {
   id: string
   session_id: string
