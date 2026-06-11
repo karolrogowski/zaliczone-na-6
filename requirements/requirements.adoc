@@ -19,7 +19,7 @@ Priorytety: `P0` blokuje launch · `P1` ważne · `P2` nice to have · `P3` świ
 | Przerwanie i powrót do sesji               | 2 | P0 | DONE
 | Dwustronny system ocen (po sesji)          | 3 | P1 | DONE
 | Współdzielenie ekranu + czat + załączniki  | 2 | P1 | DONE
-| Preautoryzacja płatności (Stripe)          | 1 | P1 | AFTER_MVP
+| Preautoryzacja płatności (Stripe)          | 1 | P1 | WIP
 | Logowanie Google/Apple                     | 1 | P1 | AFTER_MVP
 | Weryfikacja korepetytora (skan legitymacji) | 1 | P1 | AFTER_MVP
 | Algorytm VIP (opóźnione powiadomienia)     | 3 | P2 | AFTER_MVP
@@ -46,9 +46,14 @@ Po MVP:
 
 Ekran dla ucznia pozwalający w 3 kliknięciach zdefiniować problem. Wybór przedmiotu z listy (np. matematyka, fizyka), wybór poziomu (np. szkoła podstawowa, liceum), krótki opis tekstowy problemu oraz wybór czasu (30 lub 60 minut).
 
-=== Bramka płatnicza z preautoryzacją (Hold Funds) — AFTER_MVP / P1
+=== Bramka płatnicza z preautoryzacją (Hold Funds) — WIP / P1
 
-Integracja z systemem płatności (np. Stripe, PayU). Gdy uczeń klika "Szukaj korepetytora", system nie pobiera od razu środków, a jedynie je "zamraża" (preautoryzacja) na karcie podpiętej do konta lub przez BLIK OneClick. Zabezpiecza to platformę przed oszustwami i gwarantuje wypłacalność dla korepetytora.
+Integracja z systemem płatności (Stripe). Gdy uczeń klika "Szukaj korepetytora", system nie pobiera od razu środków, a jedynie je "zamraża" (preautoryzacja) na karcie podpiętej do konta. Zabezpiecza to platformę przed oszustwami i gwarantuje wypłacalność dla korepetytora.
+
+Stan na 2026-06-11: zaimplementowano tworzenie PaymentIntent przy złożeniu zlecenia oraz formularz
+płatności Stripe Elements na `/checkout/[requestId]` (kroki 1, 3, 4 z `docs/payment-implementation-plan.md`).
+Pozostają: aktualizacja statusu przez webhook, capture/cancel preautoryzacji po sesji, panel admina
+z widokiem płatności i zwrotami (kroki 5, 6 + refund).
 
 === Pula zgłoszeń i system "Kto pierwszy, ten lepszy" (Matchmaking) — DONE
 

@@ -28,15 +28,17 @@ export async function submitMatchingRequest(
 
   const supabase = await createClient()
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('matching_requests')
     .insert({ subject_id, level, description, student_id: user.id })
+    .select('id')
+    .single()
 
-  if (error) {
+  if (error || !data) {
     return { message: 'Nie udało się wysłać zlecenia. Spróbuj ponownie.' }
   }
 
-  redirect('/dashboard')
+  redirect(`/checkout/${data.id}`)
 }
 
 export async function cancelMatchingRequest(requestId: string): Promise<void> {

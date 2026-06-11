@@ -66,8 +66,8 @@ Cel: pokazać działający przepływ pieniędzy w trybie testowym Stripe. Kroki 
 |---|------|--------|----------|
 | 1 | Konfiguracja Stripe — klucze, klient, webhook endpoint | DONE | `e2e/payments-webhook.spec.ts` |
 | 2 | Migracja bazy — kolumny Stripe w `session_financials` | DONE | *(db:reset, brak osobnego pliku)* |
-| 3 | Backend: tworzenie PaymentIntent przy złożeniu zlecenia | TODO | `e2e/payments-checkout.spec.ts` |
-| 4 | UI: formularz płatności Stripe Elements (karta + BLIK) | TODO | `e2e/payments-checkout.spec.ts` |
+| 3 | Backend: tworzenie PaymentIntent przy złożeniu zlecenia | DONE | `e2e/payments-checkout.spec.ts` |
+| 4 | UI: formularz płatności Stripe Elements (karta + BLIK) | DONE | `e2e/payments-checkout.spec.ts` |
 | 5 | Webhook: `payment_intent.succeeded` → aktualizacja statusu | TODO | `e2e/payments-webhook.spec.ts` |
 | 6 | Preautoryzacja: hold → capture po sesji / cancel przy braku korepetytora | TODO | `e2e/payments-capture.spec.ts` |
 | 7 | Onboarding korepetytora — Stripe Connect Express | TODO | `e2e/payments-connect.spec.ts` |
@@ -145,48 +145,53 @@ Cel: pokazać działający przepływ pieniędzy w trybie testowym Stripe. Kroki 
 
 ## Krok 3 — Backend: tworzenie PaymentIntent przy złożeniu zlecenia
 
-**Status:** TODO
+**Status:** DONE
 
 ### Zadania implementacyjne
 
-- [ ] Stwórz server action `createCheckoutSession(requestId)` w `src/domains/payments/actions.ts`:
+- [x] Stwórz server action `createCheckoutSession(requestId)` w `src/domains/payments/actions.ts`:
   - Pobiera zlecenie z DB (czas trwania → kwota)
   - Tworzy `PaymentIntent` w Stripe z `capture_method: 'manual'` (preautoryzacja)
-  - Zapisuje `stripe_payment_intent_id` i `stripe_status: 'pending'` do `session_financials`
+  - Zapisuje `stripe_payment_intent_id` i `stripe_status: 'pending'` do `matching_requests`
   - Zwraca `clientSecret` do frontendu
-- [ ] Kwota (w groszach): 30 min = 8000 gr (80 zł), 60 min = 14000 gr (140 zł) — konfigurowalne w `platform_config`
-- [ ] Stwórz `src/domains/payments/queries.ts` — zapytania do `session_financials`
+- [x] Kwota (w groszach): 100 zł (10000 gr) za sesję 60 min — konfigurowalne w `platform_config`
+- [x] Stwórz `src/domains/payments/queries.ts` — zapytania o cenę sesji z `platform_config`
+
+**Decyzja architektoniczna:** pola Stripe (`stripe_payment_intent_id`, `stripe_status`) zostały dodane
+do `matching_requests` (migracja `20260605000000_payment_fields_matching_requests.sql`), a nie do
+`session_financials` jak pierwotnie planowano — `session_financials` powstaje dopiero przy akceptacji
+zlecenia przez korepetytora, a PaymentIntent musi istnieć już w momencie złożenia zlecenia (krok
+preautoryzacji następuje przed matchingiem).
 
 ### E2E testy: `e2e/payments-checkout.spec.ts` (pierwsza część)
 
-- [ ] **Test 1:** Zalogowany uczeń wywołuje `createCheckoutSession` dla istniejącego zlecenia → w odpowiedzi jest `clientSecret` (zaczyna się od `pi_...`)
-- [ ] **Test 2:** Wywołanie dla cudzego zlecenia zwraca błąd autoryzacji
-- [ ] **Test 3:** `session_financials` ma rekord z `stripe_status = 'pending'` po wywołaniu akcji
+- [x] **Test 1:** Złożenie zlecenia przez ucznia tworzy `PaymentIntent` (`stripe_payment_intent_id` zaczyna się od `pi_`, `stripe_status = 'pending'`) i przekierowuje na `/checkout/[requestId]`
+- [x] **Test 2:** Próba wejścia na checkout cudzego zlecenia → redirect na `/dashboard`
 
 ---
 
 ## Krok 4 — UI: formularz płatności Stripe Elements (karta + BLIK)
 
-**Status:** TODO
+**Status:** DONE
 
 ### Zadania implementacyjne
 
-- [ ] Stwórz stronę `src/app/(app)/checkout/[requestId]/page.tsx`:
+- [x] Stwórz stronę `src/app/(app)/checkout/[requestId]/page.tsx`:
   - Server component pobiera `clientSecret` (wywołując akcję z kroku 3)
   - Przekazuje `clientSecret` do client component
-- [ ] Stwórz `src/app/(app)/checkout/[requestId]/CheckoutForm.tsx` (client component):
+- [x] Stwórz `src/app/(app)/checkout/[requestId]/CheckoutForm.tsx` (client component):
   - `<Elements stripe={stripePromise} options={{ clientSecret }}>` jako wrapper
   - `<PaymentElement />` — gotowy komponent Stripe (obsługuje kartę + BLIK automatycznie)
   - Przycisk "Zapłać" → `stripe.confirmPayment()` → redirect na `/dashboard?payment=success`
-- [ ] Stwórz stronę powrotu `src/app/(app)/dashboard` — wyświetla zielony baner gdy `?payment=success`
-- [ ] Dodaj przekierowanie na checkout w przepływie: po złożeniu zlecenia przez ucznia → `/checkout/[requestId]`
+- [x] Stwórz stronę powrotu `src/app/(app)/dashboard` — wyświetla zielony baner gdy `?payment=success`
+- [x] Dodaj przekierowanie na checkout w przepływie: po złożeniu zlecenia przez ucznia → `/checkout/[requestId]`
+- [x] CSP (`next.config.ts`): dodano `https://js.stripe.com` do `script-src`/`frame-src` i
+  `https://api.stripe.com` do `connect-src` — bez tego Stripe.js był blokowany przez przeglądarkę.
 
 ### E2E testy: `e2e/payments-checkout.spec.ts` (druga część)
 
-- [ ] **Test 4:** Uczeń widzi stronę `/checkout/[requestId]` z formularzem płatności
-- [ ] **Test 5:** Uczeń wpisuje testową kartę `4242 4242 4242 4242`, klika "Zapłać" → trafia na dashboard z banerem sukcesu
-- [ ] **Test 6:** Uczeń wpisuje kartę odrzuconą `4000 0000 0000 9995` → widzi komunikat błędu na stronie (nie redirect)
-- [ ] **Test 7:** Próba dostępu do cudzego checkoutu → redirect na dashboard
+- [x] **Test 3:** Uczeń wpisuje testową kartę `4242 4242 4242 4242`, klika "Zapłać" → trafia na dashboard z banerem "Płatność zaakceptowana"
+- [x] **Test 4:** Uczeń wpisuje kartę odrzuconą `4000 0000 0000 9995` → widoczny komunikat o odrzuceniu w formularzu Stripe, pozostaje na `/checkout/...`
 
 ---
 

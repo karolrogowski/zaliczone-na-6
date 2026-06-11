@@ -13,12 +13,13 @@ function buildCSP(): string {
     "default-src 'self'",
     // Next.js w buildzie produkcyjnym potrzebuje 'unsafe-inline' (inline scripts dla hydratacji)
     // oraz w dev 'unsafe-eval' (HMR). Bez nonce — w MVP akceptowalne.
-    `script-src 'self' 'unsafe-inline' ${process.env.NODE_ENV === 'production' ? '' : "'unsafe-eval'"}`,
+    // js.stripe.com — Stripe.js (Stripe Elements, krok 4 płatności).
+    `script-src 'self' 'unsafe-inline' https://js.stripe.com ${process.env.NODE_ENV === 'production' ? '' : "'unsafe-eval'"}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data:",
-    `connect-src 'self' ${supabaseHttp} ${supabaseWs} https://*.sentry.io https://*.ingest.sentry.io https://api.whereby.dev`,
-    "frame-src 'self' https://*.whereby.com https://*.whereby.dev",
+    `connect-src 'self' ${supabaseHttp} ${supabaseWs} https://*.sentry.io https://*.ingest.sentry.io https://api.whereby.dev https://api.stripe.com`,
+    "frame-src 'self' https://*.whereby.com https://*.whereby.dev https://js.stripe.com https://hooks.stripe.com",
     "frame-ancestors 'none'",
     "form-action 'self'",
     "base-uri 'self'",
