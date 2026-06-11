@@ -1,5 +1,6 @@
 import { cache } from 'react'
 import { createClient } from '@/shared/supabase/server'
+import { cancelExpiredPaymentHolds } from '@/domains/payments/actions'
 import type { MatchingRequestWithSubject, Subject, StudentStats, TutorProfileDetails, TutorPublicProfile } from './types'
 
 export const getSubjects = cache(async (): Promise<Subject[]> => {
@@ -83,7 +84,9 @@ export const getStudentRecentConsultations = cache(
 export const getTutorPendingRequests = cache(
   async (): Promise<MatchingRequestWithSubject[]> => {
     const supabase = await createClient()
-    // Lazy expiry: oznacza przeterminowane zlecenia przed pobraniem listy
+    // Lazy expiry: anuluje preautoryzacje płatności i oznacza przeterminowane
+    // zlecenia przed pobraniem listy
+    await cancelExpiredPaymentHolds()
     await supabase.rpc('expire_pending_requests')
 
     // Pobierz aktualną preferencję każdego ucznia względem bieżącego korepetytora.

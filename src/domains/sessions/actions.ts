@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/shared/supabase/server'
 import { getCurrentUser } from '@/shared/auth/getCurrentUser'
 import { MAX_NOTES } from '@/domains/matching/validation'
+import { capturePayment } from '@/domains/payments/actions'
 import { deleteVideoRoom } from './video-provider'
 
 export async function completeSession(sessionId: string, notes?: string): Promise<void> {
@@ -19,7 +20,7 @@ export async function completeSession(sessionId: string, notes?: string): Promis
   // dla obcego usera.
   const { data: session } = await supabase
     .from('sessions')
-    .select('id, student_id, tutor_id, status, daily_room_name')
+    .select('id, student_id, tutor_id, status, daily_room_name, matching_request_id')
     .eq('id', sessionId)
     .maybeSingle()
 
@@ -49,4 +50,7 @@ export async function completeSession(sessionId: string, notes?: string): Promis
   if (session.daily_room_name) {
     void deleteVideoRoom(session.daily_room_name)
   }
+
+  // Pobranie preautoryzowanej płatności (krok 6 planu płatności)
+  void capturePayment(session.matching_request_id)
 }
