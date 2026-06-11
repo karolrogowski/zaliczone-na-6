@@ -97,6 +97,12 @@ test('uczeń płaci testową kartą i trafia na dashboard z potwierdzeniem', asy
   await stripeFrame.locator('input[name="expiry"]').fill('12/34')
   await stripeFrame.locator('input[name="cvc"]').fill('123')
 
+  // Pole ZIP pojawia się gdy domyślny kraj rozliczeniowy (np. wykryty z IP w CI) go wymaga.
+  const zipField = stripeFrame.getByPlaceholder('12345')
+  if (await zipField.isVisible().catch(() => false)) {
+    await zipField.fill('12345')
+  }
+
   // Po wypełnieniu CVC Stripe Link może pokazać podpowiedź nad przyciskiem;
   // odczekanie na jej zniknięcie zapobiega "zgubieniu" kliknięcia "Zapłać".
   const payButton = page.getByRole('button', { name: 'Zapłać' })
@@ -130,6 +136,12 @@ test('uczeń płaci kartą odrzuconą i widzi komunikat błędu', async ({ page 
   await stripeFrame.locator('input[name="number"]').fill('4000000000009995')
   await stripeFrame.locator('input[name="expiry"]').fill('12/34')
   await stripeFrame.locator('input[name="cvc"]').fill('123')
+
+  // Pole ZIP pojawia się gdy domyślny kraj rozliczeniowy (np. wykryty z IP w CI) go wymaga.
+  const zipField = stripeFrame.getByPlaceholder('12345')
+  if (await zipField.isVisible().catch(() => false)) {
+    await zipField.fill('12345')
+  }
 
   const payButton = page.getByRole('button', { name: 'Zapłać' })
   await payButton.scrollIntoViewIfNeeded()
