@@ -86,7 +86,13 @@ test('uczeń płaci testową kartą i trafia na dashboard z potwierdzeniem', asy
   await page.waitForURL(/\/checkout\/[0-9a-f-]+/, { timeout: 15_000 })
 
   const stripeFrame = page.frameLocator('iframe[title="Secure payment input frame"]').first()
-  await stripeFrame.getByRole('button', { name: /Card/i }).click()
+  // Zakładka "Card" pojawia się tylko gdy w koncie Stripe włączonych jest
+  // kilka metod płatności; gdy karta jest jedyną opcją, formularz jest widoczny od razu.
+  const cardTab = stripeFrame.getByRole('button', { name: /Card/i })
+  await cardTab.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {})
+  if (await cardTab.isVisible()) {
+    await cardTab.click()
+  }
   await stripeFrame.locator('input[name="number"]').fill('4242424242424242')
   await stripeFrame.locator('input[name="expiry"]').fill('12/34')
   await stripeFrame.locator('input[name="cvc"]').fill('123')
@@ -114,7 +120,13 @@ test('uczeń płaci kartą odrzuconą i widzi komunikat błędu', async ({ page 
   await page.waitForURL(/\/checkout\/[0-9a-f-]+/, { timeout: 15_000 })
 
   const stripeFrame = page.frameLocator('iframe[title="Secure payment input frame"]').first()
-  await stripeFrame.getByRole('button', { name: /Card/i }).click()
+  // Zakładka "Card" pojawia się tylko gdy w koncie Stripe włączonych jest
+  // kilka metod płatności; gdy karta jest jedyną opcją, formularz jest widoczny od razu.
+  const cardTab = stripeFrame.getByRole('button', { name: /Card/i })
+  await cardTab.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {})
+  if (await cardTab.isVisible()) {
+    await cardTab.click()
+  }
   await stripeFrame.locator('input[name="number"]').fill('4000000000009995')
   await stripeFrame.locator('input[name="expiry"]').fill('12/34')
   await stripeFrame.locator('input[name="cvc"]').fill('123')
