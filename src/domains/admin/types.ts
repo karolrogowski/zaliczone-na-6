@@ -9,6 +9,9 @@ export type AdminSession = {
   student: { full_name: string } | null
   tutor: { full_name: string } | null
   matching_requests: {
+    id: string
+    stripe_status: string
+    stripe_charge_id: string | null
     subjects: { label: string } | null
   } | null
   session_financials: {
@@ -55,3 +58,7 @@ export type MfaVerifyFormState =
 export type MfaEnrollVerifyFormState =
   | { message?: string }
   | undefined
+
+export type RefundActionResult =
+  | { success: true }
+  | { success: false; message: string }

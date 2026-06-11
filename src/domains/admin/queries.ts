@@ -38,7 +38,7 @@ export const getAdminSessions = cache(async (): Promise<AdminSession[]> => {
       id, status, started_at, ended_at, duration_minutes, student_id, tutor_id,
       student:profiles!sessions_student_id_fkey(full_name),
       tutor:profiles!sessions_tutor_id_fkey(full_name),
-      matching_requests(subjects(label)),
+      matching_requests(id, stripe_status, stripe_charge_id, subjects(label)),
       session_financials(student_cost_grosz, tutor_earning_grosz, platform_commission_grosz, paid_out_at)
     `)
     .order('created_at', { ascending: false })

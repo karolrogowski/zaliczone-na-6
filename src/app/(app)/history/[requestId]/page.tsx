@@ -142,6 +142,12 @@ export default async function SessionDetailPage({
       <div className="flex-1 overflow-auto p-[22px_26px]">
         <div className="mx-auto max-w-2xl flex flex-col gap-4">
 
+          {request.stripe_status === 'refunded' && (
+            <div className="bg-zinc-50 border border-[#e8e6de] rounded-[12px] px-5 py-3 text-[13px] text-[#5f5e5a]">
+              Płatność za tę sesję została zwrócona.
+            </div>
+          )}
+
           <div className="bg-white border border-[#e8e6de] rounded-[12px] px-5 py-4 flex flex-col gap-2">
             {otherPersonLabel && (
               <p className="text-[13px] text-[#2c2c2a]">{otherPersonLabel}</p>

@@ -1,7 +1,7 @@
 'use client'
 
-import { useTransition } from 'react'
-import { markSessionPaid } from '../actions'
+import { useState, useTransition } from 'react'
+import { markSessionPaid, refundSession } from '../actions'
 import type { AdminSession } from '../types'
 
 function groszToZloty(grosz: number) {
@@ -22,7 +22,7 @@ export function SessionsTable({ sessions }: { sessions: AdminSession[] }) {
       <table className="w-full text-sm">
         <thead className="border-b border-zinc-200 bg-zinc-50">
           <tr>
-            {['Data', 'Uczeń', 'Korepetytor', 'Przedmiot', 'Czas', 'Koszt ucznia', 'Zarobek korepetytora', 'Prowizja', 'Wypłata'].map(
+            {['Data', 'Uczeń', 'Korepetytor', 'Przedmiot', 'Czas', 'Koszt ucznia', 'Zarobek korepetytora', 'Prowizja', 'Wypłata', 'Płatność'].map(
               (h) => (
                 <th key={h} className="px-4 py-3 text-left font-medium text-zinc-600">
                   {h}
@@ -43,7 +43,18 @@ export function SessionsTable({ sessions }: { sessions: AdminSession[] }) {
 
 function SessionRow({ session: s }: { session: AdminSession }) {
   const [isPending, startTransition] = useTransition()
+  const [refundError, setRefundError] = useState<string | null>(null)
   const fin = s.session_financials
+  const request = s.matching_requests
+
+  function handleRefund() {
+    if (!request) return
+    setRefundError(null)
+    startTransition(async () => {
+      const result = await refundSession(request.id)
+      if (!result.success) setRefundError(result.message)
+    })
+  }
 
   return (
     <tr className="hover:bg-zinc-50 transition-colors">
@@ -76,6 +87,24 @@ function SessionRow({ session: s }: { session: AdminSession }) {
           >
             {isPending ? '...' : 'Oznacz jako wypłacone'}
           </button>
+        )}
+      </td>
+      <td className="px-4 py-3">
+        {request?.stripe_status === 'captured' ? (
+          <div className="flex flex-col items-start gap-1">
+            <button
+              onClick={handleRefund}
+              disabled={isPending}
+              className="cursor-pointer rounded-full bg-red-50 px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-100 disabled:opacity-50 transition-colors"
+            >
+              {isPending ? '...' : 'Zwróć płatność'}
+            </button>
+            {refundError && <span className="text-xs text-red-600">{refundError}</span>}
+          </div>
+        ) : request?.stripe_status === 'refunded' ? (
+          <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600">Zwrócono</span>
+        ) : (
+          <span className="text-zinc-400">—</span>
         )}
       </td>
     </tr>

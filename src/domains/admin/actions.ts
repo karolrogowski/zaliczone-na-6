@@ -4,10 +4,17 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/shared/supabase/server'
 import { createAdminClient } from '@/shared/supabase/admin'
+import { getStripeClient } from '@/domains/payments/stripe-client'
 import { requireAdminSession } from './require-admin-session'
 import { validateCommissionPct } from './validation'
 import { logAdminAction } from './audit'
-import type { AdminLoginFormState, ConfigFormState, MfaVerifyFormState, MfaEnrollVerifyFormState } from './types'
+import type {
+  AdminLoginFormState,
+  ConfigFormState,
+  MfaVerifyFormState,
+  MfaEnrollVerifyFormState,
+  RefundActionResult,
+} from './types'
 
 export async function adminLogin(
   _state: AdminLoginFormState,
@@ -72,6 +79,49 @@ export async function markSessionPaid(sessionId: string): Promise<void> {
   })
 
   revalidatePath('/admin/sessions')
+}
+
+/**
+ * Krok 10 planu płatności (docs/payment-implementation-plan.md): zwrot
+ * pobranej płatności. Działa na `matching_requests` (źródło prawdy dla
+ * statusu płatności — zob. status.ts), nie na `session_financials`.
+ */
+export async function refundSession(
+  requestId: string,
+  reason: 'requested_by_customer' | 'duplicate' | 'fraudulent' = 'requested_by_customer'
+): Promise<RefundActionResult> {
+  const { adminId } = await requireAdminSession()
+
+  const db = createAdminClient()
+
+  const { data: request } = await db
+    .from('matching_requests')
+    .select('stripe_status, stripe_charge_id')
+    .eq('id', requestId)
+    .maybeSingle()
+
+  if (!request || request.stripe_status !== 'captured' || !request.stripe_charge_id) {
+    return { success: false, message: 'Płatność nie może zostać zwrócona w obecnym stanie.' }
+  }
+
+  try {
+    await getStripeClient().refunds.create({ charge: request.stripe_charge_id, reason })
+  } catch (err) {
+    console.error('[admin] Nie udało się zwrócić płatności:', err)
+    return { success: false, message: 'Błąd Stripe — nie udało się wykonać zwrotu.' }
+  }
+
+  await db.from('matching_requests').update({ stripe_status: 'refunded' }).eq('id', requestId)
+
+  await logAdminAction({
+    admin_id: adminId,
+    action: 'session_payment_refunded',
+    target_type: 'matching_request',
+    target_id: requestId,
+  })
+
+  revalidatePath('/admin/sessions')
+  return { success: true }
 }
 
 export async function updateCommissionPct(
