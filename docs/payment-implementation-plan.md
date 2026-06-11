@@ -197,24 +197,26 @@ preautoryzacji następuje przed matchingiem).
 
 ## Krok 5 — Webhook: `payment_intent.succeeded` → aktualizacja statusu
 
-**Status:** TODO
+**Status:** DONE
 
 ### Zadania implementacyjne
 
-- [ ] Rozbuduj endpoint `src/app/api/webhooks/stripe/route.ts` o obsługę zdarzenia `payment_intent.payment_failed` i `charge.captured`:
+- [x] Rozbuduj endpoint `src/app/api/webhooks/stripe/route.ts` o obsługę zdarzenia `payment_intent.payment_failed` i `charge.captured`:
   - `payment_intent.succeeded` (dla płatności bez preautoryzacji — fallback): `stripe_status = 'paid'`
   - `payment_intent.amount_capturable_updated` (preautoryzacja gotowa): `stripe_status = 'authorized'`
   - `charge.captured`: `stripe_status = 'captured'`, zapisz `stripe_charge_id`
   - `payment_intent.payment_failed`: `stripe_status = 'failed'`
   - `payment_intent.canceled`: `stripe_status = 'cancelled'`
-- [ ] Webhook szuka rekordu w `session_financials` po `stripe_payment_intent_id` i aktualizuje status
-- [ ] Użyj klienta Supabase z service role (admin) — webhook nie ma sesji użytkownika
+- [x] Webhook szuka rekordu w `matching_requests` po `stripe_payment_intent_id` i aktualizuje status (zgodnie z decyzją z kroku 3 — `matching_requests` jest źródłem prawdy dla statusu płatności przez cały cykl życia preautoryzacji; `session_financials` pozostaje bez logiki, poza zakresem)
+- [x] Użyj klienta Supabase z service role — nowy `src/domains/payments/service-client.ts` (analogiczny do `shared/supabase/admin.ts`, ale w domenie `payments`, zgodnie z konwencją że `admin.ts` jest zarezerwowany dla domeny `admin/`)
+- [x] Migracja `20260611000000_matching_requests_stripe_charge_id.sql` — nowa nullable kolumna `stripe_charge_id` na `matching_requests`
+- [x] Zabezpieczenie przed cofnięciem statusu przez spóźnione zdarzenie (`STATUS_RANK`) — np. spóźniony `amount_capturable_updated` po `charge.captured` nie cofa statusu z `'captured'` do `'authorized'`
 
 ### E2E testy: `e2e/payments-webhook.spec.ts` (rozszerzenie)
 
-- [ ] **Test 3:** Symulacja `payment_intent.amount_capturable_updated` przez HTTP POST z testowym payloadem → `session_financials.stripe_status` zmienia się na `'authorized'`
-- [ ] **Test 4:** Symulacja `payment_intent.payment_failed` → `stripe_status = 'failed'`
-- [ ] **Test 5:** Podwójne dostarczenie tego samego zdarzenia (idempotencja) → endpoint zwraca 200, status nie zmienia się na gorsze
+- [x] **Test 3:** Symulacja `payment_intent.amount_capturable_updated` przez HTTP POST z testowym payloadem → `matching_requests.stripe_status` zmienia się na `'authorized'`
+- [x] **Test 4:** Symulacja `payment_intent.payment_failed` → `stripe_status = 'failed'`
+- [x] **Test 5:** `charge.captured` ustawia `stripe_status = 'captured'` i `stripe_charge_id`; spóźnione zdarzenie `amount_capturable_updated` po nim nie cofa statusu (idempotencja)
 
 ---
 

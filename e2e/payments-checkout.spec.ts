@@ -75,7 +75,7 @@ test('uczeń nie może wejść na checkout cudzego zlecenia', async ({ browser }
 })
 
 test('uczeń płaci testową kartą i trafia na dashboard z potwierdzeniem', async ({ page }) => {
-  test.setTimeout(60_000)
+  test.setTimeout(90_000)
   await loginAs(page, STUDENT_EMAIL)
 
   await page.goto('/request')
@@ -93,6 +93,9 @@ test('uczeń płaci testową kartą i trafia na dashboard z potwierdzeniem', asy
   if (await cardTab.isVisible()) {
     await cardTab.click()
   }
+  // Po przełączeniu zakładki Stripe dociąga formularz karty asynchronicznie —
+  // pole numeru karty może pojawić się z opóźnieniem.
+  await stripeFrame.locator('input[name="number"]').waitFor({ state: 'visible', timeout: 15_000 })
   await stripeFrame.locator('input[name="number"]').fill('4242424242424242')
   await stripeFrame.locator('input[name="expiry"]').fill('12/34')
   await stripeFrame.locator('input[name="cvc"]').fill('123')
@@ -115,7 +118,7 @@ test('uczeń płaci testową kartą i trafia na dashboard z potwierdzeniem', asy
 })
 
 test('uczeń płaci kartą odrzuconą i widzi komunikat błędu', async ({ page }) => {
-  test.setTimeout(60_000)
+  test.setTimeout(90_000)
   await loginAs(page, STUDENT_EMAIL)
 
   await page.goto('/request')
@@ -133,6 +136,9 @@ test('uczeń płaci kartą odrzuconą i widzi komunikat błędu', async ({ page 
   if (await cardTab.isVisible()) {
     await cardTab.click()
   }
+  // Po przełączeniu zakładki Stripe dociąga formularz karty asynchronicznie —
+  // pole numeru karty może pojawić się z opóźnieniem.
+  await stripeFrame.locator('input[name="number"]').waitFor({ state: 'visible', timeout: 15_000 })
   await stripeFrame.locator('input[name="number"]').fill('4000000000009995')
   await stripeFrame.locator('input[name="expiry"]').fill('12/34')
   await stripeFrame.locator('input[name="cvc"]').fill('123')
