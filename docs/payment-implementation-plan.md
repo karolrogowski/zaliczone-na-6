@@ -332,26 +332,30 @@ preautoryzacji następuje przed matchingiem).
 
 ## Krok 10 — Zwroty (refund): akcja administracyjna
 
-**Status:** TODO
+**Status:** DONE
 
 ### Zadania implementacyjne
 
-- [ ] Stwórz server action `refundSession(sessionId, reason?)` w `src/domains/admin/actions.ts`:
-  - Wymaga roli admin
-  - Pobiera `stripe_charge_id` z `session_financials`
-  - Wywołuje `stripe.refunds.create({ charge: chargeId, reason: 'fraudulent' | 'requested_by_customer' | 'duplicate' })`
-  - Aktualizuje `stripe_status = 'refunded'` w `session_financials`
-  - Dodaje wpis do `admin_audit_log`
-- [ ] Dodaj przycisk "Zwróć płatność" w panelu admina przy szczegółach sesji (`src/app/admin/(panel)/sessions/page.tsx`)
-- [ ] Dodaj informację o zwrocie w historii sesji ucznia (uczeń widzi "Płatność zwrócona")
+- [x] Stwórz server action `refundSession(requestId, reason?)` w `src/domains/admin/actions.ts`:
+  - Wymaga roli admin (`requireAdminSession`, aal2)
+  - Pobiera `stripe_status`/`stripe_charge_id` z `matching_requests` (źródło prawdy — nie `session_financials`)
+  - Działa tylko gdy `stripe_status === 'captured'`, w przeciwnym razie zwraca błąd
+  - Wywołuje `stripe.refunds.create({ charge: chargeId, reason })`
+  - Aktualizuje `stripe_status = 'refunded'` w `matching_requests`
+  - Dodaje wpis do `admin_audit_log` (`session_payment_refunded`)
+- [x] Dodaj przycisk "Zwróć płatność" / odznakę "Zwrócono" w panelu admina (`SessionsTable`, kolumna "Płatność")
+- [x] Dodaj informację o zwrocie w historii sesji ucznia (`/history/[requestId]` — baner "Płatność za tę sesję została zwrócona.")
 
 ### E2E testy: `e2e/payments-refund.spec.ts`
 
-- [ ] **Test 1:** Admin widzi przycisk "Zwróć płatność" przy sesji z `stripe_status = 'captured'`
-- [ ] **Test 2:** Admin klika zwrot → `stripe_status = 'refunded'` w DB, wpis w `admin_audit_log`
-- [ ] **Test 3:** Próba zwrotu już zwróconej sesji → komunikat błędu, status nie zmienia się
-- [ ] **Test 4:** Uczeń w historii sesji widzi status "Zwrócono" dla zrefundowanej sesji
-- [ ] **Test 5:** Admin bez uprawnień (zwykły użytkownik) próbuje wywołać akcję refund → błąd autoryzacji
+Pełny przepływ admina (przyciski w panelu, wywołanie `refundSession`, wpis audytowy) wymaga
+zalogowanego administratora z aal2 (TOTP) — środowisko testowe nie ma skonfigurowanego konta
+admina z MFA (to samo ograniczenie co przy teście `updateCommissionPct` w `security.spec.ts`).
+Pokryto testami część dostępną przez UI zwykłego użytkownika:
+
+- [x] **Test 1:** Uczeń próbujący wejść na `/admin/sessions` (skąd dostępny jest zwrot) zostaje przekierowany na `/dashboard`
+- [x] **Test 2:** Uczeń widzi w historii sesji baner o zwrocie dla `stripe_status = 'refunded'`
+- [x] **Test 3:** Uczeń nie widzi banera o zwrocie dla sesji z `stripe_status = 'captured'`
 
 ---
 

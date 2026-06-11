@@ -1,3 +1,5 @@
+import type { StripePaymentStatus } from '@/domains/payments/types'
+
 export type RequestStatus = 'pending' | 'accepted' | 'cancelled' | 'expired' | 'completed'
 
 export type MatchingRequest = {
@@ -12,6 +14,7 @@ export type MatchingRequest = {
   expires_at: string
   created_at: string
   updated_at: string
+  stripe_status: StripePaymentStatus
 }
 
 export type SessionData = { id: string; daily_room_url: string | null; notes?: string | null }
