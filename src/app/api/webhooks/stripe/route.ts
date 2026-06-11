@@ -1,44 +1,6 @@
 import { getStripeClient } from '@/domains/payments/stripe-client'
-import { createPaymentsServiceClient } from '@/domains/payments/service-client'
-import type { StripePaymentStatus } from '@/domains/payments/types'
+import { updatePaymentStatus } from '@/domains/payments/status'
 import type Stripe from 'stripe'
-
-/**
- * Kolejność statusów płatności — wyższa wartość = dalszy etap. Używana do
- * ochrony przed nadpisaniem stanu starszym/spóźnionym zdarzeniem (np. gdy
- * payment_intent.payment_failed dotrze po charge.captured).
- */
-const STATUS_RANK: Record<StripePaymentStatus, number> = {
-  pending: 0,
-  authorized: 1,
-  paid: 1,
-  failed: 1,
-  cancelled: 1,
-  captured: 2,
-  refunded: 3,
-}
-
-async function updatePaymentStatus(
-  paymentIntentId: string,
-  newStatus: StripePaymentStatus,
-  extra: Record<string, unknown> = {}
-) {
-  const supabase = createPaymentsServiceClient()
-
-  const { data: current } = await supabase
-    .from('matching_requests')
-    .select('stripe_status')
-    .eq('stripe_payment_intent_id', paymentIntentId)
-    .maybeSingle()
-
-  if (!current) return
-  if (STATUS_RANK[newStatus] < STATUS_RANK[current.stripe_status as StripePaymentStatus]) return
-
-  await supabase
-    .from('matching_requests')
-    .update({ stripe_status: newStatus, ...extra })
-    .eq('stripe_payment_intent_id', paymentIntentId)
-}
 
 /**
  * Webhook Stripe — odbiera asynchroniczne zdarzenia płatności.

@@ -8,6 +8,7 @@ import { validateSubmitRequest, validateRatingComment } from './validation'
 import { LEVEL_OPTIONS, resolveOption } from './options'
 import type { AcceptRequestResult, RatingFormState, SubmitRequestFormState } from './types'
 import { createVideoRoom, deleteVideoRoom } from '@/domains/sessions/video-provider'
+import { cancelPaymentHold } from '@/domains/payments/actions'
 
 export async function submitMatchingRequest(
   _state: SubmitRequestFormState,
@@ -46,12 +47,18 @@ export async function cancelMatchingRequest(requestId: string): Promise<void> {
 
   const supabase = await createClient()
 
-  await supabase
+  const { data } = await supabase
     .from('matching_requests')
     .update({ status: 'cancelled' })
     .eq('id', requestId)
     .eq('student_id', user.id)
     .eq('status', 'pending')
+    .select('id')
+    .maybeSingle()
+
+  if (data) {
+    void cancelPaymentHold(requestId)
+  }
 
   revalidatePath('/dashboard')
 }

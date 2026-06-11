@@ -222,25 +222,29 @@ preautoryzacji następuje przed matchingiem).
 
 ## Krok 6 — Preautoryzacja: capture po sesji, cancel przy braku korepetytora
 
-**Status:** TODO
+**Status:** DONE
 
 ### Zadania implementacyjne
 
-- [ ] Stwórz server action `capturePayment(sessionId)`:
-  - Pobiera `stripe_payment_intent_id` z `session_financials`
+- [x] Stwórz wspólny moduł `src/domains/payments/status.ts` z `STATUS_RANK` i `updatePaymentStatus()` (wydzielone z webhooka, używane też przez capture/cancel)
+- [x] Stwórz server action `capturePayment(requestId)` w `src/domains/payments/actions.ts`:
+  - Pobiera `stripe_payment_intent_id` i `stripe_status` z `matching_requests`
+  - Idempotentne — działa tylko gdy status to `pending`/`authorized`
   - Wywołuje `stripe.paymentIntents.capture(paymentIntentId)`
-  - Aktualizuje `stripe_status = 'captured'`
-- [ ] Stwórz server action `cancelPaymentHold(requestId)`:
+  - Aktualizuje `stripe_status = 'captured'` i `stripe_charge_id`
+- [x] Stwórz server action `cancelPaymentHold(requestId)`:
   - Wywołuje `stripe.paymentIntents.cancel(paymentIntentId)`
   - Aktualizuje `stripe_status = 'cancelled'`
-- [ ] Podepnij `capturePayment` do istniejącej akcji kończącej sesję (`src/domains/sessions/actions.ts` — funkcja która wywołuje się gdy korepetytor kończy sesję)
-- [ ] Podepnij `cancelPaymentHold` do akcji wygasania zlecenia (gdy nikt nie zaakceptował w czasie X)
+- [x] Stwórz server action `cancelExpiredPaymentHolds()` — anuluje preautoryzacje dla zleceń `pending` z minionym `expires_at`
+- [x] Podepnij `capturePayment` do `completeSession` (`src/domains/sessions/actions.ts`)
+- [x] Podepnij `cancelPaymentHold` do `cancelMatchingRequest` (`src/domains/matching/actions.ts`)
+- [x] Podepnij `cancelExpiredPaymentHolds` jako lazy-expiry housekeeping w `getTutorPendingRequests` (`src/domains/matching/queries.ts`)
 
 ### E2E testy: `e2e/payments-capture.spec.ts`
 
-- [ ] **Test 1:** Pełny przepływ: uczeń płaci (testowa karta) → korepetytor akceptuje → sesja → korepetytor kończy → `stripe_status = 'captured'` w DB
-- [ ] **Test 2:** Uczeń płaci → nikt nie akceptuje zlecenia w ciągu X minut → hold anulowany → `stripe_status = 'cancelled'`
-- [ ] **Test 3:** Próba double-capture (wywołanie akcji dwa razy) → druga próba zwraca błąd, status pozostaje `'captured'`
+- [x] **Test 1:** Uczeń anuluje zlecenie z aktywną preautoryzacją → `cancelPaymentHold` → `stripe_status = 'cancelled'`, PaymentIntent `canceled` w Stripe
+- [x] **Test 2:** Korepetytor kończy sesję z preautoryzowaną płatnością → `capturePayment` → zlecenie `completed`, `stripe_status = 'captured'`, `stripe_charge_id` ustawiony, PaymentIntent `succeeded` w Stripe
+- [x] **Test 3:** Zlecenie `pending` z minionym `expires_at` → wizyta korepetytora na dashboardzie uruchamia `cancelExpiredPaymentHolds` → zlecenie `expired`, `stripe_status = 'cancelled'`, PaymentIntent `canceled` w Stripe
 
 ---
 
