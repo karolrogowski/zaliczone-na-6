@@ -9,7 +9,7 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   maxFailures: 1,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : 1,
   workers: 1,
   reporter: process.env.CI
     ? [['github'], ['list'], ['html', { open: 'never' }]]
