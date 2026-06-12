@@ -83,6 +83,9 @@ export async function acceptMatchingRequest(
     .update({ status: 'accepted', tutor_id: user.id })
     .eq('id', requestId)
     .eq('status', 'pending')
+    // Ochrona przed wyścigiem: akceptacja tylko przy zablokowanych środkach,
+    // nawet gdyby zlecenie trafiło do feedu inną drogą
+    .eq('stripe_status', 'authorized')
     .is('tutor_id', null)
     .select('student_id')
     .maybeSingle()

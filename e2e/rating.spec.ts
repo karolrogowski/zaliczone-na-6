@@ -497,6 +497,8 @@ test('korepetytor nie widzi zleceń od ucznia, który oznaczył go jako "avoid"'
     student_id: ids.studentId,
     subject_id: 'matematyka',
     status: 'pending',
+
+    stripe_status: 'authorized',
     expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
   })
 
@@ -601,6 +603,8 @@ test('prywatna notatka korepetytora widoczna jest na karcie zlecenia przy kolejn
     student_id: ids.studentId,
     subject_id: 'matematyka',
     status: 'pending',
+
+    stripe_status: 'authorized',
     expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
   })
   await db.from('tutor_profiles').update({ is_available: true }).eq('id', ids.tutor1Id)

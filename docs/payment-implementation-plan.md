@@ -48,9 +48,9 @@ Cel: pokazać działający przepływ pieniędzy w trybie testowym Stripe. Kroki 
 
 ### Biznesowe
 
-- [ ] Ile czasu ma uczeń na zapłatę po złożeniu zlecenia zanim hold wygaśnie? (Stripe domyślnie 7 dni, ale my pewnie chcemy znacznie mniej — np. 15 minut)
-- [ ] Co się dzieje gdy uczeń złoży zlecenie ale nie przejdzie przez formularz płatności? Zlecenie widoczne dla korepetytorów czy nie?
-- [ ] Czy korepetytor powinien widzieć, że płatność jest potwierdzona zanim zaakceptuje zlecenie?
+- [ ] Ile czasu ma uczeń na zapłatę po złożeniu zlecenia zanim hold wygaśnie? (Stripe domyślnie 7 dni, ale my pewnie chcemy znacznie mniej — np. 15 minut; obecnie obowiązuje standardowy `expires_at` zlecenia)
+- [x] Co się dzieje gdy uczeń złoży zlecenie ale nie przejdzie przez formularz płatności? **Rozstrzygnięte (2026-06-12):** zlecenie jest NIEWIDOCZNE dla korepetytorów dopóki preautoryzacja nie zostanie potwierdzona (`stripe_status = 'authorized'`); feed, polling i akceptacja filtrują po tym statusie. Uczeń widzi na dashboardzie kartę "Dokończ płatność" z powrotem do `/checkout/[requestId]`. Fallback `syncPaymentStatusFromStripe` (lazy, przy wejściu na dashboard) dociąga status ze Stripe przy opóźnionym webhooku.
+- [x] Czy korepetytor powinien widzieć, że płatność jest potwierdzona zanim zaakceptuje zlecenie? **Tak — implicite:** w feedzie pojawiają się wyłącznie zlecenia z zablokowanymi środkami.
 - [ ] Prowizja 30% — czy zmienia się w przyszłości (np. niższa dla korepetytorów z wysoką oceną)?
 
 ### Produktowe

@@ -117,6 +117,37 @@ export function StudentRequestStatus({
     )
   }
 
+  // Preautoryzacja niepotwierdzona — zlecenie nie jest jeszcze widoczne dla
+  // korepetytorów; uczeń musi dokończyć płatność (albo formularz porzucony,
+  // albo webhook/synchronizacja jeszcze nie potwierdziły blokady środków)
+  if (request.status === 'pending' && request.stripe_status === 'pending' && !isExpired) {
+    return (
+      <div className="bg-[#FBF3DC] border border-[#ecd9a8] rounded-[12px] p-5">
+        <h2 className="text-[15px] font-medium text-[#6b5418] mb-1">Dokończ płatność</h2>
+        <p className="text-[13px] text-[#6b5418]/80 mb-4">
+          Zlecenie zostanie pokazane korepetytorom dopiero po zablokowaniu środków
+          na Twojej karcie. Pieniądze pobierzemy dopiero po zakończonej sesji.
+        </p>
+        <div className="flex items-center gap-4">
+          <a
+            href={`/checkout/${request.id}`}
+            className="flex items-center gap-2 px-[22px] py-[11px] bg-[#185FA5] text-white text-[13px] font-medium rounded-[9px] hover:bg-[#0C447C] transition-colors"
+            style={{ boxShadow: '0 1px 0 rgba(12,68,124,0.3)' }}
+          >
+            Przejdź do płatności
+          </a>
+          <button
+            onClick={handleCancel}
+            disabled={isPending}
+            className="cursor-pointer text-[13px] text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors"
+          >
+            {isPending ? 'Anulowanie...' : 'Anuluj zlecenie'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (isExpired) {
     return (
       <div className="bg-white border border-[#e8e6de] rounded-[12px] p-5">

@@ -1,6 +1,6 @@
 import { cache } from 'react'
 import { createClient } from '@/shared/supabase/server'
-import { cancelExpiredPaymentHolds } from '@/domains/payments/actions'
+import { cancelExpiredPaymentHolds, syncPaymentStatusFromStripe } from '@/domains/payments/actions'
 import type { MatchingRequestWithSubject, Subject, StudentStats, TutorProfileDetails, TutorPublicProfile } from './types'
 
 export const getSubjects = cache(async (): Promise<Subject[]> => {
@@ -16,15 +16,28 @@ export const getSubjects = cache(async (): Promise<Subject[]> => {
 export const getStudentActiveRequest = cache(
   async (): Promise<MatchingRequestWithSubject | null> => {
     const supabase = await createClient()
-    const { data } = await supabase
-      .from('matching_requests')
-      .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name), session:sessions(id, daily_room_url)')
-      .neq('status', 'cancelled')
-      .neq('status', 'expired')
-      .neq('status', 'completed')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    const select = () =>
+      supabase
+        .from('matching_requests')
+        .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name), session:sessions(id, daily_room_url)')
+        .neq('status', 'cancelled')
+        .neq('status', 'expired')
+        .neq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+    let { data } = await select()
+
+    // Lazy fallback na opóźniony webhook: po powrocie ucznia z checkoutu
+    // dociągnij status PaymentIntent ze Stripe, żeby zlecenie nie wisiało
+    // jako "oczekuje na płatność" mimo udanej preautoryzacji
+    if (data?.status === 'pending' && data.stripe_status === 'pending' && data.stripe_payment_intent_id) {
+      await syncPaymentStatusFromStripe(data.id)
+      const { data: refreshed } = await select()
+      data = refreshed
+    }
+
     return data as MatchingRequestWithSubject | null
   }
 )
@@ -114,6 +127,9 @@ export const getTutorPendingRequests = cache(
       .from('matching_requests')
       .select('*, subjects(label), tutor_profile:profiles!tutor_id(full_name)')
       .eq('status', 'pending')
+      // Zlecenie widoczne dopiero po potwierdzonej blokadzie środków — bez
+      // tego sesja mogłaby się odbyć bez zabezpieczonej płatności
+      .eq('stripe_status', 'authorized')
       .gt('expires_at', now)
 
     if (avoidedIds.length > 0) {

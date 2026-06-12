@@ -15,6 +15,7 @@ export type MatchingRequest = {
   created_at: string
   updated_at: string
   stripe_status: StripePaymentStatus
+  stripe_payment_intent_id: string | null
 }
 
 export type SessionData = { id: string; daily_room_url: string | null; notes?: string | null }

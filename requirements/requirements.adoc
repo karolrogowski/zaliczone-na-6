@@ -61,6 +61,8 @@ sekcja "Konto bankowe" w ustawieniach, strony powrotu/odświeżenia onboardingu,
 `tutor_profiles.stripe_onboarding_done`, ostrzeżenie na dashboardzie korepetytora bez
 podłączonego konta. Korepetytor bez onboardingu może przyjmować zlecenia — jego udział
 będzie odkładany do czasu podłączenia konta (krok 8).
+Domknięto też lukę "darmowej sesji": zlecenie jest widoczne dla korepetytorów dopiero po
+potwierdzonej preautoryzacji; nieopłacone zlecenie pokazuje uczniowi kartę "Dokończ płatność".
 Krok 8 (split payment) również DONE: po capture platforma wylicza podział wg
 `platform_config.commission_pct` (30%), wysyła transfer udziału korepetytora na jego konto
 Connect (`source_transaction` = charge sesji) i zapisuje pełną ewidencję do

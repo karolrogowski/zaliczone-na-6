@@ -53,6 +53,8 @@ test('uczeń widzi ekran oczekiwania i odliczanie gdy brak korepetytora', async 
     student_id: studentId,
     subject_id: 'matematyka',
     status: 'pending',
+
+    stripe_status: 'authorized',
   })
 
   await loginAs(page, STUDENT_EMAIL)
@@ -67,6 +69,8 @@ test('uczeń widzi komunikat o wygaśnięciu gdy czas minął', async ({ page })
     student_id: studentId,
     subject_id: 'matematyka',
     status: 'pending',
+
+    stripe_status: 'authorized',
     expires_at: new Date(Date.now() - 60_000).toISOString(),
   })
 
@@ -99,6 +103,8 @@ test('korepetytor widzi zlecenie ucznia w czasie rzeczywistym', async ({ browser
     student_id: studentId,
     subject_id: 'matematyka',
     status: 'pending',
+
+    stripe_status: 'authorized',
   })
 
   await expect(tutorPage.getByText('Akceptuj zlecenie')).toBeVisible({ timeout: 10_000 })
@@ -125,6 +131,8 @@ test('tylko jeden korepetytor wygrywa wyścig o zlecenie', async ({ browser }) =
     student_id: studentId,
     subject_id: 'matematyka',
     status: 'pending',
+
+    stripe_status: 'authorized',
   })
 
   await expect(tutor1Page.getByText('Akceptuj zlecenie')).toBeVisible({ timeout: 10_000 })
@@ -160,6 +168,8 @@ test('uczeń anuluje zlecenie i wraca do dashboardu bez aktywnego zlecenia', asy
     student_id: studentId,
     subject_id: 'matematyka',
     status: 'pending',
+
+    stripe_status: 'authorized',
   })
 
   await loginAs(page, STUDENT_EMAIL)
@@ -184,6 +194,8 @@ test('uczeń widzi w czasie rzeczywistym że korepetytor zaakceptował', async (
     student_id: studentId,
     subject_id: 'matematyka',
     status: 'pending',
+
+    stripe_status: 'authorized',
   })
 
   await loginAs(studentPage, STUDENT_EMAIL)
@@ -270,6 +282,8 @@ test('uczeń z aktywnym zleceniem widzi jego status zamiast przycisku nowego zle
     student_id: studentId,
     subject_id: 'matematyka',
     status: 'pending',
+
+    stripe_status: 'authorized',
   })
 
   await loginAs(page, STUDENT_EMAIL)

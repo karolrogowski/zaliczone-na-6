@@ -212,6 +212,8 @@ test('zlecenie wygasające w czasie rzeczywistym zmienia UI na "Zlecenie wygasł
       student_id: ids.studentId,
       subject_id: 'matematyka',
       status: 'pending',
+
+      stripe_status: 'authorized',
       expires_at: new Date(Date.now() + 8_000).toISOString(),
     })
 

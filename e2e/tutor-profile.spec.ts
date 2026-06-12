@@ -260,6 +260,8 @@ test('korepetytor widzi przycisk "Akceptuj zlecenie" ale nie "Anuluj zlecenie" d
     student_id: ids.studentId,
     subject_id: 'matematyka',
     status: 'pending',
+
+    stripe_status: 'authorized',
   })
   await adminClient()
     .from('tutor_profiles')
