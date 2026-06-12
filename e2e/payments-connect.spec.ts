@@ -14,7 +14,12 @@
 import { test, expect } from '@playwright/test'
 import Stripe from 'stripe'
 import { STUDENT_EMAIL, TUTOR2_EMAIL, adminClient } from './global-setup'
-import { loginAs, getTestUserIds } from './helpers'
+import {
+  loginAs,
+  getTestUserIds,
+  isStripeConnectEnabled,
+  createActivatedConnectAccount,
+} from './helpers'
 
 function getStripe() {
   return new Stripe(process.env.STRIPE_SECRET_KEY!)
@@ -36,47 +41,6 @@ async function resetTutorStripeFields(tutorId: string) {
     .from('tutor_profiles')
     .update({ stripe_account_id: null, stripe_onboarding_done: false })
     .eq('id', tutorId)
-}
-
-/**
- * Konto Connect aktywowane w całości przez API (typ custom) — Express nie da
- * się ukończyć bez hostowanego formularza Stripe, a do weryfikacji transferów
- * (krok 8) potrzebne jest konto z aktywną capability `transfers`.
- */
-async function createActivatedConnectAccount(stripe: Stripe): Promise<string> {
-  const account = await stripe.accounts.create({
-    type: 'custom',
-    country: 'PL',
-    business_type: 'individual',
-    individual: {
-      first_name: 'Jan',
-      last_name: 'Testowy',
-      email: 'jan.testowy@test.zaliczone.local',
-      dob: { day: 1, month: 1, year: 1990 },
-      address: { line1: 'Testowa 1', city: 'Warszawa', postal_code: '00-001', country: 'PL' },
-      phone: '+48600000000',
-    },
-    business_profile: { mcc: '8299', product_description: 'Korepetycje online' },
-    capabilities: { transfers: { requested: true } },
-    tos_acceptance: { date: Math.floor(Date.now() / 1000), ip: '127.0.0.1' },
-    external_account: {
-      object: 'bank_account',
-      country: 'PL',
-      currency: 'pln',
-      account_number: 'PL61109010140000071219812874',
-    },
-    metadata: { purpose: 'e2e-split' },
-  })
-
-  // Poczekaj aż Stripe aktywuje capability transfers (test mode: sekundy)
-  for (let i = 0; i < 20; i++) {
-    const refreshed = await stripe.accounts.retrieve(account.id)
-    if (refreshed.capabilities?.transfers === 'active' && refreshed.payouts_enabled) {
-      return account.id
-    }
-    await new Promise((r) => setTimeout(r, 1000))
-  }
-  throw new Error(`Konto Connect ${account.id} nie aktywowało capability transfers w czasie`)
 }
 
 /** Tworzy PaymentIntent z preautoryzacją (status 'requires_capture'). */
@@ -171,19 +135,9 @@ test.beforeAll(async () => {
     connectEnabled = false
     return
   }
-  // Sonda: tworzenie konta Express nie powiedzie się, jeśli platforma nie ma
+  // Sonda: tworzenie kont Connect nie powiedzie się, jeśli platforma nie ma
   // aktywowanego Connect w test mode — wtedy pomijamy cały plik.
-  try {
-    const probe = await getStripe().accounts.create({
-      type: 'express',
-      country: 'PL',
-      capabilities: { transfers: { requested: true } },
-      metadata: { purpose: 'e2e-connect-probe' },
-    })
-    await getStripe().accounts.del(probe.id)
-  } catch {
-    connectEnabled = false
-  }
+  connectEnabled = await isStripeConnectEnabled(getStripe())
 })
 
 test.beforeEach(async () => {

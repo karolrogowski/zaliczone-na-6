@@ -24,7 +24,7 @@ Priorytety: `P0` blokuje launch · `P1` ważne · `P2` nice to have · `P3` świ
 | Weryfikacja korepetytora (skan legitymacji) | 1 | P1 | AFTER_MVP
 | Algorytm VIP (opóźnione powiadomienia)     | 3 | P2 | AFTER_MVP
 | Mechanizm przedłużania sesji (upselling)   | 2 | P2 | AFTER_MVP
-| Wirtualny portfel i wypłaty (Stripe Connect) | 3 | P2 | AFTER_MVP
+| Wirtualny portfel i wypłaty (Stripe Connect) | 3 | P2 | DONE
 | Wirtualna tablica (whiteboard)             | 2 | P2 | AFTER_MVP
 | Aplikacja desktopowa dla korepetytorów     | 2 | P3 | SKIP
 |===
@@ -161,6 +161,13 @@ AFTER_MVP (z ADR-007):
 
 Automatyzacja obiecana w pitchu. Skrypt opóźniający wysyłanie powiadomień o nowych zleceniach do korepetytorów z oceną poniżej 4.5. Ulubieni dostają informację od razu. "Elita" (4.5+) dostaje powiadomienie np. o 10 sekund później. Inni 30 sekund później. To tworzy asymetrię informacji promującą najwyższą jakość na platformie.
 
-=== Wirtualny portfel i moduł wypłat (Payouts) — AFTER_MVP / P2
+=== Wirtualny portfel i moduł wypłat (Payouts) — DONE / P2
 
 Dashboard dla korepetytora, pokazujący historię odbytych sesji i zgromadzone środki po odliczeniu 30% prowizji platformy. Możliwość zlecenia przelewu na konto bankowe. Operacyjnie można to na start zautomatyzować przez funkcję Stripe Connect (dzielenie płatności od razu na subkonta).
+
+Stan na 2026-06-12 (kroki 7–9 planu płatności): zrealizowane przez Stripe Connect Express —
+portfel prowadzi Stripe (zgodnie z ADR-008, bez licencji KNF po stronie platformy). Sekcja
+"Zarobki" w ustawieniach korepetytora pokazuje dostępne i oczekujące saldo oraz historię
+zarobków z sesji (po odliczeniu prowizji z `platform_config.commission_pct`); przycisk
+"Wypłać na konto bankowe" zleca przelew (ręczny harmonogram wypłat). Udziały z sesji
+zakończonych przed podłączeniem konta bankowego są odkładane i wysyłane po onboardingu.

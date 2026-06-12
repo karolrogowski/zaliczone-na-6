@@ -10,6 +10,7 @@ import { getSessionPriceGrosz } from './queries'
 import type {
   ConnectOnboardingState,
   CreateCheckoutSessionResult,
+  RequestPayoutResult,
   StartConnectOnboardingResult,
   StripePaymentStatus,
 } from './types'
@@ -358,6 +359,9 @@ export async function startConnectOnboarding(): Promise<StartConnectOnboardingRe
         country: 'PL',
         email: user.email ?? undefined,
         capabilities: { transfers: { requested: true } },
+        // Wypłaty ręczne — korepetytor sam zleca przelew z salda (krok 9);
+        // domyślny automatyczny harmonogram blokowałby payouts.create
+        settings: { payouts: { schedule: { interval: 'manual' } } },
         metadata: { tutor_id: user.id },
       })
       accountId = account.id
@@ -415,6 +419,42 @@ export async function syncConnectOnboardingStatus(): Promise<ConnectOnboardingSt
   } catch (err) {
     console.error('[payments] Nie udało się pobrać statusu konta Connect:', err)
     return { connected: true, onboardingDone: false }
+  }
+}
+
+/**
+ * Wypłata całego dostępnego salda na konto bankowe korepetytora.
+ * Konta Connect mają ręczny harmonogram wypłat — korepetytor sam decyduje
+ * kiedy przelać zgromadzone środki (krok 9).
+ */
+export async function requestPayout(): Promise<RequestPayoutResult> {
+  const user = await getCurrentUserOrNull()
+  if (!user) return { success: false, message: 'Nie jesteś zalogowany.' }
+
+  const { accountId, isTutor } = await getOwnConnectAccountId(user.id)
+  if (!isTutor || !accountId) return { success: false, message: 'Brak połączonego konta Stripe.' }
+
+  const stripe = getStripeClient()
+
+  try {
+    const balance = await stripe.balance.retrieve({}, { stripeAccount: accountId })
+    const availableGrosz = balance.available
+      .filter((p) => p.currency === 'pln')
+      .reduce((sum, p) => sum + p.amount, 0)
+
+    if (availableGrosz <= 0) {
+      return { success: false, message: 'Brak dostępnych środków do wypłaty.' }
+    }
+
+    await stripe.payouts.create(
+      { amount: availableGrosz, currency: 'pln' },
+      { stripeAccount: accountId }
+    )
+
+    return { success: true, amountGrosz: availableGrosz }
+  } catch (err) {
+    console.error('[payments] Nie udało się zlecić wypłaty:', err)
+    return { success: false, message: 'Nie udało się zlecić wypłaty. Spróbuj ponownie.' }
   }
 }
 

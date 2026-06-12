@@ -25,6 +25,24 @@ export type TutorStripeState = {
   onboardingDone: boolean
 }
 
+/** Saldo konta Connect korepetytora (w groszach). */
+export type TutorBalance = {
+  availableGrosz: number
+  pendingGrosz: number
+}
+
+export type RequestPayoutResult =
+  | { success: true; amountGrosz: number }
+  | { success: false; message: string }
+
+/** Wiersz historii zarobków korepetytora (z session_financials). */
+export type TutorEarningRow = {
+  id: string
+  tutor_earning_grosz: number
+  transfer_pending: boolean
+  created_at: string
+}
+
 export type SessionFinancials = {
   id: string
   session_id: string

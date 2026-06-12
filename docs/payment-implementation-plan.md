@@ -72,7 +72,7 @@ Cel: pokazać działający przepływ pieniędzy w trybie testowym Stripe. Kroki 
 | 6 | Preautoryzacja: hold → capture po sesji / cancel przy braku korepetytora | TODO | `e2e/payments-capture.spec.ts` |
 | 7 | Onboarding korepetytora — Stripe Connect Express | DONE | `e2e/payments-connect.spec.ts` |
 | 8 | Split payment — transfer 70% do korepetytora po sesji | DONE | `e2e/payments-connect.spec.ts` |
-| 9 | Saldo i wypłata korepetytora | TODO | `e2e/payments-payout.spec.ts` |
+| 9 | Saldo i wypłata korepetytora | DONE | `e2e/payments-payout.spec.ts` |
 | 10 | Zwroty (refund) — akcja adminów | TODO | `e2e/payments-refund.spec.ts` |
 
 ---
@@ -309,30 +309,25 @@ Konto Connect dla weryfikacji transferów tworzone jako `type: 'custom'` aktywow
 
 ## Krok 9 — Saldo i wypłata korepetytora
 
-**Status:** TODO
+**Status:** DONE
 
 ### Zadania implementacyjne
 
-- [ ] Stwórz server action `getTutorBalance()`:
-  - Pobiera `stripe_account_id` z profilu
-  - Wywołuje `stripe.balance.retrieve({ stripeAccount: accountId })`
-  - Zwraca dostępne saldo w groszach + oczekujące
-- [ ] Stwórz server action `requestPayout()`:
-  - Wywołuje `stripe.payouts.create({ currency: 'pln', method: 'standard' }, { stripeAccount: accountId })`
-  - Zwraca status wypłaty
-- [ ] Dodaj sekcję "Zarobki" w ustawieniach korepetytora:
-  - Dostępne saldo (przeliczone na zł)
-  - Oczekujące (jeszcze nie rozliczone przez Stripe)
-  - Przycisk "Wypłać na konto bankowe" (aktywny gdy saldo > 0)
-  - Historia ostatnich sesji z kwotami (z `session_financials`)
+- [x] Query `getTutorBalance()` (`src/domains/payments/queries.ts`):
+  - `stripe.balance.retrieve({}, { stripeAccount })` — dostępne + oczekujące saldo PLN w groszach; `null` bez ukończonego onboardingu
+- [x] Query `getTutorEarningsHistory()` — historia zarobków z `session_financials` (RLS: korepetytor czyta wiersze swoich sesji), z odznaką "oczekuje na konto bankowe" dla `transfer_pending`
+- [x] Server action `requestPayout()` — wypłaca całe dostępne saldo PLN (`stripe.payouts.create(..., { stripeAccount })`); błąd przy saldzie 0
+- [x] Konta Connect tworzone z **ręcznym harmonogramem wypłat** (`settings.payouts.schedule.interval = 'manual'`) — domyślny automatyczny harmonogram Express blokowałby ręczne `payouts.create`
+- [x] Sekcja "Zarobki" w ustawieniach korepetytora (`EarningsSection`, widoczna po onboardingu): dostępne / oczekujące saldo, przycisk "Wypłać na konto bankowe" (disabled przy 0), historia ostatnich sesji
 
 ### E2E testy: `e2e/payments-payout.spec.ts`
 
-- [ ] **Test 1:** Korepetytor z `stripe_onboarding_done = true` widzi sekcję "Zarobki" w ustawieniach
-- [ ] **Test 2:** Po zakończonej sesji (krok 8) saldo korepetytora > 0
-- [ ] **Test 3:** Kliknięcie "Wypłać" z dostępnym saldem → komunikat sukcesu, Stripe tworzy payout w test mode
-- [ ] **Test 4:** Kliknięcie "Wypłać" przy zerowym saldzie → przycisk nieaktywny lub komunikat "brak środków"
-- [ ] **Test 5:** Korepetytor bez zakończonego onboardingu nie widzi sekcji salda
+Saldo konta Connect zasilane transferem przez Stripe API (platforma finansowana kartą `pm_card_bypassPending`). Gating na aktywny Connect jak w `payments-connect.spec.ts`.
+
+- [x] **Test 1:** Korepetytor z `stripe_onboarding_done = true` widzi sekcję "Zarobki" z saldem i przyciskiem wypłaty
+- [x] **Test 2:** Po transferze saldo dostępne = 70,00 zł; kliknięcie "Wypłać" → komunikat sukcesu, payout 7000 gr widoczny w Stripe API
+- [x] **Test 3:** Przy zerowym saldzie przycisk wypłaty nieaktywny
+- [x] **Test 4:** Korepetytor bez onboardingu nie widzi sekcji "Zarobki"
 
 ---
 

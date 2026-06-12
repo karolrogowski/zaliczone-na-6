@@ -1,5 +1,68 @@
 import type { Page } from '@playwright/test'
+import type Stripe from 'stripe'
 import { adminClient, MAILPIT_URL, TEST_PASSWORD } from './global-setup'
+
+/**
+ * Sonda: czy platformowe konto Stripe (test mode) ma aktywowany Connect.
+ * Tworzenie connected accounts wymaga jednorazowej aktywacji w dashboardzie.
+ */
+export async function isStripeConnectEnabled(stripe: Stripe): Promise<boolean> {
+  try {
+    const probe = await stripe.accounts.create({
+      type: 'express',
+      country: 'PL',
+      capabilities: { transfers: { requested: true } },
+      metadata: { purpose: 'e2e-connect-probe' },
+    })
+    await stripe.accounts.del(probe.id)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Konto Connect aktywowane w całości przez API (typ custom) — Express nie da
+ * się ukończyć bez hostowanego formularza Stripe, a testy transferów/wypłat
+ * potrzebują konta z aktywną capability `transfers`. Harmonogram wypłat
+ * ręczny — jak w kontach Express tworzonych przez startConnectOnboarding.
+ */
+export async function createActivatedConnectAccount(stripe: Stripe): Promise<string> {
+  const account = await stripe.accounts.create({
+    type: 'custom',
+    country: 'PL',
+    business_type: 'individual',
+    individual: {
+      first_name: 'Jan',
+      last_name: 'Testowy',
+      email: 'jan.testowy@test.zaliczone.local',
+      dob: { day: 1, month: 1, year: 1990 },
+      address: { line1: 'Testowa 1', city: 'Warszawa', postal_code: '00-001', country: 'PL' },
+      phone: '+48600000000',
+    },
+    business_profile: { mcc: '8299', product_description: 'Korepetycje online' },
+    capabilities: { transfers: { requested: true } },
+    tos_acceptance: { date: Math.floor(Date.now() / 1000), ip: '127.0.0.1' },
+    external_account: {
+      object: 'bank_account',
+      country: 'PL',
+      currency: 'pln',
+      account_number: 'PL61109010140000071219812874',
+    },
+    settings: { payouts: { schedule: { interval: 'manual' } } },
+    metadata: { purpose: 'e2e' },
+  })
+
+  // Poczekaj aż Stripe aktywuje capability transfers (test mode: sekundy)
+  for (let i = 0; i < 20; i++) {
+    const refreshed = await stripe.accounts.retrieve(account.id)
+    if (refreshed.capabilities?.transfers === 'active' && refreshed.payouts_enabled) {
+      return account.id
+    }
+    await new Promise((r) => setTimeout(r, 1000))
+  }
+  throw new Error(`Konto Connect ${account.id} nie aktywowało capability transfers w czasie`)
+}
 
 export async function loginAs(page: Page, email: string) {
   await page.goto('/login')
