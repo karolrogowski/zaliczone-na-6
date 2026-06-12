@@ -90,8 +90,15 @@ Jeśli widzisz taką zmianę — zaproponuj rozbicie na osobne PR-y PRZED implem
 ## Co jeszcze nie jest zaimplementowane (MVP)
 *(brak — wszystkie funkcje MVP zostały zaimplementowane)*
 
+## Płatności (Stripe) — zaimplementowane
+Pełny przepływ pieniędzy (kroki 1–10 z `docs/payment-implementation-plan.md`, ADR-008):
+preautoryzacja przy złożeniu zlecenia → capture po sesji → podział 70/30 (prowizja z
+`platform_config.commission_pct`) → transfer na konto Stripe Connect korepetytora →
+saldo i ręczna wypłata w Ustawieniach ("Zarobki"). Zwroty admina cofają też transfer.
+Ewidencja w `session_financials`. Wymaga aktywowanego Stripe Connect na koncie platformy;
+testy E2E Connect same się pomijają, gdy Connect nieaktywny.
+
 ## Poza zakresem MVP (AFTER_MVP)
-- Płatności (Stripe) — tabela `session_financials` istnieje, ale logika płatności nie.
 - Powiadomienia email — Supabase email działa dla auth, brak transakcyjnych emaili dla zdarzeń biznesowych.
 - VIP tier — algorytm opóźniania powiadomień wg oceny korepetytora.
-- Logowanie Google/Apple, weryfikacja korepetytora, wirtualna tablica, mechanizm przedłużania sesji, wirtualny portfel i wypłaty.
+- Logowanie Google/Apple, weryfikacja korepetytora, wirtualna tablica, mechanizm przedłużania sesji.
