@@ -71,7 +71,7 @@ Cel: pokazać działający przepływ pieniędzy w trybie testowym Stripe. Kroki 
 | 5 | Webhook: `payment_intent.succeeded` → aktualizacja statusu | TODO | `e2e/payments-webhook.spec.ts` |
 | 6 | Preautoryzacja: hold → capture po sesji / cancel przy braku korepetytora | TODO | `e2e/payments-capture.spec.ts` |
 | 7 | Onboarding korepetytora — Stripe Connect Express | DONE | `e2e/payments-connect.spec.ts` |
-| 8 | Split payment — transfer 70% do korepetytora po sesji | TODO | `e2e/payments-connect.spec.ts` |
+| 8 | Split payment — transfer 70% do korepetytora po sesji | DONE | `e2e/payments-connect.spec.ts` |
 | 9 | Saldo i wypłata korepetytora | TODO | `e2e/payments-payout.spec.ts` |
 | 10 | Zwroty (refund) — akcja adminów | TODO | `e2e/payments-refund.spec.ts` |
 
@@ -285,24 +285,25 @@ Wymaga aktywowanego Stripe Connect na platformowym koncie testowym (jednorazowo 
 
 ## Krok 8 — Split payment: transfer 70% do korepetytora po sesji
 
-**Status:** TODO
+**Status:** DONE
 
 ### Zadania implementacyjne
 
-- [ ] Rozbuduj `capturePayment(sessionId)` z kroku 6:
-  - Po udanym capture: pobierz `stripe_account_id` korepetytora z `profiles`
-  - Stwórz transfer: `stripe.transfers.create({ amount: tutor_earning_grosz, currency: 'pln', destination: stripe_account_id })`
-  - Zapisz `stripe_transfer_id` w `session_financials`
-- [ ] Obsłuż przypadek gdy korepetytor nie ma jeszcze konta Stripe (nie zrobił onboardingu):
-  - Transfer odłożony — dodaj flagę `transfer_pending = true` w `session_financials`
-  - Po zakończeniu onboardingu przez korepetytora: wyślij zaległe transfery
-- [ ] Dodaj RLS: korepetytor może czytać swój `stripe_transfer_id` z `session_financials`
+- [x] Migracja `20260612000001_split_payment_fields.sql` — `session_financials.transfer_pending` (expand) + `commission_pct = 30` (decyzja ADR-008; wcześniejsza wartość 20 była nieużywanym placeholderem)
+- [x] Rozbudowane `capturePayment(requestId)` z kroku 6 (`recordFinancialsAndTransfer`):
+  - Po udanym capture: prowizja czytana z `platform_config.commission_pct` (admin może ją zmieniać w panelu), podział `floor(kwota * (100 - pct) / 100)`
+  - Transfer: `stripe.transfers.create({ amount, currency: 'pln', destination, source_transaction: chargeId })` — `source_transaction` wiąże transfer z konkretną płatnością
+  - Wiersz `session_financials` zapisywany przy każdym capture (student_cost / tutor_earning / commission / stripe_*); idempotentnie po `unique(session_id)`
+- [x] Korepetytor bez ukończonego onboardingu: `transfer_pending = true`; `flushPendingTransfers()` wysyła zaległe transfery po powrocie z onboardingu (`syncConnectOnboardingStatus`)
+- [x] RLS — bez zmian: istniejąca polityka `session_financials_tutor` (SELECT całego wiersza) pokrywa odczyt `stripe_transfer_id`
+- [x] Zwrot (rozszerzenie kroku 10): `refundSession` po `refunds.create` wykonuje `transfers.createReversal` gdy transfer został wysłany, ustawia `session_financials.stripe_status = 'refunded'` i `transfer_pending = false` (zwrócona sesja nie może zostać później dopłacona przez flush); wynik reversal w audit logu (`payload.transfer_reversed`)
 
 ### E2E testy: `e2e/payments-connect.spec.ts` (rozszerzenie)
 
-- [ ] **Test 5:** Pełny przepływ z Connect: uczeń płaci → sesja → capture → `stripe_transfer_id` pojawia się w `session_financials`
-- [ ] **Test 6:** Korepetytor bez onboardingu: `transfer_pending = true` po capture; po zakończeniu onboardingu transfer zostaje wysłany
-- [ ] **Test 7:** Kwota transferu = 70% kwoty sesji (sprawdź w Stripe test API)
+Konto Connect dla weryfikacji transferów tworzone jako `type: 'custom'` aktywowane w całości przez API (Express nie da się ukończyć bez hostowanego formularza Stripe); transfery działają identycznie.
+
+- [x] **Test 6:** Pełny przepływ: capture po sesji → `stripe_transfer_id` w `session_financials`, podział 7000/3000 gr, kwota transferu zweryfikowana w Stripe API (= 70%)
+- [x] **Test 7:** Korepetytor bez onboardingu: `transfer_pending = true` po capture; po powrocie z onboardingu (`/settings/stripe/return`) zaległy transfer wysłany
 
 ---
 

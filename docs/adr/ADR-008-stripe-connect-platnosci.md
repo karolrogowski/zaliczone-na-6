@@ -68,6 +68,7 @@ Dane kart nigdy nie trafiają na serwery platformy — używamy Stripe Elements.
 ## Reguły biznesowe (ustalone 2026-06-08)
 
 - **Cena sesji:** 100 zł, stała dla wszystkich sesji; konfigurowalna przez admina w `platform_config`
+- **Prowizja platformy:** 30% (potwierdzone 2026-06-12); wartość czytana z `platform_config.commission_pct` przy każdym podziale — admin może ją zmieniać w panelu bez deployu. Wcześniejsza wartość 20 w seedzie była nieużywanym placeholderem.
 - **Czas trwania:** tylko 60 minut (brak opcji 30 min na tym etapie)
 - **Timing płatności:** preautoryzacja (hold) w momencie złożenia zlecenia przez ucznia; faktyczne pobranie (`capture`) po zakończeniu sesji
 - **Sesja skrócona przez korepetytora:** pobierana pełna opłata — korepetytor nie powinien kończyć wcześniej
