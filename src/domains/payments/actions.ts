@@ -104,8 +104,155 @@ export async function capturePayment(requestId: string): Promise<void> {
       'captured',
       chargeId ? { stripe_charge_id: chargeId } : {}
     )
+
+    // Krok 8: podział 70/30 i ewidencja finansowa. Błąd na tym etapie nie może
+    // cofnąć udanego capture — funkcja loguje i zostawia spójny stan
+    // (transfer_pending) do późniejszego nadrobienia.
+    await recordFinancialsAndTransfer(
+      requestId,
+      request.stripe_payment_intent_id,
+      paymentIntent.amount_received || paymentIntent.amount,
+      chargeId
+    )
   } catch (err) {
     console.error('[payments] Nie udało się pobrać płatności:', err)
+  }
+}
+
+/** Prowizja platformy w procentach (0–100) z platform_config; domyślnie 30. */
+async function getCommissionPct(
+  supabase: ReturnType<typeof createPaymentsServiceClient>
+): Promise<number> {
+  const { data } = await supabase
+    .from('platform_config')
+    .select('value')
+    .eq('key', 'commission_pct')
+    .single()
+
+  const pct = data ? parseInt(data.value, 10) : 30
+  return Number.isFinite(pct) ? Math.min(100, Math.max(0, pct)) : 30
+}
+
+/**
+ * Po udanym capture: wylicza podział uczeń/korepetytor/platforma, wysyła
+ * transfer 70% na konto Connect korepetytora i zapisuje ewidencję do
+ * session_financials. Gdy korepetytor nie ukończył onboardingu (albo transfer
+ * się nie powiódł), udział jest odkładany flagą transfer_pending i wysyłany
+ * po podłączeniu konta (flushPendingTransfers).
+ */
+async function recordFinancialsAndTransfer(
+  requestId: string,
+  paymentIntentId: string,
+  amountGrosz: number,
+  chargeId: string | undefined
+): Promise<void> {
+  const supabase = createPaymentsServiceClient()
+
+  try {
+    const { data: session } = await supabase
+      .from('sessions')
+      .select('id, tutor_id')
+      .eq('matching_request_id', requestId)
+      .maybeSingle()
+    if (!session) return
+
+    // Idempotencja — unique(session_id); druga próba capture nic nie dopisuje
+    const { data: existing } = await supabase
+      .from('session_financials')
+      .select('id')
+      .eq('session_id', session.id)
+      .maybeSingle()
+    if (existing) return
+
+    const pct = await getCommissionPct(supabase)
+    const tutorEarningGrosz = Math.floor((amountGrosz * (100 - pct)) / 100)
+    const commissionGrosz = amountGrosz - tutorEarningGrosz
+
+    const { data: tutorProfile } = await supabase
+      .from('tutor_profiles')
+      .select('stripe_account_id, stripe_onboarding_done')
+      .eq('id', session.tutor_id)
+      .maybeSingle()
+
+    let transferId: string | null = null
+    let transferPending = tutorEarningGrosz > 0
+
+    if (
+      transferPending &&
+      chargeId &&
+      tutorProfile?.stripe_account_id &&
+      tutorProfile.stripe_onboarding_done
+    ) {
+      try {
+        const transfer = await getStripeClient().transfers.create({
+          amount: tutorEarningGrosz,
+          currency: 'pln',
+          destination: tutorProfile.stripe_account_id,
+          // Wiąże transfer z konkretną płatnością — środki pochodzą z tego
+          // charge'a, a nie z ogólnego salda platformy
+          source_transaction: chargeId,
+          metadata: { matching_request_id: requestId, session_id: session.id },
+        })
+        transferId = transfer.id
+        transferPending = false
+      } catch (err) {
+        console.error('[payments] Transfer do korepetytora nie powiódł się (odłożony):', err)
+      }
+    }
+
+    await supabase.from('session_financials').insert({
+      session_id: session.id,
+      student_cost_grosz: amountGrosz,
+      tutor_earning_grosz: tutorEarningGrosz,
+      platform_commission_grosz: commissionGrosz,
+      stripe_payment_intent_id: paymentIntentId,
+      stripe_charge_id: chargeId ?? null,
+      stripe_status: 'captured',
+      stripe_transfer_id: transferId,
+      transfer_pending: transferPending,
+    })
+  } catch (err) {
+    console.error('[payments] Nie udało się zapisać ewidencji finansowej:', err)
+  }
+}
+
+/**
+ * Wysyła odłożone transfery (transfer_pending) korepetytora — wywoływane po
+ * pomyślnym ukończeniu onboardingu Stripe Connect.
+ */
+async function flushPendingTransfers(tutorId: string): Promise<void> {
+  const supabase = createPaymentsServiceClient()
+
+  const { data: tutorProfile } = await supabase
+    .from('tutor_profiles')
+    .select('stripe_account_id')
+    .eq('id', tutorId)
+    .maybeSingle()
+  if (!tutorProfile?.stripe_account_id) return
+
+  const { data: pending } = await supabase
+    .from('session_financials')
+    .select('id, tutor_earning_grosz, stripe_charge_id, sessions!inner(tutor_id)')
+    .eq('transfer_pending', true)
+    .eq('sessions.tutor_id', tutorId)
+
+  for (const row of pending ?? []) {
+    if (!row.stripe_charge_id || row.tutor_earning_grosz <= 0) continue
+    try {
+      const transfer = await getStripeClient().transfers.create({
+        amount: row.tutor_earning_grosz,
+        currency: 'pln',
+        destination: tutorProfile.stripe_account_id,
+        source_transaction: row.stripe_charge_id,
+        metadata: { session_financials_id: row.id },
+      })
+      await supabase
+        .from('session_financials')
+        .update({ stripe_transfer_id: transfer.id, transfer_pending: false })
+        .eq('id', row.id)
+    } catch (err) {
+      console.error('[payments] Nie udało się wysłać odłożonego transferu:', err)
+    }
   }
 }
 
@@ -259,6 +406,9 @@ export async function syncConnectOnboardingStatus(): Promise<ConnectOnboardingSt
         .from('tutor_profiles')
         .update({ stripe_onboarding_done: true })
         .eq('id', user.id)
+
+      // Krok 8: wyślij udziały odłożone z sesji ukończonych przed onboardingiem
+      await flushPendingTransfers(user.id)
     }
 
     return { connected: true, onboardingDone }

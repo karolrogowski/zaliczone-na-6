@@ -31,7 +31,7 @@ export function ConfigForm({
               type="number"
               min={0}
               max={100}
-              defaultValue={commissionConfig?.value ?? '20'}
+              defaultValue={commissionConfig?.value ?? '30'}
               className="w-28 rounded-lg border border-zinc-300 px-3 py-2 text-sm text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900"
             />
             {state?.errors?.commission_pct && (

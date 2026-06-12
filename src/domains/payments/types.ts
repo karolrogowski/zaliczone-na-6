@@ -36,5 +36,6 @@ export type SessionFinancials = {
   stripe_status: StripePaymentStatus
   stripe_transfer_id: string | null
   stripe_charge_id: string | null
+  transfer_pending: boolean
   created_at: string
 }

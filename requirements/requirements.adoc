@@ -61,6 +61,12 @@ sekcja "Konto bankowe" w ustawieniach, strony powrotu/odświeżenia onboardingu,
 `tutor_profiles.stripe_onboarding_done`, ostrzeżenie na dashboardzie korepetytora bez
 podłączonego konta. Korepetytor bez onboardingu może przyjmować zlecenia — jego udział
 będzie odkładany do czasu podłączenia konta (krok 8).
+Krok 8 (split payment) również DONE: po capture platforma wylicza podział wg
+`platform_config.commission_pct` (30%), wysyła transfer udziału korepetytora na jego konto
+Connect (`source_transaction` = charge sesji) i zapisuje pełną ewidencję do
+`session_financials` (koszt ucznia / zarobek korepetytora / prowizja). Udział korepetytora
+bez onboardingu jest odkładany (`transfer_pending`) i wysyłany po podłączeniu konta.
+Zwrot admina cofa również transfer (transfer reversal).
 
 === Pula zgłoszeń i system "Kto pierwszy, ten lepszy" (Matchmaking) — DONE
 

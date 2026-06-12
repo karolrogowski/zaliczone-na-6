@@ -113,11 +113,49 @@ export async function refundSession(
 
   await db.from('matching_requests').update({ stripe_status: 'refunded' }).eq('id', requestId)
 
+  // Krok 8: cofnij transfer udziału korepetytora, jeśli został już wysłany —
+  // bez reversal zwrot dla ucznia byłby finansowany w 70% z kieszeni platformy.
+  // Nieudany reversal nie blokuje zwrotu (już wykonany) — admin widzi flagę
+  // w audit logu i rozlicza ręcznie.
+  let transferReversed = false
+  const { data: sessionRow } = await db
+    .from('sessions')
+    .select('id')
+    .eq('matching_request_id', requestId)
+    .maybeSingle()
+
+  if (sessionRow) {
+    const { data: financials } = await db
+      .from('session_financials')
+      .select('id, stripe_transfer_id')
+      .eq('session_id', sessionRow.id)
+      .maybeSingle()
+
+    if (financials?.stripe_transfer_id) {
+      try {
+        await getStripeClient().transfers.createReversal(financials.stripe_transfer_id)
+        transferReversed = true
+      } catch (err) {
+        console.error('[admin] Nie udało się cofnąć transferu do korepetytora:', err)
+      }
+    }
+
+    if (financials) {
+      // transfer_pending = false: zwróconej sesji nie wolno później dopłacić
+      // korepetytorowi przez flushPendingTransfers
+      await db
+        .from('session_financials')
+        .update({ stripe_status: 'refunded', transfer_pending: false })
+        .eq('id', financials.id)
+    }
+  }
+
   await logAdminAction({
     admin_id: adminId,
     action: 'session_payment_refunded',
     target_type: 'matching_request',
     target_id: requestId,
+    payload: { transfer_reversed: transferReversed },
   })
 
   revalidatePath('/admin/sessions')
