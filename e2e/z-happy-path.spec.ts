@@ -41,6 +41,8 @@ test('pełny przepływ: oczekiwanie → akceptacja → sesja → zakończenie �
     student_id: ids.studentId,
     subject_id: 'matematyka',
     status: 'pending',
+
+    stripe_status: 'authorized',
   })
 
   const studentCtx = await browser.newContext()

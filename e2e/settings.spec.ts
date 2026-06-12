@@ -192,6 +192,7 @@ test('po usunięciu blokady korepetytor widzi zlecenia ucznia w swoim feedzie', 
     student_id: ids.studentId,
     subject_id: 'matematyka',
     status: 'pending',
+    stripe_status: 'authorized',
     expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
   })
 

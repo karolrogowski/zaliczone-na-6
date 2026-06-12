@@ -303,6 +303,43 @@ export async function cancelExpiredPaymentHolds(): Promise<void> {
 }
 
 /**
+ * Fallback niezależny od webhooka: dociąga aktualny status PaymentIntent
+ * ze Stripe i aktualizuje matching_requests. Wywoływane lazy przy wejściu
+ * ucznia na dashboard po powrocie z checkoutu — zlecenie staje się widoczne
+ * dla korepetytorów nawet przy opóźnionym/niedostarczonym webhooku.
+ */
+export async function syncPaymentStatusFromStripe(requestId: string): Promise<void> {
+  const supabase = createPaymentsServiceClient()
+
+  const { data: request } = await supabase
+    .from('matching_requests')
+    .select('stripe_payment_intent_id, stripe_status')
+    .eq('id', requestId)
+    .maybeSingle()
+
+  if (!request?.stripe_payment_intent_id) return
+  if (request.stripe_status !== 'pending') return
+
+  try {
+    const pi = await getStripeClient().paymentIntents.retrieve(request.stripe_payment_intent_id)
+    const mapped: StripePaymentStatus | null =
+      pi.status === 'requires_capture'
+        ? 'authorized'
+        : pi.status === 'succeeded'
+        ? 'paid'
+        : pi.status === 'canceled'
+        ? 'cancelled'
+        : null
+
+    if (mapped) {
+      await updatePaymentStatus(request.stripe_payment_intent_id, mapped)
+    }
+  } catch (err) {
+    console.error('[payments] Nie udało się zsynchronizować statusu płatności:', err)
+  }
+}
+
+/**
  * Origin aplikacji do budowania URL-i powrotnych Stripe Connect.
  * NEXT_PUBLIC_SITE_URL ma pierwszeństwo (prod za proxy), fallback na nagłówki.
  */

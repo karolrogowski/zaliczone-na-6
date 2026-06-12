@@ -12,6 +12,8 @@ async function fetchPendingRequests(): Promise<MatchingRequestWithSubject[]> {
     .from('matching_requests')
     .select('*, subjects(label)')
     .eq('status', 'pending')
+    // Spójnie z getTutorPendingRequests: tylko zlecenia z zablokowanymi środkami
+    .eq('stripe_status', 'authorized')
     .gt('expires_at', now)
     .order('created_at', { ascending: true })
   return (data ?? []) as MatchingRequestWithSubject[]
