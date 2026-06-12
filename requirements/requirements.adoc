@@ -56,8 +56,11 @@ płatności Stripe Elements na `/checkout/[requestId]`, webhook aktualizujący s
 (pobranie środków po zakończeniu sesji, anulowanie holdu przy rezygnacji ucznia i przy wygaśnięciu
 zlecenia bez akceptacji korepetytora) oraz panel admina ze zwrotami płatności (refund) — kroki
 1-6 i 10 z `docs/payment-implementation-plan.md`.
-Poza zakresem MVP: Stripe Connect dla korepetytorów, split payment, wirtualny portfel i wypłaty
-(kroki 7-9, AFTER_MVP).
+Stan na 2026-06-12: dodano onboarding korepetytora przez Stripe Connect Express (krok 7) —
+sekcja "Konto bankowe" w ustawieniach, strony powrotu/odświeżenia onboardingu, flaga
+`tutor_profiles.stripe_onboarding_done`, ostrzeżenie na dashboardzie korepetytora bez
+podłączonego konta. Korepetytor bez onboardingu może przyjmować zlecenia — jego udział
+będzie odkładany do czasu podłączenia konta (krok 8).
 
 === Pula zgłoszeń i system "Kto pierwszy, ten lepszy" (Matchmaking) — DONE
 

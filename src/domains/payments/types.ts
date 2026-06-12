@@ -11,6 +11,20 @@ export type CreateCheckoutSessionResult =
   | { success: true; clientSecret: string }
   | { success: false; message: string }
 
+export type StartConnectOnboardingResult =
+  | { success: true; url: string }
+  | { success: false; message: string }
+
+export type ConnectOnboardingState =
+  | { connected: false }
+  | { connected: true; onboardingDone: boolean }
+
+/** Stan pól Stripe na tutor_profiles — do warunkowego renderowania UI. */
+export type TutorStripeState = {
+  hasAccount: boolean
+  onboardingDone: boolean
+}
+
 export type SessionFinancials = {
   id: string
   session_id: string
