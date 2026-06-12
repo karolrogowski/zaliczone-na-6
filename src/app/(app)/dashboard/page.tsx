@@ -15,6 +15,7 @@ import {
   getTutorStudentInteractions,
   getStudentPreviousRatingOfTutor,
 } from '@/domains/matching/queries'
+import { getOwnTutorStripeState } from '@/domains/payments/queries'
 
 export default async function DashboardPage({
   searchParams,
@@ -112,11 +113,12 @@ export default async function DashboardPage({
   }
 
   if (profile?.role === 'tutor') {
-    const [pendingRequests, tutorProfile, acceptedRequest, recentRequests] = await Promise.all([
+    const [pendingRequests, tutorProfile, acceptedRequest, recentRequests, stripeState] = await Promise.all([
       getTutorPendingRequests(),
       getTutorProfileDetails(),
       getTutorAcceptedRequest(),
       getTutorRecentRequests(),
+      getOwnTutorStripeState(),
     ])
 
     const studentIds = [...new Set(pendingRequests.map((r) => r.student_id).filter(Boolean))] as string[]
@@ -127,6 +129,15 @@ export default async function DashboardPage({
         {ratingSuccess && (
           <div className="mb-5 rounded-[10px] border border-[#b8e0c5] bg-[#EAF3DE] px-4 py-3 text-[13px] font-medium text-[#27500A]">
             ✓ Ocena ucznia została zapisana. Dziękujemy!
+          </div>
+        )}
+        {!stripeState.onboardingDone && (
+          <div className="mb-5 rounded-[10px] border border-[#ecd9a8] bg-[#FBF3DC] px-4 py-3 text-[13px] text-[#6b5418]">
+            Podłącz konto bankowe w{' '}
+            <a href="/settings" className="font-medium underline hover:text-[#4a3a10]">
+              Ustawieniach
+            </a>
+            , aby otrzymywać wypłaty za przeprowadzone sesje.
           </div>
         )}
         <TutorDashboard

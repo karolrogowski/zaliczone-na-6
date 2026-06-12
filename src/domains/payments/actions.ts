@@ -1,12 +1,18 @@
 'use server'
 
+import { headers } from 'next/headers'
 import { createClient } from '@/shared/supabase/server'
 import { getCurrentUserOrNull } from '@/shared/auth/getCurrentUser'
 import { getStripeClient } from './stripe-client'
 import { createPaymentsServiceClient } from './service-client'
 import { updatePaymentStatus } from './status'
 import { getSessionPriceGrosz } from './queries'
-import type { CreateCheckoutSessionResult, StripePaymentStatus } from './types'
+import type {
+  ConnectOnboardingState,
+  CreateCheckoutSessionResult,
+  StartConnectOnboardingResult,
+  StripePaymentStatus,
+} from './types'
 
 const HOLDABLE_STATUSES: StripePaymentStatus[] = ['pending', 'authorized']
 
@@ -146,4 +152,138 @@ export async function cancelExpiredPaymentHolds(): Promise<void> {
   if (!expired?.length) return
 
   await Promise.all(expired.map((r) => cancelPaymentHold(r.id)))
+}
+
+/**
+ * Origin aplikacji do budowania URL-i powrotnych Stripe Connect.
+ * NEXT_PUBLIC_SITE_URL ma pierwszeństwo (prod za proxy), fallback na nagłówki.
+ */
+async function getSiteOrigin(): Promise<string> {
+  const configured = process.env.NEXT_PUBLIC_SITE_URL
+  if (configured) return configured.replace(/\/$/, '')
+
+  const headerList = await headers()
+  const host = headerList.get('x-forwarded-host') ?? headerList.get('host') ?? 'localhost:3000'
+  const proto = headerList.get('x-forwarded-proto') ?? 'http'
+  return `${proto}://${host}`
+}
+
+/** Zwraca id konta Connect korepetytora albo null. Tylko dla roli tutor. */
+async function getOwnConnectAccountId(userId: string): Promise<{ accountId: string | null; isTutor: boolean }> {
+  const supabase = await createClient()
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .single()
+  if (profile?.role !== 'tutor') return { accountId: null, isTutor: false }
+
+  const { data } = await supabase
+    .from('tutor_profiles')
+    .select('stripe_account_id')
+    .eq('id', userId)
+    .maybeSingle()
+
+  return { accountId: data?.stripe_account_id ?? null, isTutor: true }
+}
+
+/**
+ * Rozpoczyna (lub wznawia) onboarding Stripe Connect Express korepetytora.
+ * Tworzy konto Express przy pierwszym wywołaniu i zwraca URL hostowanego
+ * formularza onboardingowego Stripe, na który klient ma przekierować.
+ */
+export async function startConnectOnboarding(): Promise<StartConnectOnboardingResult> {
+  const user = await getCurrentUserOrNull()
+  if (!user) return { success: false, message: 'Nie jesteś zalogowany.' }
+
+  const { accountId: existingAccountId, isTutor } = await getOwnConnectAccountId(user.id)
+  if (!isTutor) return { success: false, message: 'Brak uprawnień.' }
+
+  const stripe = getStripeClient()
+
+  try {
+    let accountId = existingAccountId
+
+    if (!accountId) {
+      const account = await stripe.accounts.create({
+        type: 'express',
+        country: 'PL',
+        email: user.email ?? undefined,
+        capabilities: { transfers: { requested: true } },
+        metadata: { tutor_id: user.id },
+      })
+      accountId = account.id
+
+      // Zapis przez service role — stripe_account_id jest poza column-level
+      // GRANT dla authenticated (ochrona przed mass assignment).
+      await createPaymentsServiceClient()
+        .from('tutor_profiles')
+        .update({ stripe_account_id: accountId })
+        .eq('id', user.id)
+    }
+
+    const origin = await getSiteOrigin()
+    const link = await stripe.accountLinks.create({
+      account: accountId,
+      refresh_url: `${origin}/settings/stripe/refresh`,
+      return_url: `${origin}/settings/stripe/return`,
+      type: 'account_onboarding',
+    })
+
+    return { success: true, url: link.url }
+  } catch (err) {
+    console.error('[payments] Nie udało się rozpocząć onboardingu Connect:', err)
+    return { success: false, message: 'Nie udało się połączyć ze Stripe. Spróbuj ponownie.' }
+  }
+}
+
+/**
+ * Synchronizuje status onboardingu z kontem Stripe — wywoływane po powrocie
+ * korepetytora z hostowanego formularza Stripe (/settings/stripe/return).
+ * Gdy konto jest gotowe do wypłat, zapisuje stripe_onboarding_done = true.
+ */
+export async function syncConnectOnboardingStatus(): Promise<ConnectOnboardingState> {
+  const user = await getCurrentUserOrNull()
+  if (!user) return { connected: false }
+
+  const { accountId } = await getOwnConnectAccountId(user.id)
+  if (!accountId) return { connected: false }
+
+  try {
+    const account = await getStripeClient().accounts.retrieve(accountId)
+    const onboardingDone = Boolean(account.details_submitted && account.payouts_enabled)
+
+    if (onboardingDone) {
+      await createPaymentsServiceClient()
+        .from('tutor_profiles')
+        .update({ stripe_onboarding_done: true })
+        .eq('id', user.id)
+    }
+
+    return { connected: true, onboardingDone }
+  } catch (err) {
+    console.error('[payments] Nie udało się pobrać statusu konta Connect:', err)
+    return { connected: true, onboardingDone: false }
+  }
+}
+
+/**
+ * Link logowania do panelu Stripe Express (historia wypłat korepetytora).
+ * Dostępny tylko po ukończonym onboardingu.
+ */
+export async function getExpressDashboardLink(): Promise<StartConnectOnboardingResult> {
+  const user = await getCurrentUserOrNull()
+  if (!user) return { success: false, message: 'Nie jesteś zalogowany.' }
+
+  const { accountId } = await getOwnConnectAccountId(user.id)
+  if (!accountId) return { success: false, message: 'Brak połączonego konta Stripe.' }
+
+  try {
+    const link = await getStripeClient().accounts.createLoginLink(accountId)
+    return { success: true, url: link.url }
+  } catch (err) {
+    console.error('[payments] Nie udało się utworzyć linku do panelu Express:', err)
+    return { success: false, message: 'Nie udało się otworzyć panelu Stripe. Spróbuj ponownie.' }
+  }
 }

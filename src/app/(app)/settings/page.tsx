@@ -4,6 +4,8 @@ import { SettingsForm } from '@/domains/auth/components/SettingsForm'
 import { getStudentAvoidedTutors, getStudentFavoriteTutors } from '@/domains/matching/queries'
 import { AvoidedTutorsList } from '@/domains/matching/components/AvoidedTutorsList'
 import { FavoriteTutorsList } from '@/domains/matching/components/FavoriteTutorsList'
+import { getOwnTutorStripeState } from '@/domains/payments/queries'
+import { BankAccountSection } from '@/domains/payments/components/BankAccountSection'
 
 export default async function SettingsPage() {
   const profile = await getCurrentProfile()
@@ -12,6 +14,8 @@ export default async function SettingsPage() {
   const [avoidedTutors, favoriteTutors] = profile.role === 'student'
     ? await Promise.all([getStudentAvoidedTutors(), getStudentFavoriteTutors()])
     : [[], []]
+
+  const stripeState = profile.role === 'tutor' ? await getOwnTutorStripeState() : null
 
   return (
     <div className="flex flex-col h-full">
@@ -23,6 +27,8 @@ export default async function SettingsPage() {
       <div className="flex-1 overflow-auto p-[22px_26px]">
         <div className="mx-auto max-w-xl flex flex-col gap-4">
           <SettingsForm profile={profile} />
+
+          {stripeState && <BankAccountSection stripeState={stripeState} />}
 
           {profile.role === 'student' && (
             <>
