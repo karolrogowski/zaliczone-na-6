@@ -7,6 +7,7 @@ import { getStripeClient } from './stripe-client'
 import { createPaymentsServiceClient } from './service-client'
 import { updatePaymentStatus } from './status'
 import { getSessionPriceGrosz } from './queries'
+import { buildConnectBusinessProfile } from './connect-business-profile'
 import type {
   ConnectOnboardingState,
   CreateCheckoutSessionResult,
@@ -389,6 +390,7 @@ export async function startConnectOnboarding(): Promise<StartConnectOnboardingRe
 
   try {
     let accountId = existingAccountId
+    const origin = await getSiteOrigin()
 
     if (!accountId) {
       const account = await stripe.accounts.create({
@@ -399,6 +401,7 @@ export async function startConnectOnboarding(): Promise<StartConnectOnboardingRe
         // Wypłaty ręczne — korepetytor sam zleca przelew z salda (krok 9);
         // domyślny automatyczny harmonogram blokowałby payouts.create
         settings: { payouts: { schedule: { interval: 'manual' } } },
+        business_profile: buildConnectBusinessProfile(process.env.NEXT_PUBLIC_SITE_URL),
         metadata: { tutor_id: user.id },
       })
       accountId = account.id
@@ -411,7 +414,6 @@ export async function startConnectOnboarding(): Promise<StartConnectOnboardingRe
         .eq('id', user.id)
     }
 
-    const origin = await getSiteOrigin()
     const link = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${origin}/settings/stripe/refresh`,
