@@ -774,7 +774,7 @@ test('uczeĹ„ nie moĹĽe podstawiÄ‡ obcego tutor_id w insert do ratings', 
 
 // â”€â”€â”€ Test 23: UczeĹ„ nie moĹĽe ustawiÄ‡ odlegĹ‚ego expires_at przy insercie â”€â”€â”€â”€â”€â”€â”€
 
-test('expires_at jest normalizowane do now()+5min przy insercie z konta studenta', async () => {
+test('expires_at jest normalizowane do now()+10min przy insercie z konta studenta', async () => {
   const studentClient = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -795,9 +795,9 @@ test('expires_at jest normalizowane do now()+5min przy insercie z konta studenta
 
   expect(error).toBeNull()
   expect(data?.expires_at).not.toBe(farFuture)
-  // Powinno byÄ‡ w okolicy now() + 5min
+  // Powinno byÄ‡ w okolicy now() + 10min
   const expiresMs = new Date(data!.expires_at).getTime()
-  const expectedMs = Date.now() + 5 * 60 * 1000
+  const expectedMs = Date.now() + 10 * 60 * 1000
   expect(Math.abs(expiresMs - expectedMs)).toBeLessThan(60 * 1000) // tolerancja 1 min
 
   await adminClient().from('matching_requests').delete().eq('id', data!.id)
